@@ -26,6 +26,7 @@ import { AdminFeedbackPage } from '@apps/admin/AdminFeedbackPage'
 import { AdminLogsPage } from '@apps/admin/AdminLogsPage'
 import { AdminSettingsPage } from '@apps/admin/AdminSettingsPage'
 import { AdminStatsPage } from '@apps/admin/AdminStatsPage'
+import { SmartImageToolsPage } from '@apps/smart-image-tools'
 
 export function AppRoutes() {
   return (
@@ -34,6 +35,7 @@ export function AppRoutes() {
       <Route element={<AppLayout />}>
         <Route path={ROUTES.home} element={<HomePage />} />
         <Route path={ROUTES.search} element={<SearchPage />} />
+        <Route path={ROUTES.smartImageTools} element={<SmartImageToolsPage />} />
         <Route path={ROUTES.privacy} element={<PrivacyPolicyPage />} />
         <Route path={ROUTES.terms} element={<TermsPage />} />
         <Route path={ROUTES.about} element={<AboutPage />} />

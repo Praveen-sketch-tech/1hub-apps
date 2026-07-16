@@ -9,6 +9,7 @@ export const ROUTES = {
   profile: '/profile',
   settings: '/settings',
   search: '/search',
+  smartImageTools: '/apps/smart-image-tools',
   privacy: '/legal/privacy',
   terms: '/legal/terms',
   about: '/about',
