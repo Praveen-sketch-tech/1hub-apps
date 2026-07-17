@@ -10,6 +10,7 @@ export const ROUTES = {
   settings: '/settings',
   search: '/search',
   smartImageTools: '/apps/smart-image-tools',
+  smartPdfTools: '/apps/smart-pdf-tools',
   privacy: '/legal/privacy',
   terms: '/legal/terms',
   about: '/about',

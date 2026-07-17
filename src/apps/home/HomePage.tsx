@@ -54,49 +54,81 @@ export function HomePage() {
       </div>
 
       <section className="mb-12">
-        <div className="mb-5">
-          <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
-            App #001
-          </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
+            <div className="flex h-full flex-col gap-5">
+              <div>
+                <p className="mb-1 text-sm font-medium text-blue-600 dark:text-blue-400">
+                  App #001
+                </p>
 
-          <h2 className="text-2xl font-bold">Smart Image Tools</h2>
+                <h2 className="text-xl font-bold">Smart Image Tools</h2>
 
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Compress, resize, convert and crop images directly in your browser.
-          </p>
-        </div>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                  Compress, resize, convert and crop images directly in your browser.
+                </p>
 
-        <Card>
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Smart Image Tools</h3>
+                <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Compress
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Resize
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Convert
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Crop
+                  </span>
+                </div>
+              </div>
 
-              <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-                Your images stay on your device. No upload to a server, no paid
-                API and no login required.
-              </p>
-
-              <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
-                <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                  Compress
-                </span>
-                <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                  Resize
-                </span>
-                <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                  Convert
-                </span>
-                <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                  Crop
-                </span>
+              <div className="mt-auto pt-2">
+                <Link to={ROUTES.smartImageTools}>
+                  <Button>Open tool</Button>
+                </Link>
               </div>
             </div>
+          </Card>
 
-            <Link to={ROUTES.smartImageTools}>
-              <Button>Open tool</Button>
-            </Link>
-          </div>
-        </Card>
+          <Card>
+            <div className="flex h-full flex-col gap-5">
+              <div>
+                <p className="mb-1 text-sm font-medium text-blue-600 dark:text-blue-400">
+                  App #002
+                </p>
+
+                <h2 className="text-xl font-bold">Smart PDF Tools</h2>
+
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                  Create, merge, split, reorder, rotate and compress PDFs directly in your browser.
+                </p>
+
+                <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Merge
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Split
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Compress
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Images to PDF
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-auto pt-2">
+                <Link to={ROUTES.smartPdfTools}>
+                  <Button>Open tool</Button>
+                </Link>
+              </div>
+            </div>
+          </Card>
+        </div>
       </section>
 
       <section>
