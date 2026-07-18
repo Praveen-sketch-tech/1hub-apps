@@ -128,6 +128,45 @@ export function HomePage() {
               </div>
             </div>
           </Card>
+
+          <Card>
+            <div className="flex h-full flex-col gap-5">
+              <div>
+                <p className="mb-1 text-sm font-medium text-blue-600 dark:text-blue-400">
+                  App #003
+                </p>
+
+                <h2 className="text-xl font-bold">
+                  QR &amp; Barcode Studio
+                </h2>
+
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                  Create and scan QR codes and barcodes privately in your browser.
+                </p>
+
+                <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    QR Generator
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Barcode
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Scanner
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Wi-Fi QR
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-auto pt-2">
+                <Link to={ROUTES.qrBarcodeStudio}>
+                  <Button>Open tool</Button>
+                </Link>
+              </div>
+            </div>
+          </Card>
         </div>
       </section>
 
