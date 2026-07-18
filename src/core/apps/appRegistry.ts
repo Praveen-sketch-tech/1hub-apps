@@ -72,4 +72,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-document-scanner-ocr',
     tags: ["Document Scanner","OCR","Perspective Correction","Deskew","Scan Enhancement","PDF Export"],
   },
+  {
+    id: 'smart-audio-tools',
+    number: '009',
+    name: "Smart Audio Tools",
+    description: "Trim, merge, adjust and export audio locally in your browser.",
+    path: '/apps/smart-audio-tools',
+    tags: ["Audio Trim","Merge Audio","Volume","Fade","Speed","WAV Export"],
+  },
 ]

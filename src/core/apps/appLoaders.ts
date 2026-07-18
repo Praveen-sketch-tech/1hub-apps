@@ -79,4 +79,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-audio-tools',
+    name: "Smart Audio Tools",
+    component: lazy(() =>
+      import('@apps/smart-audio-tools').then((module) => ({
+        default: module.SmartAudioToolsPage,
+      }))
+    ),
+  },
 ]
