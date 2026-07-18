@@ -1,4 +1,13 @@
-.sit-page { --sit-border: color-mix(in srgb, currentColor 14%, transparent); --sit-muted: color-mix(in srgb, currentColor 63%, transparent); --sit-surface: color-mix(in srgb, Canvas 94%, currentColor 6%); --sit-accent: #635bff; min-height: 100%; padding: clamp(20px, 4vw, 56px); color: CanvasText; background: radial-gradient(circle at top right, color-mix(in srgb, var(--sit-accent) 12%, transparent), transparent 32%), Canvas; }
+.sit-page {
+  --sit-border: var(--tool-border);
+  --sit-muted: var(--tool-muted);
+  --sit-surface: var(--tool-surface);
+  --sit-accent: var(--tool-accent);
+  min-height: 100%;
+  padding: clamp(20px, 4vw, 56px);
+  color: var(--tool-text);
+  background: var(--tool-page-bg);
+}
 .sit-page * { box-sizing: border-box; }
 
 
@@ -33,8 +42,8 @@
 .sit-field-stack { display: grid; gap: 16px; }
 .sit-field-stack p { margin: 0; color: var(--sit-muted); line-height: 1.5; }
 .sit-tool-body label, .sit-crop-controls label { display: grid; gap: 8px; color: var(--sit-muted); font-size: .86rem; font-weight: 650; }
-.sit-tool-body label strong { color: CanvasText; }
-.sit-tool-body input[type='number'], .sit-tool-body select, .sit-crop-controls select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--sit-border); border-radius: 10px; background: Canvas; color: CanvasText; font: inherit; }
+.sit-tool-body label strong { color: var(--tool-surface-text); }
+.sit-tool-body input[type='number'], .sit-tool-body select, .sit-crop-controls select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--sit-border); border-radius: 10px; background: var(--tool-surface); color: var(--tool-surface-text); font: inherit; }
 .sit-tool-body input[type='range'] { width: 100%; accent-color: var(--sit-accent); }
 .sit-two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .sit-checkbox { display: flex !important; grid-template-columns: auto 1fr; align-items: center; }
@@ -193,15 +202,15 @@ cropper-handle[action='w-resize'] {
   padding: 10px 14px;
   border: 1px solid var(--sit-border);
   border-radius: 10px;
-  background: Canvas;
-  color: CanvasText;
+  background: var(--tool-surface);
+  color: var(--tool-surface-text);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
 }
 
 .sit-secondary-button:hover {
-  background: color-mix(in srgb, CanvasText 6%, Canvas);
+  background: var(--tool-surface-soft);
 }
 
 @media (max-width: 560px) {
@@ -262,7 +271,7 @@ cropper-handle[action='w-resize'] {
     var(--sit-accent) 7%,
     Canvas
   );
-  color: CanvasText;
+  color: var(--tool-surface-text);
 }
 
 .sit-status-box {
@@ -273,7 +282,7 @@ cropper-handle[action='w-resize'] {
     var(--sit-accent) 8%,
     Canvas
   );
-  color: CanvasText;
+  color: var(--tool-surface-text);
   font-size: 0.88rem;
   font-weight: 650;
   line-height: 1.5;

@@ -44,7 +44,7 @@ export default function SmartDocumentScannerOcrPage() {
   const combined=useMemo(()=>pages.map((p,i)=>`Page ${i+1}\n${p.ocr.text}`).join('\n\n'),[pages])
   const matches=query.trim()?combined.toLowerCase().split(query.toLowerCase()).length-1:0
 
-  return <main className="sdoc-app">
+  return <main className="tool-page sdoc-app">
     <ToolAppHeader
         appNumber="008"
         title="Smart Document Scanner & OCR"

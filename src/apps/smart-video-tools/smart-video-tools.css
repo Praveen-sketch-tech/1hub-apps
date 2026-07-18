@@ -2,39 +2,39 @@
   max-width:1180px;
   margin:0 auto;
   padding:20px;
-  color:#f2f4f7;
+  color:var(--tool-text);
 }
 
 
 
 
 .svt-dropzone{
-  border:2px dashed #cfd6e4;
+  border:2px dashed var(--tool-border);
   border-radius:18px;
   padding:34px 20px;
   text-align:center;
   display:grid;
   gap:8px;
   cursor:pointer;
-  background:#fff;
-  color:#172033;
+  background:var(--tool-surface);
+  color:var(--tool-surface-text);
 }
-.svt-dropzone span,.svt-dropzone small{color:#667085}
+.svt-dropzone span,.svt-dropzone small{color:var(--tool-surface-muted)}
 .svt-dropzone.is-disabled{opacity:.6;cursor:not-allowed}
 .svt-drop-icon{font-size:2.4rem}
 .svt-card{
-  background:#fff;
-  border:1px solid #dfe4ec;
+  background:var(--tool-surface);
+  border:1px solid var(--tool-border);
   border-radius:16px;
   padding:18px;
   margin-bottom:16px;
-  color:#172033;
+  color:var(--tool-surface-text);
 }
 .svt-card h2{
   margin:0 0 14px;
-  color:#172033;
+  color:var(--tool-surface-text);
 }
-.svt-card label,.svt-card strong{color:#172033}
+.svt-card label,.svt-card strong{color:var(--tool-surface-text)}
 .svt-file-meta{
   display:flex;
   flex-direction:column;
@@ -46,7 +46,7 @@
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-.svt-file-meta span,.svt-note,.svt-footnote{color:#667085}
+.svt-file-meta span,.svt-note,.svt-footnote{color:var(--tool-surface-muted)}
 .svt-row-between{
   display:flex;
   align-items:center;
@@ -73,16 +73,16 @@
 .svt-page input,.svt-page select{
   width:100%;
   box-sizing:border-box;
-  border:1px solid #cfd6e4;
+  border:1px solid var(--tool-border);
   border-radius:10px;
   padding:10px;
-  background:#fff;
-  color:#172033;
+  background:var(--tool-surface);
+  color:var(--tool-surface-text);
 }
 .svt-page button{
-  border:1px solid #cfd6e4;
-  background:#f5f7fa;
-  color:#172033;
+  border:1px solid var(--tool-border);
+  background:var(--tool-surface-soft);
+  color:var(--tool-surface-text);
   border-radius:10px;
   padding:10px 14px;
   cursor:pointer;
@@ -96,9 +96,9 @@
 }
 .svt-check input{width:auto}
 .svt-status{
-  background:#fff;
-  color:#172033;
-  border:1px solid #dfe4ec;
+  background:var(--tool-surface);
+  color:var(--tool-surface-text);
+  border:1px solid var(--tool-border);
   border-radius:14px;
   padding:14px;
   margin-bottom:16px;
@@ -106,7 +106,7 @@
 .svt-progress{
   height:8px;
   border-radius:999px;
-  background:#e5e7eb;
+  background:var(--tool-surface-soft);
   overflow:hidden;
   margin-top:10px;
 }
@@ -119,7 +119,7 @@
   margin-bottom:16px;
   padding:12px 14px;
   border-radius:12px;
-  background:#fff;
+  background:var(--tool-surface);
   color:#b42318;
   border:1px solid #fda29b;
 }
@@ -131,7 +131,7 @@
 .svt-actions .svt-primary{
   background:#172033;
   color:#fff;
-  border-color:#172033;
+  border-color:var(--tool-surface-text);
 }
 .svt-footnote{
   margin-top:14px;

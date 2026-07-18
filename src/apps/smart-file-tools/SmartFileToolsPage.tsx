@@ -65,7 +65,7 @@ export default function SmartFileToolsPage() {
   const renamePreview = sorted.map((r, i) => ({ ...r, preview: renamedName(r.name, i, rules) }))
 
   return (
-    <main className="sft-page">
+    <main className="tool-page sft-page">
       <ToolAppHeader
         appNumber="007"
         title="Smart File Tools"

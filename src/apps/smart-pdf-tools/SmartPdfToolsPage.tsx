@@ -207,7 +207,7 @@ export default function SmartPdfToolsPage() {
 
   if (!hasStarted) {
     return (
-      <div className="spt-root">
+      <div className="tool-page spt-root">
         <ToolStartCards onFilesSelected={handleInitialFiles} />
         <ProgressPanel progress={workspace.progress} />
         {workspace.errors.length > 0 && (

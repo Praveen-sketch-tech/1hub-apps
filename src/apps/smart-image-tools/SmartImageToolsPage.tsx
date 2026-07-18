@@ -506,7 +506,7 @@ export default function SmartImageToolsPage() {
   }
 
   return (
-    <main className="sit-page">
+    <main className="tool-page sit-page">
       <ToolAppHeader
         appNumber="001"
         title="Smart Image Tools"

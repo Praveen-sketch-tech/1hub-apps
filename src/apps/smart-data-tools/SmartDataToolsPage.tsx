@@ -69,7 +69,7 @@ export default function SmartDataToolsPage() {
   }
 
   return (
-    <main className="sdt-page">
+    <main className="tool-page sdt-page">
       <ToolAppHeader
         appNumber="005"
         title="Smart Data Tools"

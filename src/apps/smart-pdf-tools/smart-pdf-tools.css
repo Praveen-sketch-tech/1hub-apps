@@ -3,20 +3,19 @@
  * All selectors are scoped with the spt- prefix and nested under .spt-root
  * so nothing here leaks into or is affected by the host application's
  * global styles. Colors are defined as CSS custom properties on .spt-root
- * with light values as defaults and overrides under prefers-color-scheme
  * and a conventional `.dark` ancestor class (the common pattern used by
  * Tailwind's class-based dark mode, which the base project already uses).
  */
 
 .spt-root {
-  --spt-bg: #f7f8fa;
-  --spt-surface: #ffffff;
-  --spt-surface-alt: #f1f3f6;
-  --spt-border: #e1e5eb;
-  --spt-text: #1a1d23;
-  --spt-text-muted: #616a76;
-  --spt-accent: #2f5fe0;
-  --spt-accent-hover: #2549b3;
+  --spt-bg: var(--tool-page-bg);
+  --spt-surface: var(--tool-surface);
+  --spt-surface-alt: var(--tool-surface-soft);
+  --spt-border: var(--tool-border);
+  --spt-text: var(--tool-surface-text);
+  --spt-text-muted: var(--tool-surface-muted);
+  --spt-accent: var(--tool-accent);
+  --spt-accent-hover: var(--tool-accent);
   --spt-accent-contrast: #ffffff;
   --spt-danger: #d1403f;
   --spt-danger-hover: #ad2f2f;
@@ -31,7 +30,7 @@
 
   color: var(--spt-text);
   background: var(--spt-bg);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
+  font-family: inherit;
   min-height: 100%;
   width: 100%;
   box-sizing: border-box;
@@ -43,40 +42,9 @@
   box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  .spt-root:not(.spt-force-light) {
-    --spt-bg: #14161a;
-    --spt-surface: #1c1f26;
-    --spt-surface-alt: #22262e;
-    --spt-border: #2d323c;
-    --spt-text: #eef0f3;
-    --spt-text-muted: #98a1ad;
-    --spt-accent: #6d8bf5;
-    --spt-accent-hover: #86a0f7;
-    --spt-accent-contrast: #0d1117;
-    --spt-warning-bg: #3a2f0c;
-    --spt-warning-text: #f2d580;
-    --spt-error-bg: #3a1414;
-    --spt-error-text: #f4a3a3;
-  }
-}
 
-.dark .spt-root,
-[data-theme='dark'] .spt-root {
-  --spt-bg: #14161a;
-  --spt-surface: #1c1f26;
-  --spt-surface-alt: #22262e;
-  --spt-border: #2d323c;
-  --spt-text: #eef0f3;
-  --spt-text-muted: #98a1ad;
-  --spt-accent: #6d8bf5;
-  --spt-accent-hover: #86a0f7;
-  --spt-accent-contrast: #0d1117;
-  --spt-warning-bg: #3a2f0c;
-  --spt-warning-text: #f2d580;
-  --spt-error-bg: #3a1414;
-  --spt-error-text: #f4a3a3;
-}
+
+.dark 
 
 .spt-visually-hidden {
   position: absolute;

@@ -132,7 +132,7 @@ export default function SmartTextToolsPage() {
   }
 
   return (
-    <main className="stt-page">
+    <main className="tool-page stt-page">
       <ToolAppHeader
         appNumber="004"
         title="Smart Text Tools"

@@ -75,3 +75,60 @@ body {
     flex-direction: column;
   }
 }
+
+/* ==================================================
+   Shared Tool Theme — single source of truth
+   ================================================== */
+
+:root {
+  --tool-page-bg: #f8fafc;
+  --tool-surface: #ffffff;
+  --tool-surface-soft: #f1f5f9;
+  --tool-text: #0f172a;
+  --tool-muted: #64748b;
+  --tool-surface-text: #0f172a;
+  --tool-surface-muted: #64748b;
+  --tool-border: #dbe3ee;
+  --tool-accent: #2563eb;
+  --tool-input-bg: #ffffff;
+}
+
+.dark {
+  --tool-page-bg: #020817;
+  --tool-surface: #ffffff;
+  --tool-surface-soft: #f8fafc;
+  --tool-text: #f8fafc;
+  --tool-muted: #94a3b8;
+  --tool-surface-text: #0f172a;
+  --tool-surface-muted: #64748b;
+  --tool-border: #334155;
+  --tool-accent: #6366f1;
+  --tool-input-bg: #ffffff;
+}
+
+.tool-page {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  color: var(--tool-text);
+  background: var(--tool-page-bg);
+}
+
+.tool-page *,
+.tool-page *::before,
+.tool-page *::after {
+  box-sizing: border-box;
+}
+
+.tool-page img,
+.tool-page video,
+.tool-page canvas {
+  max-width: 100%;
+}
+
+.tool-page input,
+.tool-page select,
+.tool-page textarea {
+  max-width: 100%;
+}

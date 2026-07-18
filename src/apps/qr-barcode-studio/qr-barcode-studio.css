@@ -3,15 +3,14 @@
    stylesheet never leaks into App #001, App #002, the base project, the
    admin panel, or auth pages. Supports light/dark themes via the host's
    `.dark` class on a root ancestor (Tailwind convention) and falls back to
-   `prefers-color-scheme` when the host theme class is absent. */
-
+   */
 .qbs-page {
-  --qbs-bg: #ffffff;
-  --qbs-surface: #f8fafc;
-  --qbs-border: #e2e8f0;
-  --qbs-text: #0f172a;
-  --qbs-muted: #64748b;
-  --qbs-accent: #4f46e5;
+  --qbs-bg: var(--tool-page-bg);
+  --qbs-surface: var(--tool-surface);
+  --qbs-border: var(--tool-border);
+  --qbs-text: var(--tool-surface-text);
+  --qbs-muted: var(--tool-surface-muted);
+  --qbs-accent: var(--tool-accent);
   --qbs-accent-contrast: #ffffff;
   --qbs-danger: #dc2626;
   --qbs-success: #16a34a;
@@ -28,28 +27,9 @@
   box-sizing: border-box;
 }
 
-.dark .qbs-page,
-.qbs-page.qbs-theme-dark {
-  --qbs-bg: #0b1220;
-  --qbs-surface: #111827;
-  --qbs-border: #1f2937;
-  --qbs-text: #e5e7eb;
-  --qbs-muted: #94a3b8;
-  --qbs-accent: #818cf8;
-  --qbs-accent-contrast: #0b1220;
-}
+.dark 
 
-@media (prefers-color-scheme: dark) {
-  .qbs-page:not(.qbs-theme-light) {
-    --qbs-bg: #0b1220;
-    --qbs-surface: #111827;
-    --qbs-border: #1f2937;
-    --qbs-text: #e5e7eb;
-    --qbs-muted: #94a3b8;
-    --qbs-accent: #818cf8;
-    --qbs-accent-contrast: #0b1220;
-  }
-}
+
 
 
 

@@ -22,7 +22,7 @@ const QrBarcodeStudioPage: FC = () => {
   const [mode, setMode] = useState<StudioMode>('qr');
 
   return (
-    <div className="qbs-page">
+    <div className="tool-page qbs-page">
       <ToolAppHeader
         appNumber="003"
         title="QR & Barcode Studio"

@@ -123,7 +123,7 @@ export default function SmartVideoToolsPage() {
   }
 
   return (
-    <main className="svt-page">
+    <main className="tool-page svt-page">
       <ToolAppHeader
         appNumber="010"
         title="Smart Video Tools"

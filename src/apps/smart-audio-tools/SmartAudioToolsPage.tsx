@@ -136,7 +136,7 @@ export default function SmartAudioToolsPage() {
   }
 
   return (
-    <main className="sat-page">
+    <main className="tool-page sat-page">
       <ToolAppHeader
         appNumber="009"
         title="Smart Audio Tools"

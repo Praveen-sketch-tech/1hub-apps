@@ -71,7 +71,7 @@ export default function SmartCalculatorConverterPage() {
   ]
 
   return (
-    <main className="scc-page">
+    <main className="tool-page scc-page">
       <ToolAppHeader
         appNumber="006"
         title="Smart Calculator & Converter"
