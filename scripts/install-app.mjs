@@ -26,6 +26,7 @@ const [folder, number, name, route, description, exportName, tagsCsv] = args
 const appPath = path.resolve(`src/apps/${folder}`)
 const registryPath = path.resolve('src/core/apps/appRegistry.ts')
 const loadersPath = path.resolve('src/core/apps/appLoaders.ts')
+const chatModulesPath = path.resolve('src/core/chat/appChatModules.ts')
 
 if (!fs.existsSync(appPath)) {
   console.error(`❌ App folder not found: src/apps/${folder}`)
@@ -44,6 +45,23 @@ const indexText = fs.readFileSync(indexPath, 'utf8')
 if (!indexText.includes(exportName)) {
   console.error(`❌ ${exportName} is not exported from src/apps/${folder}/index.ts`)
   process.exit(1)
+}
+
+const chatActionsPath = path.join(appPath, 'chatActions.ts')
+
+if (!fs.existsSync(chatActionsPath)) {
+  const chatScaffold = `import type { AppChatModule } from '@core/chat/types'
+
+export const chatModule: AppChatModule = {
+  appId: '${folder}',
+  actions: [
+    // Add chat-accessible app actions here.
+    // Reuse the same processing functions used by the app UI.
+  ],
+}
+`
+
+  fs.writeFileSync(chatActionsPath, chatScaffold)
 }
 
 const tags = tagsCsv
@@ -99,6 +117,22 @@ loaders = loaders.replace(
 )
 
 fs.writeFileSync(loadersPath, loaders)
+
+let chatModules = fs.readFileSync(chatModulesPath, 'utf8')
+
+const chatRegistration = `registerAppChatModule(
+  '${folder}',
+  async () => {
+    const module = await import('@apps/${folder}/chatActions')
+    return module.chatModule
+  },
+)
+`
+
+if (!chatModules.includes(`'${folder}'`)) {
+  chatModules += `\n${chatRegistration}`
+  fs.writeFileSync(chatModulesPath, chatModules)
+}
 
 console.log('')
 console.log(`✅ Registered App #${number}: ${name}`)
