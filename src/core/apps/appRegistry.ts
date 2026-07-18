@@ -96,4 +96,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-password-generator',
     tags: ["Password Generator","Strong Password","Random Password","Security"],
   },
+  {
+    id: 'smart-uuid-generator',
+    number: '012',
+    name: "Smart UUID Generator",
+    description: "Generate secure UUID v4 identifiers locally in your browser.",
+    path: '/apps/smart-uuid-generator',
+    tags: ["UUID Generator","UUID v4","Bulk UUID","Developer Tools"],
+  },
 ]

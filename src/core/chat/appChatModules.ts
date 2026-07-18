@@ -127,3 +127,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'smart-uuid-generator',
+  async () => {
+    const module = await import('@apps/smart-uuid-generator/chatActions')
+    return module.chatModule
+  },
+)

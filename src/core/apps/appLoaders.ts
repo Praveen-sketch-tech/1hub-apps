@@ -106,4 +106,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-uuid-generator',
+    name: "Smart UUID Generator",
+    component: lazy(() =>
+      import('@apps/smart-uuid-generator').then((module) => ({
+        default: module.SmartUuidGeneratorPage,
+      }))
+    ),
+  },
 ]
