@@ -119,3 +119,11 @@ export async function getRegisteredChatCapabilities(): Promise<
 
   return capabilities
 }
+
+registerAppChatModule(
+  'smart-password-generator',
+  async () => {
+    const module = await import('@apps/smart-password-generator/chatActions')
+    return module.chatModule
+  },
+)
