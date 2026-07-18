@@ -64,4 +64,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-file-tools',
     tags: ["Bulk Rename","SHA-256","Duplicate Detection","ZIP Tools","File Split","Merge Chunks"],
   },
+  {
+    id: 'smart-document-scanner-ocr',
+    number: '008',
+    name: "Smart Document Scanner & OCR",
+    description: "Scan, enhance and extract text from documents locally in your browser.",
+    path: '/apps/smart-document-scanner-ocr',
+    tags: ["Document Scanner","OCR","Perspective Correction","Deskew","Scan Enhancement","PDF Export"],
+  },
 ]

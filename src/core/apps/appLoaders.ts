@@ -70,4 +70,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-document-scanner-ocr',
+    name: "Smart Document Scanner & OCR",
+    component: lazy(() =>
+      import('@apps/smart-document-scanner-ocr').then((module) => ({
+        default: module.SmartDocumentScannerOcrPage,
+      }))
+    ),
+  },
 ]

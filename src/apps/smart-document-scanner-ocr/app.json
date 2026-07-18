@@ -1,0 +1,16 @@
+{
+  "id": "008",
+  "slug": "smart-document-scanner-ocr",
+  "name": "Smart Document Scanner & OCR",
+  "route": "/apps/smart-document-scanner-ocr",
+  "description": "Scan, enhance, OCR and export documents locally in your browser.",
+  "icon": "ScanText",
+  "entry": "index.ts",
+  "defaultExport": true,
+  "localProcessing": true,
+  "dependencies": {
+    "pdfjs-dist": "^6.1.200",
+    "pdf-lib": "^1.17.1",
+    "tesseract.js": "^6.0.1"
+  }
+}
