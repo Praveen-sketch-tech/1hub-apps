@@ -61,4 +61,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-file-tools',
+    name: "Smart File Tools",
+    component: lazy(() =>
+      import('@apps/smart-file-tools').then((module) => ({
+        default: module.SmartFileToolsPage,
+      }))
+    ),
+  },
 ]

@@ -56,4 +56,20 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-calculator-converter',
     tags: ["EMI","GST","Converter","Calculator"],
   },
+  {
+    id: 'app-007-smart-file-tools',
+    number: '007',
+    name: "Smart File Tools",
+    description: "Rename, inspect, hash, deduplicate, archive, split and merge files locally in your browser.",
+    path: '/apps/smart-file-tools',
+    tags: ["Bulk Rename","SHA-256","Duplicate Detection","ZIP Tools","File Split","Merge Chunks"],
+  },
+  {
+    id: 'smart-file-tools',
+    number: '007',
+    name: "Smart File Tools",
+    description: "Rename, inspect, hash, deduplicate, archive, split and merge files locally in your browser.",
+    path: '/apps/smart-file-tools',
+    tags: ["Bulk Rename","SHA-256","Duplicate Detection","ZIP Tools","File Split","Merge Chunks"],
+  },
 ]
