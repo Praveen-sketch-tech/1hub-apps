@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ToolMode } from '../types';
 import PdfDropzone from './PdfDropzone';
+import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader';
 
 interface ToolStartCardsProps {
   onFilesSelected: (files: File[], preselectMode: ToolMode) => void;
@@ -68,12 +69,11 @@ const CARDS: CardDef[] = [
 export default function ToolStartCards({ onFilesSelected }: ToolStartCardsProps) {
   return (
     <div className="spt-home">
-      <div className="spt-home__intro">
-        <h1 className="spt-home__title">Smart PDF Tools</h1>
-        <p className="spt-home__subtitle">
-          Create, merge, split, and compress PDFs — entirely in your browser. Nothing is uploaded to a server.
-        </p>
-      </div>
+      <ToolAppHeader
+        appNumber="002"
+        title="Smart PDF Tools"
+        description="Create, merge, split, reorder, rotate and compress PDFs entirely in your browser."
+      />
 
       <div className="spt-home__cards">
         {CARDS.map((card) => (

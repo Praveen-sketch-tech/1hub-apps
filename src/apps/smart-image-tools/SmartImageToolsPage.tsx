@@ -29,6 +29,7 @@ import type {
   ToolMode,
 } from './types'
 import './smart-image-tools.css'
+import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
 
 const toolLabels: Record<ToolMode, string> = {
   compress: 'Compress',
@@ -506,25 +507,11 @@ export default function SmartImageToolsPage() {
 
   return (
     <main className="sit-page">
-      <section className="sit-hero">
-        <div>
-          <span className="sit-eyebrow">
-            1 Hub Apps · App #001
-          </span>
-
-          <h1>Smart Image Tools</h1>
-
-          <p>
-            Crop, correct, enhance, compress,
-            resize and convert images privately
-            in your browser.
-          </p>
-        </div>
-
-        <div className="sit-privacy-pill">
-          🔒 Local processing
-        </div>
-      </section>
+      <ToolAppHeader
+        appNumber="001"
+        title="Smart Image Tools"
+        description="Crop, correct, enhance, compress, resize and convert images privately in your browser."
+      />
 
       <section className="sit-shell">
         <ImageDropzone

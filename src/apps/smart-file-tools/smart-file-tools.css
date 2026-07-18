@@ -1,8 +1,8 @@
 .sft-page{max-width:1180px;margin:0 auto;padding:20px;color:var(--text-primary,#172033)}
-.sft-hero{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:18px}
-.sft-hero h1{margin:4px 0 8px;font-size:clamp(1.8rem,4vw,2.7rem);color:var(--text-primary,#172033)}
-.sft-hero p{margin:0;color:var(--text-secondary,#5f6b7a)}
-.sft-kicker{font-weight:800;letter-spacing:.12em;font-size:.78rem}
+
+
+
+
 .sft-dropzone{border:2px dashed var(--border-color,#cfd6e4);border-radius:18px;padding:32px;text-align:center;display:grid;gap:8px;cursor:pointer;background:var(--card-bg,#fff)}
 .sft-dropzone span{color:var(--text-secondary,#667085)}
 .sft-drop-icon{font-size:2.2rem}
@@ -33,7 +33,7 @@
 .sft-status{margin:12px 0;padding:10px 12px;border-radius:10px;background:var(--card-bg,#fff);border:1px solid var(--border-color,#dfe4ec);color:var(--text-primary,#172033)}
 .sft-footer-actions{margin-top:16px}
 .local-processing-badge{white-space:nowrap}
-@media(max-width:760px){.sft-page{padding:14px}.sft-hero{flex-direction:column}.sft-summary{grid-template-columns:1fr}.sft-grid,.sft-actions{grid-template-columns:1fr}.sft-row-between{align-items:flex-start;flex-direction:column}.sft-dropzone{padding:24px 14px}}
+@media(max-width:760px){.sft-page{padding:14px}.sft-summary{grid-template-columns:1fr}.sft-grid,.sft-actions{grid-template-columns:1fr}.sft-row-between{align-items:flex-start;flex-direction:column}.sft-dropzone{padding:24px 14px}}
 
 /* Keep light cards readable in both light and dark themes */
 .sft-card,

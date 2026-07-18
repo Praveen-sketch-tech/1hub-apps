@@ -6,6 +6,7 @@ import { cancelOcr, disposeOcr, recognizeCanvas } from './lib/ocrEngine'
 import { exportPageImage, exportPdf, exportText } from './lib/exporters'
 import type { DocumentPage, OcrLanguage, ScanMode } from './lib/types'
 import './smart-document-scanner-ocr.css'
+import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
 
 const MODES: {v:ScanMode;l:string}[] = [
   {v:'original',l:'Original'},{v:'auto',l:'Auto Enhance'},{v:'color',l:'Color Document'},
@@ -44,7 +45,11 @@ export default function SmartDocumentScannerOcrPage() {
   const matches=query.trim()?combined.toLowerCase().split(query.toLowerCase()).length-1:0
 
   return <main className="sdoc-app">
-    <header className="sdoc-header"><div><p className="sdoc-kicker">APP #008</p><h1>Smart Document Scanner &amp; OCR</h1><p className="sdoc-sub">Scan, clean, recognize and export multi-page documents directly in your browser.</p></div><span className="local-processing-badge">🔒 Local processing</span></header>
+    <ToolAppHeader
+        appNumber="008"
+        title="Smart Document Scanner & OCR"
+        description="Scan, clean, recognize and export multi-page documents directly in your browser."
+      />
 
     <section className="sdoc-upload" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();void ingest(e.dataTransfer.files)}}>
       <div><strong>Drop images or PDFs here</strong><span>JPG, PNG, WebP and PDF · Multiple files supported</span></div>

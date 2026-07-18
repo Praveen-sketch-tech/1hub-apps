@@ -8,6 +8,7 @@ import { downloadBlob, fileListCsv, fileListJson, fileListText } from './lib/exp
 import { createZip, extractZip } from './lib/zip'
 import { mergeChunks, splitFile } from './lib/chunks'
 import './smart-file-tools.css'
+import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
 
 const initialRules: RenameRules = {
   prefix: '',
@@ -65,14 +66,11 @@ export default function SmartFileToolsPage() {
 
   return (
     <main className="sft-page">
-      <header className="sft-hero">
-        <div>
-          <p className="sft-kicker">APP #007</p>
-          <h1>Smart File Tools</h1>
-          <p>Rename, inspect, hash, deduplicate, archive, split and merge files directly in your browser.</p>
-        </div>
-        <span className="local-processing-badge">🔒 Local processing</span>
-      </header>
+      <ToolAppHeader
+        appNumber="007"
+        title="Smart File Tools"
+        description="Rename, inspect, hash, deduplicate, archive, split and merge files directly in your browser."
+      />
 
       <FileDropzone onFiles={addFiles} />
 

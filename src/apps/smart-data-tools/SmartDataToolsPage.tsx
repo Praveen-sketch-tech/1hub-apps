@@ -9,6 +9,7 @@ import {
 import { downloadText } from './lib/download'
 import { trackSmartDataEvent } from './lib/analytics'
 import './smart-data-tools.css'
+import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
 
 const empty: DataTable = { columns: [], rows: [] }
 
@@ -69,14 +70,11 @@ export default function SmartDataToolsPage() {
 
   return (
     <main className="sdt-page">
-      <section className="sdt-hero">
-        <div>
-          <span className="sdt-eyebrow">1 Hub Apps · App #005</span>
-          <h1>Smart Data Tools</h1>
-          <p>Clean, convert, filter and export CSV and JSON data directly in your browser.</p>
-        </div>
-        <div className="local-processing-badge">🔒 Local processing</div>
-      </section>
+      <ToolAppHeader
+        appNumber="005"
+        title="Smart Data Tools"
+        description="Clean, convert, filter and export CSV and JSON data directly in your browser."
+      />
 
       <section className="sdt-stats">
         <div><span>Rows</span><strong>{stats.rows}</strong></div>

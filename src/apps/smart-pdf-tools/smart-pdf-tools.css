@@ -102,20 +102,9 @@
   margin: 0 auto;
   padding: 48px 20px;
 }
-.spt-home__intro {
-  text-align: center;
-  margin-bottom: 32px;
-}
-.spt-home__title {
-  font-size: 28px;
-  font-weight: 700;
-  margin: 0 0 8px;
-}
-.spt-home__subtitle {
-  color: var(--spt-text-muted);
-  margin: 0;
-  font-size: 15px;
-}
+
+
+
 .spt-home__cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

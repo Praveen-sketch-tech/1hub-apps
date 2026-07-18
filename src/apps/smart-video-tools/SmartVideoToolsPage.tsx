@@ -4,6 +4,7 @@ import { extractAudio, processVideo } from './lib/ffmpegProcessor'
 import { trackVideoToolEvent } from './lib/analytics'
 import type { ProcessingProgress, VideoSettings } from './types'
 import './smart-video-tools.css'
+import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
 
 const DEFAULT_SETTINGS: VideoSettings = {
   startTime: 0,
@@ -131,14 +132,11 @@ export default function SmartVideoToolsPage() {
 
   return (
     <main className="svt-page">
-      <section className="svt-hero">
-        <div>
-          <div className="svt-kicker">APP #010</div>
-          <h1>Smart Video Tools</h1>
-          <p>Trim, resize, rotate, mute, compress and extract audio directly in your browser.</p>
-        </div>
-        <div className="local-processing-badge">🔒 Local processing</div>
-      </section>
+      <ToolAppHeader
+        appNumber="010"
+        title="Smart Video Tools"
+        description="Trim, resize, rotate, mute, compress and extract audio directly in your browser."
+      />
 
       {!file ? (
         <VideoDropzone onFile={handleFile} />

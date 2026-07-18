@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { calculateEmi, estimateScenarios, monthsBetween } from './lib/finance'
 import { convertValue, getUnits, type ConverterType } from './lib/converters'
 import './smart-calculator-converter.css'
+import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
 
 type Tab = 'basic' | 'loan' | 'gst' | 'percentage' | 'date' | 'converter'
 
@@ -71,14 +72,11 @@ export default function SmartCalculatorConverterPage() {
 
   return (
     <main className="scc-page">
-      <section className="scc-hero">
-        <div>
-          <span className="scc-eyebrow">1 Hub Apps · App #006</span>
-          <h1>Smart Calculator & Converter</h1>
-          <p>Everyday calculations, EMI analysis and unit conversions in one fast browser tool.</p>
-        </div>
-        <div className="local-processing-badge">🔒 Local processing</div>
-      </section>
+      <ToolAppHeader
+        appNumber="006"
+        title="Smart Calculator & Converter"
+        description="Everyday calculations, EMI analysis and unit conversions in one fast browser tool."
+      />
 
       <div className="scc-tabs">
         {tabs.map(([key,label]) => (

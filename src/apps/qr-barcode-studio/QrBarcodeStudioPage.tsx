@@ -8,6 +8,7 @@ import QrGenerator from './components/QrGenerator';
 import BarcodeGenerator from './components/BarcodeGenerator';
 import Scanner from './components/Scanner';
 import './qr-barcode-studio.css';
+import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
 
 type StudioMode = 'qr' | 'barcode' | 'scanner';
 
@@ -22,12 +23,11 @@ const QrBarcodeStudioPage: FC = () => {
 
   return (
     <div className="qbs-page">
-      <div className="qbs-header">
-        <h1 className="qbs-title">QR & Barcode Studio</h1>
-        <p className="qbs-subtitle">
-          Create and scan QR codes and barcodes privately in your browser.
-        </p>
-      </div>
+      <ToolAppHeader
+        appNumber="003"
+        title="QR & Barcode Studio"
+        description="Create and scan QR codes and barcodes privately in your browser."
+      />
 
       <StudioTabs
         tabs={TABS}

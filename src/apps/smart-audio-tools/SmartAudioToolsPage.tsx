@@ -12,6 +12,7 @@ import {
 import { trackAudioToolEvent } from './lib/analytics'
 import type { AudioItem } from './lib/types'
 import './smart-audio-tools.css'
+import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
 
 const makeId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`
 
@@ -136,14 +137,11 @@ export default function SmartAudioToolsPage() {
 
   return (
     <main className="sat-page">
-      <section className="sat-hero">
-        <div>
-          <div className="sat-kicker">APP #009</div>
-          <h1>Smart Audio Tools</h1>
-          <p>Trim, merge, adjust and export audio directly in your browser.</p>
-        </div>
-        <div className="local-processing-badge">🔒 Local processing</div>
-      </section>
+      <ToolAppHeader
+        appNumber="009"
+        title="Smart Audio Tools"
+        description="Trim, merge, adjust and export audio directly in your browser."
+      />
 
       <AudioDropzone disabled={busy} onFiles={addFiles} />
 

@@ -30,3 +30,40 @@ body {
   color: #111827;
   border-color: #d1d5db;
 }
+
+/* Shared tool app header */
+.tool-app-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.tool-app-kicker {
+  margin: 0 0 6px;
+  color: #6366f1;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tool-app-header h1 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.05;
+}
+
+.tool-app-description {
+  margin: 10px 0 0;
+  max-width: 760px;
+  color: #94a3b8;
+}
+
+@media (max-width: 600px) {
+  .tool-app-header {
+    flex-direction: column;
+  }
+}

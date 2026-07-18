@@ -19,6 +19,7 @@ import { downloadText } from './lib/download'
 import { SMART_TEXT_EVENTS, trackSmartTextEvent } from './lib/analytics'
 import './smart-text-tools.css'
 import { connectSmartTextToolsAnalytics } from './lib/analyticsBridge'
+import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
 
 connectSmartTextToolsAnalytics()
 
@@ -132,14 +133,11 @@ export default function SmartTextToolsPage() {
 
   return (
     <main className="stt-page">
-      <section className="stt-hero">
-        <div>
-          <span className="stt-eyebrow">1 Hub Apps · App #004</span>
-          <h1>Smart Text Tools</h1>
-          <p>Clean, convert, compare, extract and format text instantly in your browser.</p>
-        </div>
-        <div className="local-processing-badge">🔒 Local processing</div>
-      </section>
+      <ToolAppHeader
+        appNumber="004"
+        title="Smart Text Tools"
+        description="Clean, convert, compare, extract and format text instantly in your browser."
+      />
 
       <TextStatsBar stats={stats} />
       <ToolTabs value={tool} onChange={(nextTool) => {
