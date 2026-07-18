@@ -86,3 +86,36 @@ registerAppChatModule('smart-video-tools', async () => {
   const module = await import('@apps/smart-video-tools/chatActions')
   return module.chatModule
 })
+
+
+export async function getRegisteredChatCapabilities(): Promise<
+  Array<{
+    appId: string
+    label: string
+    description: string
+  }>
+> {
+  const capabilities: Array<{
+    appId: string
+    label: string
+    description: string
+  }> = []
+
+  for (const [appId, loader] of Object.entries(CHAT_MODULE_LOADERS)) {
+    try {
+      const module = await loader()
+
+      for (const action of module.actions) {
+        capabilities.push({
+          appId,
+          label: action.label,
+          description: action.description,
+        })
+      }
+    } catch {
+      // Ignore a module that cannot be loaded.
+    }
+  }
+
+  return capabilities
+}
