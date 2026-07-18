@@ -95,15 +95,15 @@ body {
 
 .dark {
   --tool-page-bg: #020817;
-  --tool-surface: #ffffff;
-  --tool-surface-soft: #f8fafc;
+  --tool-surface: #0f172a;
+  --tool-surface-soft: #1e293b;
   --tool-text: #f8fafc;
   --tool-muted: #94a3b8;
-  --tool-surface-text: #0f172a;
-  --tool-surface-muted: #64748b;
+  --tool-surface-text: #f8fafc;
+  --tool-surface-muted: #94a3b8;
   --tool-border: #334155;
   --tool-accent: #6366f1;
-  --tool-input-bg: #ffffff;
+  --tool-input-bg: #0f172a;
 }
 
 .tool-page {
