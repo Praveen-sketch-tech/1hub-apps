@@ -7,11 +7,15 @@ import {
   savePendingChatCommand,
 } from '@core/chat/chatRegistry'
 import { registerDefaultChatActions } from '@core/chat/defaultChatActions'
+import { executeChatRequest } from '@core/chat/chatExecutor'
+import { downloadBlob } from '@shared/utils/downloads'
 
 interface ChatMessage {
   id: number
   role: 'user' | 'assistant'
   text: string
+  downloadUrl?: string
+  downloadName?: string
 }
 
 interface GlobalToolChatProps {
@@ -28,6 +32,8 @@ export function GlobalToolChat({
 
   const [isOpen, setIsOpen] = useState(mode === 'dashboard')
   const [input, setInput] = useState('')
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 1,
@@ -52,6 +58,53 @@ export function GlobalToolChat({
     ])
 
     setInput('')
+
+    setIsProcessing(true)
+
+    try {
+      const directResult = await executeChatRequest(
+        value,
+        attachment ?? undefined,
+      )
+
+      if (directResult) {
+        let downloadUrl: string | undefined
+
+        if (directResult.blob) {
+          downloadUrl = URL.createObjectURL(directResult.blob)
+        }
+
+        setMessages((current) => [
+          ...current,
+          {
+            id: Date.now() + 1,
+            role: 'assistant',
+            text: directResult.text,
+            downloadUrl,
+            downloadName: directResult.fileName,
+          },
+        ])
+
+        setAttachment(null)
+        return
+      }
+    } catch (error) {
+      setMessages((current) => [
+        ...current,
+        {
+          id: Date.now() + 1,
+          role: 'assistant',
+          text:
+            error instanceof Error
+              ? error.message
+              : 'The requested action could not be completed.',
+        },
+      ])
+
+      return
+    } finally {
+      setIsProcessing(false)
+    }
 
     const action = findChatAction(value)
 
@@ -175,7 +228,23 @@ export function GlobalToolChat({
             key={message.id}
             className={`global-tool-chat-message is-${message.role}`}
           >
-            {message.text}
+            <span>{message.text}</span>
+
+            {message.downloadUrl && message.downloadName && (
+              <button
+                type="button"
+                className="global-tool-chat-download"
+                onClick={() => {
+                  if (!message.downloadUrl || !message.downloadName) return
+
+                  fetch(message.downloadUrl)
+                    .then((response) => response.blob())
+                    .then((blob) => downloadBlob(blob, message.downloadName!))
+                }}
+              >
+                Download
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -184,16 +253,47 @@ export function GlobalToolChat({
         className="global-tool-chat-form"
         onSubmit={handleSubmit}
       >
-        <input
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          placeholder="What do you want to do?"
-          aria-label="Ask 1 Hub Assistant"
-        />
+        {attachment && (
+          <div className="global-tool-chat-attachment">
+            <span>{attachment.name}</span>
 
-        <button type="submit">
-          Send
-        </button>
+            <button
+              type="button"
+              onClick={() => setAttachment(null)}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        <div className="global-tool-chat-compose">
+          <label
+            className="global-tool-chat-attach"
+            title="Attach file"
+          >
+            📎
+            <input
+              type="file"
+              onChange={(event) =>
+                setAttachment(event.target.files?.[0] ?? null)
+              }
+            />
+          </label>
+
+          <input
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            placeholder="What do you want to do?"
+            aria-label="Ask 1 Hub Assistant"
+          />
+
+          <button
+            type="submit"
+            disabled={isProcessing}
+          >
+            {isProcessing ? 'Working…' : 'Send'}
+          </button>
+        </div>
       </form>
     </section>
   )
