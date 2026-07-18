@@ -40,4 +40,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-text-tools',
     tags: ['Text Cleaner', 'Case Converter', 'Compare', 'JSON'],
   },
+  {
+    id: 'smart-data-tools',
+    number: '005',
+    name: "Smart Data Tools",
+    description: "Clean, convert, filter and export CSV and JSON data directly in your browser.",
+    path: '/apps/smart-data-tools',
+    tags: ["CSV","JSON","Data Cleaner","Converter"],
+  },
 ]

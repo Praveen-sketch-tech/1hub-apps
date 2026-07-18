@@ -43,4 +43,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-data-tools',
+    name: "Smart Data Tools",
+    component: lazy(() =>
+      import('@apps/smart-data-tools').then((module) => ({
+        default: module.SmartDataToolsPage,
+      }))
+    ),
+  },
 ]
