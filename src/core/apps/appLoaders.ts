@@ -88,4 +88,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-video-tools',
+    name: "Smart Video Tools",
+    component: lazy(() =>
+      import('@apps/smart-video-tools').then((module) => ({
+        default: module.SmartVideoToolsPage,
+      }))
+    ),
+  },
 ]

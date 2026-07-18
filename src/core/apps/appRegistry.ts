@@ -80,4 +80,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-audio-tools',
     tags: ["Audio Trim","Merge Audio","Volume","Fade","Speed","WAV Export"],
   },
+  {
+    id: 'smart-video-tools',
+    number: '010',
+    name: "Smart Video Tools",
+    description: "Trim, resize, rotate, mute, extract audio and convert videos locally in your browser.",
+    path: '/apps/smart-video-tools',
+    tags: ["Video Trim","Resize","Compress","Rotate","Mute","Extract Audio"],
+  },
 ]
