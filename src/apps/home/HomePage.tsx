@@ -4,6 +4,7 @@ import { Card } from '@shared/components/ui/Card'
 import { Button } from '@shared/components/ui/Button'
 import { useAuth } from '@core/contexts/AuthContext'
 import { ROUTES, APP_NAME } from '@core/config/constants'
+import { APP_REGISTRY } from '@core/apps/appRegistry'
 
 const FEATURES = [
   {
@@ -55,157 +56,40 @@ export function HomePage() {
 
       <section className="mb-12">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Card>
-            <div className="flex h-full flex-col gap-5">
-              <div>
-                <p className="mb-1 text-sm font-medium text-blue-600 dark:text-blue-400">
-                  App #001
-                </p>
+          {APP_REGISTRY.map((app) => (
+            <Card key={app.id}>
+              <div className="flex h-full flex-col gap-5">
+                <div>
+                  <p className="mb-1 text-sm font-medium text-blue-600 dark:text-blue-400">
+                    App #{app.number}
+                  </p>
 
-                <h2 className="text-xl font-bold">Smart Image Tools</h2>
+                  <h2 className="text-xl font-bold">{app.name}</h2>
 
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                  Compress, resize, convert and crop images directly in your browser.
-                </p>
+                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                    {app.description}
+                  </p>
 
-                <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Compress
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Resize
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Convert
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Crop
-                  </span>
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
+                    {app.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-auto pt-2">
+                  <Link to={app.path}>
+                    <Button>Open tool</Button>
+                  </Link>
                 </div>
               </div>
-
-              <div className="mt-auto pt-2">
-                <Link to={ROUTES.smartImageTools}>
-                  <Button>Open tool</Button>
-                </Link>
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="flex h-full flex-col gap-5">
-              <div>
-                <p className="mb-1 text-sm font-medium text-blue-600 dark:text-blue-400">
-                  App #002
-                </p>
-
-                <h2 className="text-xl font-bold">Smart PDF Tools</h2>
-
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                  Create, merge, split, reorder, rotate and compress PDFs directly in your browser.
-                </p>
-
-                <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Merge
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Split
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Compress
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Images to PDF
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-auto pt-2">
-                <Link to={ROUTES.smartPdfTools}>
-                  <Button>Open tool</Button>
-                </Link>
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="flex h-full flex-col gap-5">
-              <div>
-                <p className="mb-1 text-sm font-medium text-blue-600 dark:text-blue-400">
-                  App #003
-                </p>
-
-                <h2 className="text-xl font-bold">
-                  QR &amp; Barcode Studio
-                </h2>
-
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                  Create and scan QR codes and barcodes privately in your browser.
-                </p>
-
-                <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    QR Generator
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Barcode
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Scanner
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Wi-Fi QR
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-auto pt-2">
-                <Link to={ROUTES.qrBarcodeStudio}>
-                  <Button>Open tool</Button>
-                </Link>
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="flex h-full flex-col gap-5">
-              <div>
-                <p className="mb-1 text-sm font-medium text-blue-600 dark:text-blue-400">
-                  App #004
-                </p>
-
-                <h2 className="text-xl font-bold">
-                  Smart Text Tools
-                </h2>
-
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                  Clean, convert, compare and extract useful data from text instantly.
-                </p>
-
-                <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Text Cleaner
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Case Converter
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    Compare
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
-                    JSON
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-auto pt-2">
-                <Link to={ROUTES.smartTextTools}>
-                  <Button>Open tool</Button>
-                </Link>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          ))}
         </div>
       </section>
 

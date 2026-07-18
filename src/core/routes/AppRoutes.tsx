@@ -27,8 +27,24 @@ import { AdminFeedbackPage } from '@apps/admin/AdminFeedbackPage'
 import { AdminLogsPage } from '@apps/admin/AdminLogsPage'
 import { AdminSettingsPage } from '@apps/admin/AdminSettingsPage'
 import { AdminStatsPage } from '@apps/admin/AdminStatsPage'
-import { SmartImageToolsPage } from '@apps/smart-image-tools'
-import { SmartPdfToolsPage } from '@apps/smart-pdf-tools'
+
+const SmartImageToolsPage = lazy(() =>
+  import('@apps/smart-image-tools').then((module) => ({
+    default: module.SmartImageToolsPage,
+  }))
+)
+
+const SmartPdfToolsPage = lazy(() =>
+  import('@apps/smart-pdf-tools').then((module) => ({
+    default: module.SmartPdfToolsPage,
+  }))
+)
+
+const SmartTextToolsPage = lazy(() =>
+  import('@apps/smart-text-tools').then((module) => ({
+    default: module.SmartTextToolsPage,
+  }))
+)
 
 const QrBarcodeStudioPage = lazy(() =>
   import('@apps/qr-barcode-studio').then((module) => ({
@@ -36,7 +52,6 @@ const QrBarcodeStudioPage = lazy(() =>
   }))
 )
 
-import { SmartTextToolsPage } from '@apps/smart-text-tools'
 
 export function AppRoutes() {
   return (
@@ -45,9 +60,30 @@ export function AppRoutes() {
       <Route element={<AppLayout />}>
         <Route path={ROUTES.home} element={<HomePage />} />
         <Route path={ROUTES.search} element={<SearchPage />} />
-        <Route path={ROUTES.smartImageTools} element={<SmartImageToolsPage />} />
-        <Route path={ROUTES.smartPdfTools} element={<SmartPdfToolsPage />} />
-        <Route path={ROUTES.smartTextTools} element={<SmartTextToolsPage />} />
+        <Route
+          path={ROUTES.smartImageTools}
+          element={
+            <Suspense fallback={<div className="p-8 text-center">Loading Smart Image Tools…</div>}>
+              <SmartImageToolsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path={ROUTES.smartPdfTools}
+          element={
+            <Suspense fallback={<div className="p-8 text-center">Loading Smart PDF Tools…</div>}>
+              <SmartPdfToolsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path={ROUTES.smartTextTools}
+          element={
+            <Suspense fallback={<div className="p-8 text-center">Loading Smart Text Tools…</div>}>
+              <SmartTextToolsPage />
+            </Suspense>
+          }
+        />
         <Route
           path={ROUTES.qrBarcodeStudio}
           element={
