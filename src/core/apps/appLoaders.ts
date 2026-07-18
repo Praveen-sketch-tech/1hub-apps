@@ -97,4 +97,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-password-generator',
+    name: "Smart Password Generator",
+    component: lazy(() =>
+      import('@apps/smart-password-generator').then((module) => ({
+        default: module.SmartPasswordGeneratorPage,
+      }))
+    ),
+  },
 ]

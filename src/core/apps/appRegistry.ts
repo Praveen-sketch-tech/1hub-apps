@@ -88,4 +88,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-video-tools',
     tags: ["Video Trim","Resize","Compress","Rotate","Mute","Extract Audio"],
   },
+  {
+    id: 'smart-password-generator',
+    number: '011',
+    name: "Smart Password Generator",
+    description: "Generate strong, random passwords locally in your browser.",
+    path: '/apps/smart-password-generator',
+    tags: ["Password Generator","Strong Password","Random Password","Security"],
+  },
 ]
