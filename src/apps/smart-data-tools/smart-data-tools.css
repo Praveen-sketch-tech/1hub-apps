@@ -7,3 +7,21 @@
 .sdt-actions,.sdt-two{display:flex;gap:8px;flex-wrap:wrap}.sdt-two>*{flex:1}.sdt-page button{min-height:42px;padding:9px 14px;border:1px solid var(--b);border-radius:10px;background:Canvas;color:CanvasText;font:inherit;font-weight:800;cursor:pointer}.sdt-page button.sdt-primary{background:var(--a);color:white;border:0}.sdt-page button:disabled{opacity:.5}.sdt-message{padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--a) 8%,Canvas)}
 .sdt-preview{margin-top:18px}.sdt-preview-head{display:flex;justify-content:space-between;gap:16px;align-items:center}.sdt-table-wrap{overflow:auto;border:1px solid var(--b);border-radius:12px}.sdt-table{width:100%;border-collapse:collapse;min-width:720px}.sdt-table th,.sdt-table td{padding:9px 10px;border-bottom:1px solid var(--b);border-right:1px solid var(--b);text-align:left;white-space:nowrap}.sdt-table th{background:color-mix(in srgb,CanvasText 5%,Canvas)}.sdt-note,.sdt-empty{padding:14px;color:var(--m)}
 @media(max-width:900px){.sdt-grid{grid-template-columns:1fr}.sdt-stats{grid-template-columns:repeat(2,1fr)}}@media(max-width:600px){.sdt-page{width:min(100% - 20px,1240px);padding-top:22px}.sdt-hero,.sdt-preview-head{flex-direction:column;align-items:flex-start}.sdt-panel{padding:15px}.sdt-two{display:grid}}
+
+/* Theme visibility fix */
+.sdt-hero p {
+  color: #64748b;
+}
+
+.sdt-stats > div,
+.sdt-panel {
+  color: #111827;
+}
+
+.dark .sdt-hero p {
+  color: #94a3b8;
+}
+
+.dark .sdt-pill {
+  color: #f8fafc;
+}
