@@ -480,3 +480,170 @@ body {
     min-width: 0;
   }
 }
+
+/* ==================================================
+   1 Hub Global Tool Assistant
+   ================================================== */
+
+.global-tool-chat-toggle {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tool-accent);
+  color: #ffffff;
+  font-size: 1.35rem;
+  cursor: pointer;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.28);
+}
+
+.global-tool-chat-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid var(--tool-border);
+  border-radius: 18px;
+  background: var(--tool-surface);
+  color: var(--tool-surface-text);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.14);
+}
+
+.global-tool-chat-dashboard {
+  width: 100%;
+  min-height: 320px;
+  max-height: 520px;
+}
+
+.global-tool-chat-floating {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 91;
+  width: min(390px, calc(100vw - 32px));
+  height: min(560px, calc(100vh - 40px));
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.32);
+}
+
+.global-tool-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--tool-border);
+  background: var(--tool-surface-soft);
+}
+
+.global-tool-chat-header div {
+  display: grid;
+  gap: 3px;
+}
+
+.global-tool-chat-header span {
+  color: var(--tool-surface-muted);
+  font-size: 0.78rem;
+}
+
+.global-tool-chat-header button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--tool-border);
+  border-radius: 9px;
+  background: var(--tool-surface);
+  color: var(--tool-surface-text);
+  font: inherit;
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+
+.global-tool-chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 180px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.global-tool-chat-message {
+  max-width: 85%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.global-tool-chat-message.is-assistant {
+  align-self: flex-start;
+  background: var(--tool-surface-soft);
+  color: var(--tool-surface-text);
+}
+
+.global-tool-chat-message.is-user {
+  align-self: flex-end;
+  background: var(--tool-accent);
+  color: #ffffff;
+}
+
+.global-tool-chat-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 9px;
+  padding: 13px;
+  border-top: 1px solid var(--tool-border);
+}
+
+.global-tool-chat-form input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--tool-border);
+  border-radius: 10px;
+  background: var(--tool-input-bg);
+  color: var(--tool-surface-text);
+  font: inherit;
+  outline: none;
+}
+
+.global-tool-chat-form input:focus {
+  border-color: var(--tool-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tool-accent) 18%, transparent);
+}
+
+.global-tool-chat-form button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--tool-accent);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .global-tool-chat-toggle {
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .global-tool-chat-floating {
+    right: 12px;
+    bottom: 12px;
+    width: calc(100vw - 24px);
+    height: min(72vh, 560px);
+  }
+
+  .global-tool-chat-dashboard {
+    min-height: 300px;
+  }
+}

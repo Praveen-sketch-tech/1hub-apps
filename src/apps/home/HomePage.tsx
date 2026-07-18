@@ -5,6 +5,7 @@ import { Button } from '@shared/components/ui/Button'
 import { useAuth } from '@core/contexts/AuthContext'
 import { ROUTES, APP_NAME } from '@core/config/constants'
 import { APP_REGISTRY } from '@core/apps/appRegistry'
+import { GlobalToolChat } from '@shared/components/chat/GlobalToolChat'
 
 const FEATURES = [
   {
@@ -53,6 +54,10 @@ export function HomePage() {
           </div>
         )}
       </div>
+
+      <section className="mb-10">
+        <GlobalToolChat mode="dashboard" />
+      </section>
 
       <section className="mb-12">
         <div className="grid gap-4 sm:grid-cols-2">
