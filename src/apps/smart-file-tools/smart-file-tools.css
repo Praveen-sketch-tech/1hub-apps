@@ -34,4 +34,45 @@
 .sft-footer-actions{margin-top:16px}
 .local-processing-badge{white-space:nowrap}
 @media(max-width:760px){.sft-page{padding:14px}.sft-hero{flex-direction:column}.sft-summary{grid-template-columns:1fr}.sft-grid,.sft-actions{grid-template-columns:1fr}.sft-row-between{align-items:flex-start;flex-direction:column}.sft-dropzone{padding:24px 14px}}
-@media(prefers-color-scheme:dark){.sft-page{color:var(--text-primary,#f2f4f7)}.sft-hero h1,.sft-card h3,.sft-card,.sft-summary strong,.sft-table th,.sft-table td,.sft-grid label,.sft-actions label,.sft-page button,.sft-page input,.sft-page select{color:var(--text-primary,#f2f4f7)}}
+
+/* Keep light cards readable in both light and dark themes */
+.sft-card,
+.sft-summary div,
+.sft-dropzone,
+.sft-status {
+  color: #172033;
+}
+
+.sft-card h3,
+.sft-card label,
+.sft-summary strong,
+.sft-table th,
+.sft-table td,
+.sft-grid label,
+.sft-actions label {
+  color: #172033;
+}
+
+.sft-card p,
+.sft-card small,
+.sft-note,
+.sft-summary span,
+.sft-dropzone span,
+.sft-empty {
+  color: #667085;
+}
+
+.sft-page input,
+.sft-page select {
+  background: #ffffff;
+  color: #172033;
+}
+
+.sft-page button {
+  background: #f5f7fa;
+  color: #172033;
+}
+
+.sft-page input::placeholder {
+  color: #98a2b3;
+}
