@@ -77,7 +77,7 @@ export default function SmartCalculatorConverterPage() {
           <h1>Smart Calculator & Converter</h1>
           <p>Everyday calculations, EMI analysis and unit conversions in one fast browser tool.</p>
         </div>
-        <div className="scc-pill">⚡ Local & fast</div>
+        <div className="local-processing-badge">🔒 Local processing</div>
       </section>
 
       <div className="scc-tabs">

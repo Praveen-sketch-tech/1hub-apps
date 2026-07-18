@@ -26,3 +26,14 @@
 .dark .scc-pill {
   color: #f8fafc;
 }
+
+/* Final dark-theme contrast fix */
+.scc-card,
+.scc-results > div,
+.scc-big-result {
+  color: #111827;
+}
+
+.scc-hero p {
+  color: #94a3b8;
+}

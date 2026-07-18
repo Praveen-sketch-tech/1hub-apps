@@ -138,7 +138,7 @@ export default function SmartTextToolsPage() {
           <h1>Smart Text Tools</h1>
           <p>Clean, convert, compare, extract and format text instantly in your browser.</p>
         </div>
-        <div className="stt-privacy-pill">🔒 Local processing</div>
+        <div className="local-processing-badge">🔒 Local processing</div>
       </section>
 
       <TextStatsBar stats={stats} />

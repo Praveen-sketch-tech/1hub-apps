@@ -75,7 +75,7 @@ export default function SmartDataToolsPage() {
           <h1>Smart Data Tools</h1>
           <p>Clean, convert, filter and export CSV and JSON data directly in your browser.</p>
         </div>
-        <div className="sdt-pill">🔒 Local processing</div>
+        <div className="local-processing-badge">🔒 Local processing</div>
       </section>
 
       <section className="sdt-stats">
