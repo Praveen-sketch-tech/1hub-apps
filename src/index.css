@@ -51,7 +51,7 @@ body {
 
 .tool-app-header h1 {
   margin: 0;
-  color: #f8fafc;
+  color: #0f172a;
   font-size: clamp(2rem, 5vw, 3rem);
   line-height: 1.05;
 }
@@ -59,6 +59,14 @@ body {
 .tool-app-description {
   margin: 10px 0 0;
   max-width: 760px;
+  color: #64748b;
+}
+
+.dark .tool-app-header h1 {
+  color: #f8fafc;
+}
+
+.dark .tool-app-description {
   color: #94a3b8;
 }
 
