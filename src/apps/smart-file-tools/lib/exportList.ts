@@ -1,3 +1,4 @@
+import { downloadBlob } from '@shared/utils/downloads'
 import type { FileRecord } from './types'
 
 function csvEscape(value: string | number): string {
@@ -29,11 +30,4 @@ export function fileListJson(records: FileRecord[]): string {
   })), null, 2)
 }
 
-export function downloadBlob(blob: Blob, name: string): void {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = name
-  a.click()
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
+export { downloadBlob }

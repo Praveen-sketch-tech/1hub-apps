@@ -1,3 +1,4 @@
+import { downloadBlob } from '@shared/utils/downloads'
 import type { ProcessingOptions } from './types'
 
 export async function decodeAudioFile(file: File): Promise<AudioBuffer> {
@@ -109,16 +110,7 @@ export function audioBufferToWavBlob(buffer: AudioBuffer): Blob {
   return new Blob([view], { type: 'audio/wav' })
 }
 
-export function downloadBlob(blob: Blob, fileName: string) {
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = fileName
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  URL.revokeObjectURL(url)
-}
+
 
 export function formatDuration(seconds: number) {
   if (!Number.isFinite(seconds)) return '0:00'
@@ -127,3 +119,5 @@ export function formatDuration(seconds: number) {
   const remainder = whole % 60
   return `${minutes}:${String(remainder).padStart(2, '0')}`
 }
+
+export { downloadBlob }

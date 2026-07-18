@@ -1,9 +1,8 @@
+import { downloadBlob } from '@shared/utils/downloads'
 import type { DocumentPage } from './types'
 import { canvasToBlob, renderProcessedPage } from './imageProcessing'
 
-export function downloadBlob(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1200)
-}
+
 
 export async function exportPageImage(page: DocumentPage, type: 'jpeg'|'png') {
   const canvas = await renderProcessedPage(page)
@@ -34,3 +33,5 @@ export async function exportPdf(pages: DocumentPage[], searchable = false) {
   const saved = await pdf.save(); const copy = new Uint8Array(saved.length); copy.set(saved)
   downloadBlob(new Blob([copy.buffer],{type:'application/pdf'}), searchable ? 'searchable-scan.pdf' : 'scanned-document.pdf')
 }
+
+export { downloadBlob }

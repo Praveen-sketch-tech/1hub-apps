@@ -1,3 +1,4 @@
+import { downloadBlob } from '@shared/utils/downloads'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import VideoDropzone from './components/VideoDropzone'
 import { extractAudio, processVideo } from './lib/ffmpegProcessor'
@@ -23,16 +24,7 @@ function formatTime(value: number) {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = filename
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
+
 
 export default function SmartVideoToolsPage() {
   const videoRef = useRef<HTMLVideoElement>(null)
