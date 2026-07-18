@@ -12,6 +12,7 @@ export const ROUTES = {
   smartImageTools: '/apps/smart-image-tools',
   smartPdfTools: '/apps/smart-pdf-tools',
   qrBarcodeStudio: '/apps/qr-barcode-studio',
+  smartTextTools: '/apps/smart-text-tools',
   privacy: '/legal/privacy',
   terms: '/legal/terms',
   about: '/about',

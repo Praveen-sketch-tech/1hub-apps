@@ -167,6 +167,45 @@ export function HomePage() {
               </div>
             </div>
           </Card>
+
+          <Card>
+            <div className="flex h-full flex-col gap-5">
+              <div>
+                <p className="mb-1 text-sm font-medium text-blue-600 dark:text-blue-400">
+                  App #004
+                </p>
+
+                <h2 className="text-xl font-bold">
+                  Smart Text Tools
+                </h2>
+
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                  Clean, convert, compare and extract useful data from text instantly.
+                </p>
+
+                <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Text Cleaner
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Case Converter
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    Compare
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
+                    JSON
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-auto pt-2">
+                <Link to={ROUTES.smartTextTools}>
+                  <Button>Open tool</Button>
+                </Link>
+              </div>
+            </div>
+          </Card>
         </div>
       </section>
 

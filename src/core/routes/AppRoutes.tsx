@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { AppLayout } from '@shared/components/layout/AppLayout'
 import { AuthLayout } from '@shared/components/layout/AuthLayout'
@@ -28,7 +29,14 @@ import { AdminSettingsPage } from '@apps/admin/AdminSettingsPage'
 import { AdminStatsPage } from '@apps/admin/AdminStatsPage'
 import { SmartImageToolsPage } from '@apps/smart-image-tools'
 import { SmartPdfToolsPage } from '@apps/smart-pdf-tools'
-import { QrBarcodeStudioPage } from '@apps/qr-barcode-studio'
+
+const QrBarcodeStudioPage = lazy(() =>
+  import('@apps/qr-barcode-studio').then((module) => ({
+    default: module.QrBarcodeStudioPage,
+  }))
+)
+
+import { SmartTextToolsPage } from '@apps/smart-text-tools'
 
 export function AppRoutes() {
   return (
@@ -39,7 +47,15 @@ export function AppRoutes() {
         <Route path={ROUTES.search} element={<SearchPage />} />
         <Route path={ROUTES.smartImageTools} element={<SmartImageToolsPage />} />
         <Route path={ROUTES.smartPdfTools} element={<SmartPdfToolsPage />} />
-        <Route path={ROUTES.qrBarcodeStudio} element={<QrBarcodeStudioPage />} />
+        <Route path={ROUTES.smartTextTools} element={<SmartTextToolsPage />} />
+        <Route
+          path={ROUTES.qrBarcodeStudio}
+          element={
+            <Suspense fallback={<div className="p-8 text-center">Loading QR &amp; Barcode Studio…</div>}>
+              <QrBarcodeStudioPage />
+            </Suspense>
+          }
+        />
         <Route path={ROUTES.privacy} element={<PrivacyPolicyPage />} />
         <Route path={ROUTES.terms} element={<TermsPage />} />
         <Route path={ROUTES.about} element={<AboutPage />} />
