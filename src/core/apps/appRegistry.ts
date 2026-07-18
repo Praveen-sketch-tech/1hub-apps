@@ -48,4 +48,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-data-tools',
     tags: ["CSV","JSON","Data Cleaner","Converter"],
   },
+  {
+    id: 'smart-calculator-converter',
+    number: '006',
+    name: "Smart Calculator & Converter",
+    description: "Calculate EMI, estimate existing loans, GST, discounts, dates and everyday unit conversions.",
+    path: '/apps/smart-calculator-converter',
+    tags: ["EMI","GST","Converter","Calculator"],
+  },
 ]

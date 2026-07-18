@@ -52,4 +52,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-calculator-converter',
+    name: "Smart Calculator & Converter",
+    component: lazy(() =>
+      import('@apps/smart-calculator-converter').then((module) => ({
+        default: module.SmartCalculatorConverterPage,
+      }))
+    ),
+  },
 ]
