@@ -132,3 +132,351 @@ body {
 .tool-page textarea {
   max-width: 100%;
 }
+
+/* ==================================================
+   Shared Tool UI Primitives
+   Use these for App #011 onward.
+   Existing apps may migrate incrementally.
+   ================================================== */
+
+/* Surface / Card / Panel */
+.tool-card,
+.tool-panel {
+  min-width: 0;
+  border: 1px solid var(--tool-border);
+  border-radius: 16px;
+  background: var(--tool-surface);
+  color: var(--tool-surface-text);
+}
+
+.tool-card {
+  padding: 18px;
+}
+
+.tool-panel {
+  padding: 20px;
+}
+
+.tool-card-muted,
+.tool-panel-muted {
+  background: var(--tool-surface-soft);
+}
+
+/* Buttons */
+.tool-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 14px;
+  border: 1px solid var(--tool-border);
+  border-radius: 10px;
+  background: var(--tool-surface-soft);
+  color: var(--tool-surface-text);
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+
+.tool-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.tool-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.tool-button-primary {
+  border-color: var(--tool-accent);
+  background: var(--tool-accent);
+  color: #ffffff;
+}
+
+.tool-button-secondary {
+  border-color: var(--tool-border);
+  background: var(--tool-surface-soft);
+  color: var(--tool-surface-text);
+}
+
+/* Form controls */
+.tool-input,
+.tool-select,
+.tool-textarea {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--tool-border);
+  border-radius: 10px;
+  background: var(--tool-input-bg);
+  color: var(--tool-surface-text);
+  font: inherit;
+  outline: none;
+}
+
+.tool-input,
+.tool-select {
+  min-height: 42px;
+  padding: 9px 11px;
+}
+
+.tool-textarea {
+  min-height: 140px;
+  padding: 11px 12px;
+  resize: vertical;
+}
+
+.tool-input::placeholder,
+.tool-textarea::placeholder {
+  color: var(--tool-surface-muted);
+}
+
+.tool-input:focus,
+.tool-select:focus,
+.tool-textarea:focus {
+  border-color: var(--tool-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tool-accent) 18%, transparent);
+}
+
+/* Field / Label */
+.tool-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.tool-label {
+  color: var(--tool-surface-muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+/* Dropzone */
+.tool-dropzone {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 140px;
+  padding: 28px 18px;
+  border: 2px dashed var(--tool-border);
+  border-radius: 16px;
+  background: var(--tool-surface);
+  color: var(--tool-surface-text);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.tool-dropzone:hover {
+  border-color: var(--tool-accent);
+  background: color-mix(
+    in srgb,
+    var(--tool-accent) 5%,
+    var(--tool-surface)
+  );
+}
+
+.tool-dropzone-muted {
+  color: var(--tool-surface-muted);
+}
+
+.tool-dropzone input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Common layouts */
+.tool-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.tool-grid-2,
+.tool-grid-3,
+.tool-grid-4 {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.tool-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tool-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tool-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.tool-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tool-muted {
+  color: var(--tool-surface-muted);
+}
+
+/* Responsive foundation */
+@media (max-width: 800px) {
+  .tool-grid-3,
+  .tool-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .tool-card,
+  .tool-panel {
+    padding: 15px;
+  }
+
+  .tool-grid-2,
+  .tool-grid-3,
+  .tool-grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .tool-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .tool-actions > .tool-button {
+    width: 100%;
+  }
+
+  .tool-dropzone {
+    min-height: 120px;
+    padding: 22px 14px;
+  }
+}
+
+/* ==================================================
+   Shared Tool UI Bridge — Apps #001–#010
+   Common visual language without overriding unique
+   processing/editor controls.
+   ================================================== */
+
+/* Common cards / panels */
+.tool-page :is(
+  .sit-panel,
+  .spt-home-card,
+  .spt-split-panel,
+  .spt-compression-panel,
+  .spt-generate-panel,
+  .spt-result-panel,
+  .spt-progress-panel,
+  .qbs-panel,
+  .stt-panel,
+  .sdt-panel,
+  .scc-card,
+  .sdoc-upload,
+  .sdoc-empty,
+  .sdoc-workspace,
+  .sdoc-pages,
+  .sdoc-ocr,
+  .sdoc-export,
+  .sft-card,
+  .sat-card,
+  .svt-card
+) {
+  border-color: var(--tool-border);
+  background: var(--tool-surface);
+  color: var(--tool-surface-text);
+}
+
+/* Common text-like form controls */
+.tool-page :is(
+  .sit-tool-body input[type='number'],
+  .sit-tool-body select,
+  .sit-crop-controls select,
+  .spt-text-input,
+  .spt-select,
+  .qbs-input,
+  .qbs-select,
+  .qbs-textarea,
+  .stt-main-textarea,
+  .sdt-source
+) {
+  border-color: var(--tool-border);
+  background: var(--tool-input-bg);
+  color: var(--tool-surface-text);
+}
+
+/* Common dropzones */
+.tool-page :is(
+  .sit-dropzone,
+  .spt-dropzone,
+  .qbs-dropzone,
+  .sdt-upload,
+  .sft-dropzone,
+  .sat-dropzone,
+  .svt-dropzone
+) {
+  border-color: var(--tool-border);
+  background-color: var(--tool-surface);
+  color: var(--tool-surface-text);
+}
+
+/* Shared keyboard focus */
+.tool-page :is(
+  button,
+  input,
+  select,
+  textarea,
+  [role='button']
+):focus-visible {
+  outline: 2px solid var(--tool-accent);
+  outline-offset: 2px;
+}
+
+/* Final responsive safety */
+@media (max-width: 600px) {
+  .tool-page {
+    overflow-x: hidden;
+  }
+
+  .tool-page :is(
+    button,
+    input,
+    select,
+    textarea
+  ) {
+    max-width: 100%;
+  }
+
+  .tool-page :is(
+    .sit-panel,
+    .qbs-panel,
+    .stt-panel,
+    .sdt-panel,
+    .scc-card,
+    .sft-card,
+    .sat-card,
+    .svt-card
+  ) {
+    min-width: 0;
+  }
+}
