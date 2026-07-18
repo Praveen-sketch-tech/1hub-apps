@@ -7,7 +7,7 @@ echo "🔍 Running TypeScript check..."
 npx tsc -b --pretty false
 
 echo "📦 Staging changes..."
-git add src/core/apps src/apps scripts .gitignore package.json package-lock.json
+git add src/core/apps src/apps scripts .gitignore package.json package-lock.json vite.config.ts vite.config.js vercel.json src/main.tsx
 
 echo "💾 Committing..."
 if git diff --cached --quiet; then
