@@ -1,0 +1,85 @@
+/*
+ * 1 Hub Apps theme contract.
+ * Common app chrome must inherit global theme tokens. App-local CSS may only
+ * define unique layout/visualisation geometry, not its own light/dark theme.
+ */
+.tool-page,
+[class$='-page'].tool-page {
+  color: var(--tool-text) !important;
+  background-color: var(--tool-page-bg, var(--tool-bg)) !important;
+}
+
+/* Common surfaces across legacy and future tool apps. */
+.tool-page :where(
+  [class$='-card'], [class*='-card '],
+  [class$='-panel'], [class*='-panel '],
+  [class$='-section'], [class*='-section '],
+  [class$='-workspace'], [class*='-workspace ']
+) {
+  border-color: var(--tool-border) !important;
+  background-color: var(--tool-surface) !important;
+  color: var(--tool-text) !important;
+}
+
+/* Do not allow app-local dark/light rules to make ordinary text disappear. */
+.tool-page :where(h1,h2,h3,h4,h5,h6,label,legend,strong,b,dt,th) {
+  color: var(--tool-text) !important;
+}
+.tool-page :where(p,small,.muted,[class$='-muted'],[class*='-description'],[class*='-hint'],[class*='-subtitle']) {
+  color: var(--tool-muted) !important;
+}
+
+/* Shared form-control visual contract. */
+.tool-page :where(input:not([type='checkbox']):not([type='radio']):not([type='range']),select,textarea) {
+  border-color: var(--tool-border) !important;
+  background-color: var(--tool-input-bg, var(--tool-surface)) !important;
+  color: var(--tool-text) !important;
+}
+.tool-page :where(input,select,textarea)::placeholder {
+  color: var(--tool-muted) !important;
+  opacity: .78;
+}
+.tool-page :where(input,select,textarea):disabled {
+  opacity: .62;
+}
+
+/* Neutral/secondary buttons inherit the shared theme. Primary/danger classes
+ * keep their semantic accent fills from shared/app-specific logic. */
+.tool-page :where(button,[role='button']) {
+  border-color: var(--tool-border);
+}
+.tool-page :where(
+  button:not([class*='primary']):not([class*='danger']):not([class*='accent']),
+  [role='button']:not([class*='primary']):not([class*='danger']):not([class*='accent'])
+) {
+  color: var(--tool-text);
+}
+
+/* Code/JSON surfaces remain readable and contained on mobile. */
+.tool-page :where(pre,code) {
+  color: var(--tool-text) !important;
+}
+.tool-page pre {
+  max-width: 100%;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Shared interaction feedback so taps/clicks are visibly acknowledged. */
+.tool-page :where(button,[role='button']):active {
+  transform: translateY(1px);
+  filter: brightness(.96);
+}
+.tool-page :where(button,[role='button']):focus-visible,
+.tool-page :where(input,select,textarea):focus-visible {
+  outline: 2px solid var(--tool-accent) !important;
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .tool-page,
+  .tool-page * { min-width: 0; }
+  .tool-page :where([class$='-card'],[class$='-panel'],pre) { max-width: 100%; }
+}
