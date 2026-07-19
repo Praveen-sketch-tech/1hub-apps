@@ -142,4 +142,22 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-screenshot-tools',
+    name: "Smart Screenshot Tools",
+    component: lazy(() =>
+      import('@apps/smart-screenshot-tools').then((module) => ({
+        default: module.SmartScreenshotToolsPage,
+      }))
+    ),
+  },
+  {
+    path: '/apps/smart-color-design-tools',
+    name: "Smart Color & Design Tools",
+    component: lazy(() =>
+      import('@apps/smart-color-design-tools').then((module) => ({
+        default: module.SmartColorDesignToolsPage,
+      }))
+    ),
+  },
 ]

@@ -159,3 +159,19 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'smart-screenshot-tools',
+  async () => {
+    const module = await import('@apps/smart-screenshot-tools/chatActions')
+    return module.chatModule
+  },
+)
+
+registerAppChatModule(
+  'smart-color-design-tools',
+  async () => {
+    const module = await import('@apps/smart-color-design-tools/chatActions')
+    return module.chatModule
+  },
+)

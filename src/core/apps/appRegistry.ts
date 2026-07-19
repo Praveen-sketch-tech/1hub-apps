@@ -128,4 +128,20 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-network-web-tools',
     tags: ["Network Tools","URL Tools","Developer Tools","IPv4","CIDR","Base64"],
   },
+  {
+    id: 'smart-screenshot-tools',
+    number: '016',
+    name: "Smart Screenshot Tools",
+    description: "Stitch, blur, annotate and export screenshots locally in your browser.",
+    path: '/apps/smart-screenshot-tools',
+    tags: ["Screenshot Stitcher","Blur Sensitive Areas","Annotations","Long Screenshot","Image Export"],
+  },
+  {
+    id: 'smart-color-design-tools',
+    number: '016',
+    name: "Smart Color & Design Tools",
+    description: "Pick colors, extract palettes, generate gradients and check accessibility locally in your browser.",
+    path: '/apps/smart-color-design-tools',
+    tags: ["Color Picker","Palette Extractor","Gradient Generator","Contrast Checker","WCAG","Color Converter"],
+  },
 ]
