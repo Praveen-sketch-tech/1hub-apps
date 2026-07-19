@@ -152,4 +152,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/universal-test-asset-factory',
     tags: ["Test Assets","OCR","PDF","Spreadsheet","QR","Barcode"],
   },
+  {
+    id: 'local-screen-tab-recorder',
+    number: '018',
+    name: "Local Screen & Tab Recorder",
+    description: "Record a user-selected browser tab, window or screen locally with explicit browser permission, reusable recording controls and WebM export.",
+    path: '/apps/local-screen-tab-recorder',
+    tags: ["Screen Recorder","Tab Recorder","Window Capture","WebM","Local Recording"],
+  },
 ]

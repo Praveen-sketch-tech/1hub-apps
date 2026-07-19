@@ -169,4 +169,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/local-screen-tab-recorder',
+    name: "Local Screen & Tab Recorder",
+    component: lazy(() =>
+      import('@apps/local-screen-tab-recorder').then((module) => ({
+        default: module.LocalScreenTabRecorderPage,
+      }))
+    ),
+  },
 ]

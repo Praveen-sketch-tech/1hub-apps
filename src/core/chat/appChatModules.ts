@@ -183,3 +183,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'local-screen-tab-recorder',
+  async () => {
+    const module = await import('@apps/local-screen-tab-recorder/chatActions')
+    return module.chatModule
+  },
+)
