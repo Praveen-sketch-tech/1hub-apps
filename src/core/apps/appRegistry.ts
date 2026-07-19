@@ -104,4 +104,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-uuid-generator',
     tags: ["UUID Generator","UUID v4","Bulk UUID","Developer Tools"],
   },
+  {
+    id: 'smart-metadata-privacy-tools',
+    number: '013',
+    name: "Smart Metadata & Privacy Tools",
+    description: "Inspect and remove privacy-sensitive metadata from files directly in your browser.",
+    path: '/apps/smart-metadata-privacy-tools',
+    tags: ["Metadata","EXIF","Privacy Cleaner","Image Metadata","File Inspector"],
+  },
 ]

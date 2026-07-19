@@ -115,4 +115,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-metadata-privacy-tools',
+    name: "Smart Metadata & Privacy Tools",
+    component: lazy(() =>
+      import('@apps/smart-metadata-privacy-tools').then((module) => ({
+        default: module.SmartMetadataPrivacyToolsPage,
+      }))
+    ),
+  },
 ]

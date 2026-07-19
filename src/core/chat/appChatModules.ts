@@ -135,3 +135,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'smart-metadata-privacy-tools',
+  async () => {
+    const module = await import('@apps/smart-metadata-privacy-tools/chatActions')
+    return module.chatModule
+  },
+)
