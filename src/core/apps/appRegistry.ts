@@ -224,4 +224,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/automated-demo-workflow-orchestrator',
     tags: ["Workflow Orchestrator","Automated Demo","Demo Pipeline","Workflow Automation","Stage Tracking"],
   },
+  {
+    id: 'automatic-website-demo-video-generator',
+    number: '027',
+    name: "Automatic Website Demo Video Generator",
+    description: "Generate website and app demo videos through the reusable 1 Hub Apps automated demo workflow pipeline.",
+    path: '/apps/automatic-website-demo-video-generator',
+    tags: ["Website Demo Video","Automatic Demo","Demo Generator","Workflow Orchestration","Video Automation"],
+  },
 ]

@@ -250,4 +250,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/automatic-website-demo-video-generator',
+    name: "Automatic Website Demo Video Generator",
+    component: lazy(() =>
+      import('@apps/automatic-website-demo-video-generator').then((module) => ({
+        default: module.AutomaticWebsiteDemoVideoGeneratorPage,
+      }))
+    ),
+  },
 ]

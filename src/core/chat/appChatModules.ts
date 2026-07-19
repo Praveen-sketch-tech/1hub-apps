@@ -255,3 +255,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'automatic-website-demo-video-generator',
+  async () => {
+    const module = await import('@apps/automatic-website-demo-video-generator/chatActions')
+    return module.chatModule
+  },
+)
