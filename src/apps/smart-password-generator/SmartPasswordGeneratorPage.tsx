@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { generatePassword, estimatePasswordStrength } from './lib/password'
+import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
 import './smart-password-generator.css'
 
 export default function SmartPasswordGeneratorPage() {
@@ -57,19 +58,11 @@ export default function SmartPasswordGeneratorPage() {
   return (
     <main className="tool-page spg-page">
       <div className="spg-shell">
-        <header className="tool-app-header">
-          <div>
-            <p className="tool-app-kicker">App #011</p>
-            <h1>Smart Password Generator</h1>
-            <p className="tool-app-description">
-              Generate strong, random passwords locally in your browser.
-            </p>
-          </div>
-
-          <div className="local-processing-badge">
-            🔒 Local processing
-          </div>
-        </header>
+        <ToolAppHeader
+          appNumber="011"
+          title="Smart Password Generator"
+          description="Generate strong, random passwords locally in your browser."
+        />
 
         <section className="tool-panel spg-panel">
           <div className="spg-output-wrap">

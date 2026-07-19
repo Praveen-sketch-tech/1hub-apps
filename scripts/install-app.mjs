@@ -52,6 +52,7 @@ const chatActionsPath = path.join(appPath, 'chatActions.ts')
 if (!fs.existsSync(chatActionsPath)) {
   const chatScaffold = `import type { AppChatModule } from '@core/chat/types'
 
+// Keep processing in reusable lib functions and call the same functions from UI + chat.
 export const chatModule: AppChatModule = {
   appId: '${folder}',
   actions: [
@@ -141,5 +142,6 @@ console.log(`✅ Export: ${exportName}`)
 console.log(`✅ Tags: ${tags.join(', ') || 'None'}`)
 console.log('')
 console.log('Next:')
-console.log('1. Quick type check')
-console.log('2. git add / commit / push')
+console.log('1. Verify shared ToolAppHeader/UI primitives and reusable UI/chat processing functions')
+console.log('2. Quick type check')
+console.log('3. git add / commit / push')
