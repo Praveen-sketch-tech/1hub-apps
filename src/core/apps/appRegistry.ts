@@ -200,4 +200,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/rule-based-demo-flow-builder',
     tags: ["Demo Flow","Workflow Builder","Rule-Based Automation","Interaction Sequence","Page Map"],
   },
+  {
+    id: 'smart-asset-to-action-mapper',
+    number: '024',
+    name: "Smart Asset-to-Action Mapper",
+    description: "Map demo file-input requirements to reusable App #017 test-asset generation requests and App #020 upload actions.",
+    path: '/apps/smart-asset-to-action-mapper',
+    tags: ["Asset Mapping","Demo Assets","Upload Actions","Test Asset Factory","Workflow Automation"],
+  },
 ]

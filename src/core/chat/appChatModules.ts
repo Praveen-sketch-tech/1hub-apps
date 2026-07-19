@@ -231,3 +231,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'smart-asset-to-action-mapper',
+  async () => {
+    const module = await import('@apps/smart-asset-to-action-mapper/chatActions')
+    return module.chatModule
+  },
+)

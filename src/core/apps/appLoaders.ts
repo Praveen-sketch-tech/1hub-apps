@@ -223,4 +223,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-asset-to-action-mapper',
+    name: "Smart Asset-to-Action Mapper",
+    component: lazy(() =>
+      import('@apps/smart-asset-to-action-mapper').then((module) => ({
+        default: module.SmartAssetToActionMapperPage,
+      }))
+    ),
+  },
 ]
