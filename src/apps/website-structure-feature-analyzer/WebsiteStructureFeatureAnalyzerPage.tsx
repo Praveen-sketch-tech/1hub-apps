@@ -53,7 +53,7 @@ export function WebsiteStructureFeatureAnalyzerPage() {
     const href = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = href; a.download = 'page-feature-map.json'; a.click(); setTimeout(() => URL.revokeObjectURL(href), 5000)
   }
 
-  return <div className="wsfa-page">
+  return <div className="tool-page wsfa-page">
     <ToolAppHeader appNumber="021" title="Website Structure & Feature Analyzer" description="Analyze accessible page data into reusable structured Page Maps and Feature Maps using browser-local rules." />
 
     <div className="wsfa-modebar">

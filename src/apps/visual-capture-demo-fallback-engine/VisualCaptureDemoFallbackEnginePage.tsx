@@ -62,7 +62,7 @@ export function VisualCaptureDemoFallbackEnginePage(){
     }finally{setBusy(false)}
   }
 
-  return <div className="vc-page">
+  return <div className="tool-page vc-page">
     <ToolAppHeader
       appNumber="025"
       title="Visual Capture & Demo Fallback Engine"

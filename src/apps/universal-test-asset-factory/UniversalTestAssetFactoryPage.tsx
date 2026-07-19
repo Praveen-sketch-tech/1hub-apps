@@ -111,7 +111,7 @@ export function UniversalTestAssetFactoryPage() {
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
+    <div className="tool-page min-h-screen px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <ToolAppHeader
           appNumber="017"
@@ -119,8 +119,8 @@ export function UniversalTestAssetFactoryPage() {
           description="Generate rich reusable test files locally for OCR, documents, spreadsheets, QR/barcodes, cross-app workflows and automated demos."
         />
 <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">1. Choose asset type</h2>
+          <section className="rounded-2xl border border-[var(--tool-border)] bg-[var(--tool-surface)] p-5 shadow-sm ">
+            <h2 className="text-lg font-semibold text-[var(--tool-text)]">1. Choose asset type</h2>
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {assetTypes.map((item) => (
                 <button
@@ -129,7 +129,7 @@ export function UniversalTestAssetFactoryPage() {
                   onClick={() => setAssetType(item.value)}
                   className={`rounded-xl border p-3 text-left transition ${assetType === item.value ? 'border-slate-900 ring-2 ring-slate-300 dark:border-white dark:ring-slate-600' : 'border-slate-200 hover:border-slate-400 dark:border-slate-700 dark:hover:border-slate-500'}`}
                 >
-                  <span className="block font-semibold text-slate-900 dark:text-white">{item.label}</span>
+                  <span className="block font-semibold text-[var(--tool-text)]">{item.label}</span>
                   <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">{item.hint}</span>
                 </button>
               ))}
@@ -156,10 +156,10 @@ export function UniversalTestAssetFactoryPage() {
                   {preset === 'qr' && <label className="block text-sm text-slate-700 dark:text-slate-200">QR content<input value={qrText} onChange={(e) => setQrText(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-transparent px-3 py-2 dark:border-slate-600" /></label>}
                   {preset === 'barcode' && <label className="block text-sm text-slate-700 dark:text-slate-200">Barcode content<input value={barcodeText} onChange={(e) => setBarcodeText(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 bg-transparent px-3 py-2 dark:border-slate-600" /></label>}
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <label className="text-xs text-slate-600 dark:text-slate-300">Noise {noise}<input type="range" min={0} max={40} value={noise} onChange={(e) => setNoise(Number(e.target.value))} className="w-full" /></label>
-                    <label className="text-xs text-slate-600 dark:text-slate-300">Blur {blur}<input type="range" min={0} max={6} value={blur} onChange={(e) => setBlur(Number(e.target.value))} className="w-full" /></label>
-                    <label className="text-xs text-slate-600 dark:text-slate-300">Skew {skew}°<input type="range" min={-8} max={8} value={skew} onChange={(e) => setSkew(Number(e.target.value))} className="w-full" /></label>
-                    <label className="text-xs text-slate-600 dark:text-slate-300">Rotate {rotation}°<input type="range" min={-10} max={10} value={rotation} onChange={(e) => setRotation(Number(e.target.value))} className="w-full" /></label>
+                    <label className="text-xs text-[var(--tool-muted)]">Noise {noise}<input type="range" min={0} max={40} value={noise} onChange={(e) => setNoise(Number(e.target.value))} className="w-full" /></label>
+                    <label className="text-xs text-[var(--tool-muted)]">Blur {blur}<input type="range" min={0} max={6} value={blur} onChange={(e) => setBlur(Number(e.target.value))} className="w-full" /></label>
+                    <label className="text-xs text-[var(--tool-muted)]">Skew {skew}°<input type="range" min={-8} max={8} value={skew} onChange={(e) => setSkew(Number(e.target.value))} className="w-full" /></label>
+                    <label className="text-xs text-[var(--tool-muted)]">Rotate {rotation}°<input type="range" min={-10} max={10} value={rotation} onChange={(e) => setRotation(Number(e.target.value))} className="w-full" /></label>
                   </div>
                   <div className="flex flex-wrap gap-4 text-sm text-slate-700 dark:text-slate-200">
                     <label className="flex items-center gap-2"><input type="checkbox" checked={scanStyle} onChange={(e) => setScanStyle(e.target.checked)} /> Scan style</label>
@@ -191,13 +191,13 @@ export function UniversalTestAssetFactoryPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">2. Preview & download</h2>
+          <section className="rounded-2xl border border-[var(--tool-border)] bg-[var(--tool-surface)] p-5 shadow-sm ">
+            <h2 className="text-lg font-semibold text-[var(--tool-text)]">2. Preview & download</h2>
             {!result ? (
               <div className="mt-4 flex min-h-80 items-center justify-center rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">Configure a rich test scenario and generate the asset. Useful outputs are previewed here when practical.</div>
             ) : (
               <div className="mt-4 space-y-4">
-                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800"><p className="font-medium text-slate-900 dark:text-white">{result.fileName}</p><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{result.summary}</p></div>
+                <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800"><p className="font-medium text-[var(--tool-text)]">{result.fileName}</p><p className="mt-1 text-sm text-[var(--tool-muted)]">{result.summary}</p></div>
                 {(result.assetType === 'jpg' || result.assetType === 'png' || result.assetType === 'webp') && <img src={previewUrl} alt="Generated test asset preview" className="max-h-[560px] w-full rounded-xl border border-slate-200 object-contain dark:border-slate-700" />}
                 {result.assetType === 'pdf' && <iframe title="Generated PDF preview" src={previewUrl} className="h-[560px] w-full rounded-xl border border-slate-200 dark:border-slate-700" />}
                 {previewText && <pre className="max-h-[560px] overflow-auto whitespace-pre-wrap rounded-xl bg-slate-950 p-4 text-xs text-slate-100">{previewText}</pre>}
@@ -208,9 +208,9 @@ export function UniversalTestAssetFactoryPage() {
           </section>
         </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Reusable ecosystem capability</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">The same asset-generation layer powers this UI and Hub Assistant actions, and can be reused later by cross-app workflows, Smart Asset-to-Action Mapper and automated demo orchestrators without duplicating generation logic.</p>
+        <section className="rounded-2xl border border-[var(--tool-border)] bg-[var(--tool-surface)] p-5 shadow-sm ">
+          <h2 className="text-lg font-semibold text-[var(--tool-text)]">Reusable ecosystem capability</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--tool-muted)]">The same asset-generation layer powers this UI and Hub Assistant actions, and can be reused later by cross-app workflows, Smart Asset-to-Action Mapper and automated demo orchestrators without duplicating generation logic.</p>
         </section>
       </div>
     </div>

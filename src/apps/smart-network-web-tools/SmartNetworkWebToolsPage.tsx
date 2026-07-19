@@ -141,7 +141,7 @@ export function SmartNetworkWebToolsPage() {
   );
 
   return (
-    <main className="network-web-tools-page">
+    <main className="tool-page network-web-tools-page">
       <div className="network-web-tools-shell">
         <ToolAppHeader
           appNumber="015"

@@ -52,7 +52,7 @@ const SmartMetadataPrivacyToolsPage: React.FC = () => {
   };
 
   return (
-    <div className="smpt-app">
+    <div className="tool-page smpt-app">
       <ToolAppHeader
         appNumber="013"
         title="Smart Metadata & Privacy Tools"

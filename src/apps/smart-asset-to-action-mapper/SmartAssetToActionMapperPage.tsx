@@ -131,7 +131,7 @@ export function SmartAssetToActionMapperPage() {
   }
 
   return (
-    <div className="asset-map-page">
+    <div className="tool-page asset-map-page">
       <ToolAppHeader
         appNumber="024"
         title="Smart Asset-to-Action Mapper"

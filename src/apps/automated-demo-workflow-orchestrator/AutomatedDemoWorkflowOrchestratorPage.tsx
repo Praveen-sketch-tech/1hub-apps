@@ -92,7 +92,7 @@ export function AutomatedDemoWorkflowOrchestratorPage() {
   }
 
   return (
-    <div className="orchestrator-page">
+    <div className="tool-page orchestrator-page">
       <ToolAppHeader
         appNumber="026"
         title="Automated Demo Workflow Orchestrator"

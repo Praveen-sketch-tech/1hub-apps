@@ -29,7 +29,7 @@ export default function SmartUuidGeneratorPage() {
   }
 
   return (
-    <main className="uuid-app">
+    <main className="tool-page uuid-app">
       <ToolAppHeader
         appNumber="012"
         title="Smart UUID Generator"

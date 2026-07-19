@@ -74,7 +74,7 @@ export function WebInteractionSimulationEnginePage() {
   }
 
   return (
-    <div className="wis-page">
+    <div className="tool-page wis-page">
       <ToolAppHeader
         appNumber="020"
         title="Web Interaction Simulation Engine"

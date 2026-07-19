@@ -169,7 +169,7 @@ export default function SmartColorDesignToolsPage() {
   };
 
   return (
-    <main className="scdt-page">
+    <main className="tool-page scdt-page">
       <ToolAppHeader
         appNumber="016"
         title="Smart Color & Design Tools"

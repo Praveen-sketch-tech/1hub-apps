@@ -247,7 +247,7 @@ export function WebPageSnapshotLocalSimulationPage() {
   const target = project ? createSimulationTarget(project) : null
 
   return (
-    <div className="snapshot-page">
+    <div className="tool-page snapshot-page">
       <ToolAppHeader
         appNumber="022"
         title="Web Page Snapshot & Local Simulation"

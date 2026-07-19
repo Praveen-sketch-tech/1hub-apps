@@ -205,7 +205,7 @@ export function RuleBasedDemoFlowBuilderPage() {
   }
 
   return (
-    <div className="flow-page">
+    <div className="tool-page flow-page">
       <ToolAppHeader
         appNumber="023"
         title="Rule-Based Demo Flow Builder"

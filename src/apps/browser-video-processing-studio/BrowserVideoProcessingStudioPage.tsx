@@ -101,7 +101,7 @@ export function BrowserVideoProcessingStudioPage() {
   }
 
   return (
-    <div className="bvps-page">
+    <div className="tool-page bvps-page">
       <ToolAppHeader
         appNumber="019"
         title="Browser Video Processing Studio"

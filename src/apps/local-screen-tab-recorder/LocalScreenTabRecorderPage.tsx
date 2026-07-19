@@ -109,7 +109,7 @@ export function LocalScreenTabRecorderPage() {
   const canStart = snapshot.state === 'ready'
 
   return (
-    <div className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
+    <div className="tool-page min-h-screen px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <ToolAppHeader
           appNumber="018"
@@ -127,10 +127,10 @@ export function LocalScreenTabRecorderPage() {
           </section>
         ) : (
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-            <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <section className="space-y-5 rounded-2xl border border-[var(--tool-border)] bg-[var(--tool-surface)] p-5 shadow-sm ">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Recording setup</h2>
-                <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">Your browser will show its native source picker. This app cannot silently select or capture a tab, window or display.</p>
+                <h2 className="text-lg font-semibold text-[var(--tool-text)]">Recording setup</h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--tool-muted)]">Your browser will show its native source picker. This app cannot silently select or capture a tab, window or display.</p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -200,10 +200,10 @@ export function LocalScreenTabRecorderPage() {
               {(uiError || snapshot.error) && <div className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">{uiError || snapshot.error}</div>}
             </section>
 
-            <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <section className="space-y-5 rounded-2xl border border-[var(--tool-border)] bg-[var(--tool-surface)] p-5 shadow-sm ">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Live view & recording result</h2>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">The selected source is shown locally while capture is active. Your recording stays in the browser until you download it.</p>
+                <h2 className="text-lg font-semibold text-[var(--tool-text)]">Live view & recording result</h2>
+                <p className="mt-1 text-sm text-[var(--tool-muted)]">The selected source is shown locally while capture is active. Your recording stays in the browser until you download it.</p>
               </div>
 
               {['ready', 'recording', 'paused', 'stopping'].includes(snapshot.state) ? (
@@ -233,9 +233,9 @@ export function LocalScreenTabRecorderPage() {
           </div>
         )}
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Reusable demo-video foundation</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">The page uses a UI-independent ScreenRecordingController. Future capture modules and demo orchestrators can attach a user-approved MediaStream and control start, pause, resume and stop without duplicating the recording engine. Browser permission and source selection always remain user-controlled.</p>
+        <section className="rounded-2xl border border-[var(--tool-border)] bg-[var(--tool-surface)] p-5 shadow-sm ">
+          <h2 className="text-lg font-semibold text-[var(--tool-text)]">Reusable demo-video foundation</h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--tool-muted)]">The page uses a UI-independent ScreenRecordingController. Future capture modules and demo orchestrators can attach a user-approved MediaStream and control start, pause, resume and stop without duplicating the recording engine. Browser permission and source selection always remain user-controlled.</p>
         </section>
       </div>
     </div>
@@ -243,5 +243,5 @@ export function LocalScreenTabRecorderPage() {
 }
 
 function Info({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700"><div className="text-xs text-slate-500 dark:text-slate-400">{label}</div><div className="mt-1 font-medium text-slate-900 dark:text-white">{value}</div></div>
+  return <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700"><div className="text-xs text-slate-500 dark:text-slate-400">{label}</div><div className="mt-1 font-medium text-[var(--tool-text)]">{value}</div></div>
 }

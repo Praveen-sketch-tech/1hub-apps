@@ -118,7 +118,7 @@ export function AutomaticWebsiteDemoVideoGeneratorPage() {
   }
 
   return (
-    <div className="final-demo-page">
+    <div className="tool-page final-demo-page">
       <ToolAppHeader
         appNumber="027"
         title="Automatic Website Demo Video Generator"

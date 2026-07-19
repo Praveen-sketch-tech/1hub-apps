@@ -1,4 +1,3 @@
-@import "../../shared/styles/app-theme-contract.css";
 .sit-page {
   --sit-border: var(--tool-border);
   --sit-muted: var(--tool-muted);

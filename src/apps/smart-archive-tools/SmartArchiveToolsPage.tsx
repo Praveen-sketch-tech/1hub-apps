@@ -115,7 +115,7 @@ export function SmartArchiveToolsPage() {
   }
 
   return (
-    <main className="sat-page">
+    <main className="tool-page sat-page">
       <ToolAppHeader
         appNumber="014"
         title="Smart Archive Tools"

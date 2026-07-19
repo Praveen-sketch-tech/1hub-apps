@@ -256,7 +256,7 @@ export default function SmartScreenshotToolsPage() {
   };
 
   return (
-    <main className="sst-page">
+    <main className="tool-page sst-page">
       <ToolAppHeader
         appNumber="015"
         title="Smart Screenshot Tools"
