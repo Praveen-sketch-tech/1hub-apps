@@ -175,3 +175,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'universal-test-asset-factory',
+  async () => {
+    const module = await import('@apps/universal-test-asset-factory/chatActions')
+    return module.chatModule
+  },
+)

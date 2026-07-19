@@ -160,4 +160,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/universal-test-asset-factory',
+    name: "Universal Test Asset Factory",
+    component: lazy(() =>
+      import('@apps/universal-test-asset-factory').then((module) => ({
+        default: module.UniversalTestAssetFactoryPage,
+      }))
+    ),
+  },
 ]

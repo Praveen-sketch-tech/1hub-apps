@@ -144,4 +144,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-color-design-tools',
     tags: ["Color Picker","Palette Extractor","Gradient Generator","Contrast Checker","WCAG","Color Converter"],
   },
+  {
+    id: 'universal-test-asset-factory',
+    number: '017',
+    name: "Universal Test Asset Factory",
+    description: "Generate rich reusable test files locally for OCR, documents, spreadsheets, QR/barcodes, cross-app workflows and automated demos.",
+    path: '/apps/universal-test-asset-factory',
+    tags: ["Test Assets","OCR","PDF","Spreadsheet","QR","Barcode"],
+  },
 ]
