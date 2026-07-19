@@ -264,6 +264,24 @@ export async function runDemoWorkflow(
         break
       } catch (error) {
         lastError = error instanceof Error ? error.message : 'Unknown workflow error.'
+
+        const unsupportedCapture =
+          stageId === 'capture' &&
+          /screen\/tab capture is not supported|display capture|not supported in this browser/i.test(lastError)
+
+        if (unsupportedCapture) {
+          state = updateStage(state, stageId, {
+            status: 'waiting-user',
+            error: undefined,
+            message: 'Screen/tab capture is not supported in this browser. Open this workflow in a desktop browser with screen capture support, then use Retry / continue.',
+          })
+          state.status = 'waiting-user'
+          const warning = 'Capture is unavailable in this browser; desktop screen-capture support is required.'
+          if (!state.warnings.includes(warning)) state.warnings = [...state.warnings, warning]
+          emit(state, options)
+          return { state, completed: false, waitingForUser: true }
+        }
+
         state = updateStage(state, stageId, {
           status: attempt <= maxRetries ? 'running' : 'failed',
           error: lastError,
@@ -275,7 +293,8 @@ export async function runDemoWorkflow(
 
     if (!success) {
       state.status = 'failed'
-      state.warnings = [...state.warnings, `Stage ${stageId} failed: ${lastError}`]
+      const warning = `Stage ${stageId} failed: ${lastError}`
+      if (!state.warnings.includes(warning)) state.warnings = [...state.warnings, warning]
       emit(state, options)
       return { state, completed: false, waitingForUser: false }
     }
