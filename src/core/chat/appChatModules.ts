@@ -215,3 +215,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'web-page-snapshot-local-simulation',
+  async () => {
+    const module = await import('@apps/web-page-snapshot-local-simulation/chatActions')
+    return module.chatModule
+  },
+)

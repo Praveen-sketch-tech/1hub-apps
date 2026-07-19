@@ -184,4 +184,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/website-structure-feature-analyzer',
     tags: ["Website Analyzer","Page Map","Feature Map","HTML Analyzer","Workflow Detection"],
   },
+  {
+    id: 'web-page-snapshot-local-simulation',
+    number: '022',
+    name: "Web Page Snapshot & Local Simulation",
+    description: "Create temporary browser-local page snapshots and simulation targets from accessible HTML, user-provided source or structured Page Maps.",
+    path: '/apps/web-page-snapshot-local-simulation',
+    tags: ["Web Snapshot","Local Simulation","HTML Preview","Page Map","IndexedDB"],
+  },
 ]

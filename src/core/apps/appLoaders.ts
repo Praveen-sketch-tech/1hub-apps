@@ -205,4 +205,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/web-page-snapshot-local-simulation',
+    name: "Web Page Snapshot & Local Simulation",
+    component: lazy(() =>
+      import('@apps/web-page-snapshot-local-simulation').then((module) => ({
+        default: module.WebPageSnapshotLocalSimulationPage,
+      }))
+    ),
+  },
 ]
