@@ -216,4 +216,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/visual-capture-demo-fallback-engine',
     tags: ["Visual Capture","Demo Fallback","Screen Capture","Cursor Effects","Demo Recording"],
   },
+  {
+    id: 'automated-demo-workflow-orchestrator',
+    number: '026',
+    name: "Automated Demo Workflow Orchestrator",
+    description: "Coordinate reusable analysis, snapshot, flow, asset, simulation, capture and video-processing capabilities into one browser-first demo workflow.",
+    path: '/apps/automated-demo-workflow-orchestrator',
+    tags: ["Workflow Orchestrator","Automated Demo","Demo Pipeline","Workflow Automation","Stage Tracking"],
+  },
 ]

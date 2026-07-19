@@ -247,3 +247,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'automated-demo-workflow-orchestrator',
+  async () => {
+    const module = await import('@apps/automated-demo-workflow-orchestrator/chatActions')
+    return module.chatModule
+  },
+)

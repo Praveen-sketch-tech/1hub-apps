@@ -241,4 +241,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/automated-demo-workflow-orchestrator',
+    name: "Automated Demo Workflow Orchestrator",
+    component: lazy(() =>
+      import('@apps/automated-demo-workflow-orchestrator').then((module) => ({
+        default: module.AutomatedDemoWorkflowOrchestratorPage,
+      }))
+    ),
+  },
 ]
