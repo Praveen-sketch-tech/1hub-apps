@@ -112,4 +112,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-metadata-privacy-tools',
     tags: ["Metadata","EXIF","Privacy Cleaner","Image Metadata","File Inspector"],
   },
+  {
+    id: 'smart-archive-tools',
+    number: '014',
+    name: "Smart Archive Tools",
+    description: "Create, inspect, and extract ZIP archives privately in your browser.",
+    path: '/apps/smart-archive-tools',
+    tags: ["ZIP Creator","ZIP Extractor","Archive Browser","File Compression"],
+  },
 ]

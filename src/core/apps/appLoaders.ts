@@ -124,4 +124,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-archive-tools',
+    name: "Smart Archive Tools",
+    component: lazy(() =>
+      import('@apps/smart-archive-tools').then((module) => ({
+        default: module.SmartArchiveToolsPage,
+      }))
+    ),
+  },
 ]

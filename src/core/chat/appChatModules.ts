@@ -143,3 +143,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'smart-archive-tools',
+  async () => {
+    const module = await import('@apps/smart-archive-tools/chatActions')
+    return module.chatModule
+  },
+)

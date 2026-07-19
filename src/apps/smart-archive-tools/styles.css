@@ -1,0 +1,199 @@
+.sat-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  color: var(--text-primary, inherit);
+}
+
+.sat-topline {
+  display: flex;
+  justify-content: flex-end;
+  margin: 12px 0 18px;
+}
+
+.sat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.sat-card {
+  border: 1px solid var(--border-color, rgba(128, 128, 128, .28));
+  background: var(--card-bg, rgba(128, 128, 128, .06));
+  border-radius: 16px;
+  padding: 18px;
+  min-width: 0;
+}
+
+.sat-card h2 {
+  margin: 0 0 6px;
+  font-size: 1.2rem;
+}
+
+.sat-muted {
+  opacity: .72;
+}
+
+.sat-actions {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.sat-wrap {
+  flex-wrap: wrap;
+}
+
+.sat-button {
+  appearance: none;
+  border: 1px solid var(--border-color, rgba(128, 128, 128, .35));
+  background: var(--button-bg, transparent);
+  color: inherit;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.sat-button-primary {
+  background: var(--primary-color, #2563eb);
+  border-color: transparent;
+  color: #fff;
+}
+
+.sat-button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.sat-full {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.sat-field {
+  display: grid;
+  gap: 7px;
+  margin: 14px 0;
+}
+
+.sat-field label {
+  font-weight: 600;
+}
+
+.sat-field input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color, rgba(128, 128, 128, .35));
+  background: var(--input-bg, transparent);
+  color: inherit;
+  border-radius: 10px;
+  padding: 11px 12px;
+  font: inherit;
+}
+
+.sat-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0;
+  font-size: .92rem;
+}
+
+.sat-file-list,
+.sat-entry-list {
+  display: grid;
+  gap: 8px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.sat-file-row,
+.sat-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border-color, rgba(128, 128, 128, .2));
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.sat-file-row {
+  justify-content: space-between;
+}
+
+.sat-file-row span,
+.sat-entry-main {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.sat-file-row strong,
+.sat-entry-path {
+  overflow-wrap: anywhere;
+}
+
+.sat-file-row small {
+  opacity: .7;
+}
+
+.sat-link-button {
+  border: 0;
+  background: transparent;
+  color: var(--primary-color, #2563eb);
+  font: inherit;
+  cursor: pointer;
+}
+
+.sat-dropzone {
+  display: grid;
+  gap: 5px;
+  padding: 24px;
+  margin: 16px 0;
+  border: 2px dashed var(--border-color, rgba(128, 128, 128, .4));
+  border-radius: 14px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.sat-dropzone span {
+  opacity: .72;
+  font-size: .9rem;
+}
+
+.sat-entry {
+  cursor: pointer;
+}
+
+.sat-entry-icon {
+  flex: none;
+}
+
+.sat-entry-main {
+  flex: 1;
+}
+
+.sat-message {
+  margin-top: 16px;
+  border: 1px solid var(--border-color, rgba(128, 128, 128, .28));
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+@media (max-width: 760px) {
+  .sat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sat-page {
+    padding-inline: 12px;
+  }
+
+  .sat-actions .sat-button,
+  .sat-actions .sat-button-primary {
+    flex: 1 1 150px;
+  }
+}
