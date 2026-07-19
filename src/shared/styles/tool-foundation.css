@@ -1,0 +1,22 @@
+/* Compatibility bridge for legacy tool apps. The canonical tokens/primitives live in src/index.css. */
+:where(.flow-card,.snapshot-card,.orchestrator-card,.final-demo-card,.asset-map-card,.vc-card,.bvps-card,.wsfa-card,.wis-card,.sst-card,.scdt-card,.scc-card,.smpt-card,.sft-card,.sat-card,.svt-card,.qbs-panel,.stt-panel,.sit-panel,.sdt-panel,.uuid-panel){
+  min-width:0;
+  border-color:var(--tool-border)!important;
+  background-color:var(--tool-surface)!important;
+  color:var(--tool-surface-text)!important;
+}
+:where(.flow-card,.snapshot-card,.orchestrator-card,.final-demo-card,.asset-map-card,.vc-card,.bvps-card,.wsfa-card,.wis-card,.sst-card,.scdt-card,.scc-card,.smpt-card,.sft-card,.sat-card,.svt-card,.qbs-panel,.stt-panel,.sit-panel,.sdt-panel,.uuid-panel) :where(h1,h2,h3,h4,strong,label){color:var(--tool-surface-text)}
+:where(.flow-card,.snapshot-card,.orchestrator-card,.final-demo-card,.asset-map-card,.vc-card,.bvps-card,.wsfa-card,.wis-card) :where(p,small){color:var(--tool-surface-muted)}
+:where(.qbs-input,.qbs-select,.qbs-textarea,.scdt-input,.uuid-input,.spt-text-input,.spt-select,.stt-main-textarea){border-color:var(--tool-border)!important;background:var(--tool-input-bg)!important;color:var(--tool-surface-text)!important}
+:where(pre,code){max-width:100%;overflow-wrap:anywhere}.tool-json-scroll,:where(.flow-card,.snapshot-card,.orchestrator-card,.final-demo-card,.asset-map-card) pre{max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+@media(max-width:640px){:where(.flow-card,.snapshot-card,.orchestrator-card,.final-demo-card,.asset-map-card,.vc-card,.bvps-card,.wsfa-card,.wis-card,.sst-card,.scdt-card,.scc-card,.smpt-card,.sft-card,.sat-card,.svt-card,.qbs-panel,.stt-panel,.sit-panel,.sdt-panel,.uuid-panel){min-width:0;max-width:100%}:where(button,[role=button]){max-width:100%}:where(pre){font-size:.75rem}}
+
+/* Final shared theme contract: app-local CSS may control layout, never theme surfaces. */
+.tool-page :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea){background-color:var(--tool-input-bg)!important;color:var(--tool-surface-text)!important;border-color:var(--tool-border)!important}
+.tool-page :where(input,select,textarea)::placeholder{color:var(--tool-surface-muted)!important;opacity:.9}
+.tool-page :where(.card,[class$="-card"],[class*="-card "],.panel,[class$="-panel"],[class*="-panel "]){background-color:var(--tool-surface)!important;color:var(--tool-surface-text)!important;border-color:var(--tool-border)!important}
+.tool-page :where(.card,[class$="-card"],[class*="-card "],.panel,[class$="-panel"],[class*="-panel "]) :where(p,small,span:not(.badge):not([class*="badge"])){color:inherit}
+.tool-page :where(h1,h2,h3,h4,h5,h6,label,strong,legend){color:var(--tool-surface-text)}
+.tool-page :where(button,[role="button"]){transition:transform .08s ease,opacity .15s ease,box-shadow .15s ease}
+.tool-page :where(button,[role="button"]):active{transform:scale(.98);opacity:.82}
+.tool-page :where(button,[role="button"]):focus-visible{outline:3px solid color-mix(in srgb,var(--tool-accent) 45%,transparent);outline-offset:2px}

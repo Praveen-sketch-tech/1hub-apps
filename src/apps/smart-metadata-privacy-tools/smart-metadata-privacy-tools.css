@@ -1,0 +1,328 @@
+/* ============================================================================
+   Smart Metadata & Privacy Tools — scoped styles
+   Falls back to sensible light/dark values if the host app's CSS variables
+   (--background, --foreground, --card, --border, --muted, --primary, etc.)
+   are not present, but uses them when available so it matches the platform
+   theme automatically.
+   ============================================================================ */
+
+.smpt-app {
+  --smpt-bg: var(--tool-page-bg);
+  --smpt-fg: var(--tool-text);
+  --smpt-card: var(--tool-surface);
+  --smpt-card-fg: var(--tool-text);
+  --smpt-border: var(--tool-border);
+  --smpt-muted: var(--tool-surface-soft);
+  --smpt-muted-fg: var(--tool-muted);
+  --smpt-primary: var(--tool-accent);
+  --smpt-primary-fg: #ffffff;
+  --smpt-danger: #dc2626;
+  --smpt-danger-bg: #fef2f2;
+  --smpt-warn: #b45309;
+  --smpt-warn-bg: #fffbeb;
+  --smpt-ok: #15803d;
+  --smpt-ok-bg: #f0fdf4;
+
+  color: var(--smpt-fg);
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem 1rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.smpt-card {
+  background: var(--smpt-card);
+  color: var(--smpt-card-fg);
+  border: 1px solid var(--smpt-border);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.smpt-dropzone {
+  border: 2px dashed var(--smpt-border);
+  border-radius: 0.75rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  background: var(--smpt-muted);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.smpt-dropzone:hover,
+.smpt-dropzone.smpt-dropzone--active {
+  border-color: var(--smpt-primary);
+}
+
+.smpt-dropzone__title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0 0 0.25rem;
+  color: var(--smpt-fg);
+}
+
+.smpt-dropzone__hint {
+  font-size: 0.85rem;
+  color: var(--smpt-muted-fg);
+  margin: 0;
+}
+
+.smpt-dropzone__input {
+  display: none;
+}
+
+.smpt-file-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  font-size: 0.875rem;
+  color: var(--smpt-muted-fg);
+}
+
+.smpt-file-summary strong {
+  color: var(--smpt-fg);
+}
+
+.smpt-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+  color: var(--smpt-fg);
+}
+
+.smpt-group {
+  margin-bottom: 1rem;
+}
+
+.smpt-group:last-child {
+  margin-bottom: 0;
+}
+
+.smpt-group__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--smpt-muted-fg);
+  margin: 0 0 0.5rem;
+}
+
+.smpt-field-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--smpt-border);
+  font-size: 0.9rem;
+}
+
+.smpt-field-row:last-child {
+  border-bottom: none;
+}
+
+.smpt-field-row__label {
+  color: var(--smpt-muted-fg);
+  flex: 0 0 auto;
+}
+
+.smpt-field-row__value {
+  color: var(--smpt-fg);
+  text-align: right;
+  word-break: break-word;
+}
+
+.smpt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  margin-left: 0.5rem;
+  white-space: nowrap;
+}
+
+.smpt-badge--sensitive {
+  background: var(--smpt-warn-bg);
+  color: var(--smpt-warn);
+}
+
+.smpt-empty {
+  color: var(--smpt-muted-fg);
+  font-size: 0.9rem;
+}
+
+.smpt-risk-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.75rem;
+  padding: 0.9rem 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.smpt-risk-banner--low {
+  background: var(--smpt-ok-bg);
+  color: var(--smpt-ok);
+}
+
+.smpt-risk-banner--medium {
+  background: var(--smpt-warn-bg);
+  color: var(--smpt-warn);
+}
+
+.smpt-risk-banner--high {
+  background: var(--smpt-danger-bg);
+  color: var(--smpt-danger);
+}
+
+.smpt-flag-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.smpt-flag {
+  font-size: 0.85rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.smpt-flag__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  margin-top: 0.35rem;
+  flex-shrink: 0;
+}
+
+.smpt-flag__dot--low { background: var(--smpt-ok); }
+.smpt-flag__dot--medium { background: var(--smpt-warn); }
+.smpt-flag__dot--high { background: var(--smpt-danger); }
+
+.smpt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.smpt-btn {
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--smpt-border);
+  background: var(--smpt-card);
+  color: var(--smpt-fg);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.smpt-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.smpt-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.smpt-btn--primary {
+  background: var(--smpt-primary);
+  border-color: var(--smpt-primary);
+  color: var(--smpt-primary-fg);
+}
+
+.smpt-select {
+  font-size: 0.875rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--smpt-border);
+  background: var(--smpt-card);
+  color: var(--smpt-fg);
+}
+
+.smpt-note {
+  font-size: 0.8rem;
+  color: var(--smpt-muted-fg);
+  margin: 0;
+}
+
+.smpt-warnings {
+  font-size: 0.8rem;
+  color: var(--smpt-muted-fg);
+  border-left: 3px solid var(--smpt-border);
+  padding-left: 0.75rem;
+  margin: 0.5rem 0 0;
+}
+
+.smpt-error {
+  background: var(--smpt-danger-bg);
+  color: var(--smpt-danger);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+.smpt-clean-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--smpt-border);
+}
+
+.smpt-grid-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 1rem;
+  font-size: 0.85rem;
+}
+
+.smpt-grid-two dt {
+  color: var(--smpt-muted-fg);
+}
+
+.smpt-grid-two dd {
+  margin: 0;
+  color: var(--smpt-fg);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .smpt-app {
+    padding: 0.75rem 0.75rem 2.5rem;
+  }
+
+  .smpt-field-row {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .smpt-field-row__value {
+    text-align: left;
+  }
+
+  .smpt-grid-two {
+    grid-template-columns: 1fr;
+  }
+
+  .smpt-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .smpt-btn,
+  .smpt-select {
+    width: 100%;
+  }
+}

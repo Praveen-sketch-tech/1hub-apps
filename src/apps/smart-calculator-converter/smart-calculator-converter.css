@@ -1,0 +1,26 @@
+.scc-page{--a:var(--tool-accent);--b:var(--tool-border);--m:var(--tool-muted);width:min(1180px,calc(100% - 28px));margin:0 auto;padding:34px 0 50px;color:inherit}
+
+.scc-tabs,.scc-subtabs{display:flex;gap:8px;overflow-x:auto;margin-bottom:18px}.scc-tabs button,.scc-subtabs button{flex:0 0 auto;min-height:42px;padding:9px 14px;border:1px solid var(--b);border-radius:10px;background:var(--tool-surface);color:var(--tool-surface-text);font:inherit;font-weight:800}.scc-tabs button.is-active,.scc-subtabs button.is-active{background:var(--a);color:#fff;border-color:var(--a)}
+.scc-card{display:grid;gap:16px;padding:20px;border:1px solid var(--b);border-radius:16px;background:var(--tool-surface);box-shadow:0 12px 36px rgba(15,23,42,.05)}.scc-grid-2,.scc-grid-3,.scc-results{display:grid;gap:12px}.scc-grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}.scc-grid-3,.scc-results{grid-template-columns:repeat(3,minmax(0,1fr))}
+.scc-page label{display:grid;gap:7px;color:var(--m);font-size:.84rem;font-weight:700}.scc-page input,.scc-page select{min-height:42px;padding:9px 11px;border:1px solid var(--b);border-radius:10px;background:var(--tool-surface);color:var(--tool-surface-text);font:inherit}.scc-results>div{padding:12px;border:1px solid var(--b);border-radius:12px}.scc-results span{display:block;color:var(--m);font-size:.75rem}.scc-results strong{font-size:1.05rem}.scc-big-result{padding:20px;border-radius:14px;background:color-mix(in srgb,var(--a) 8%,var(--tool-surface));font-size:clamp(1.5rem,5vw,2.4rem);font-weight:900;overflow-wrap:anywhere}
+.scc-note{padding:12px;border-radius:10px;background:color-mix(in srgb,#f59e0b 10%,var(--tool-surface));font-size:.84rem;line-height:1.5}.scc-scenario{padding:16px;border:1px solid var(--b);border-radius:14px}.scc-scenario h3{margin:0 0 12px}
+@media(max-width:800px){.scc-grid-3,.scc-results{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.scc-page{width:min(100% - 20px,1180px);padding-top:22px}.scc-grid-2,.scc-grid-3,.scc-results{grid-template-columns:1fr}.scc-card{padding:15px}}
+
+/* Theme visibility fix */
+
+
+.scc-card {
+  color: var(--tool-surface-text);
+}
+
+.scc-big-result {
+  color: var(--tool-surface-text);
+}
+/* Final dark-theme contrast fix */
+.scc-card,
+.scc-results > div,
+.scc-big-result {
+  color: var(--tool-surface-text);
+}
+
+

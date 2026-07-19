@@ -1,0 +1,74 @@
+.uuid-app {
+  width: min(100% - 2rem, 960px);
+  margin: 0 auto;
+  padding: 1.5rem 0 3rem;
+}
+
+.uuid-local-badge {
+  margin: 1rem 0;
+}
+
+.uuid-panel {
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #111827);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 16px;
+  padding: 1.25rem;
+}
+
+.uuid-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: .5rem;
+}
+
+.uuid-input {
+  width: 100%;
+  padding: .8rem;
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+}
+
+.uuid-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin: 1rem 0;
+}
+
+.uuid-actions button,
+.uuid-row button {
+  padding: .7rem 1rem;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.uuid-results {
+  display: grid;
+  gap: .65rem;
+}
+
+.uuid-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .8rem;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.uuid-row code {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .uuid-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,414 @@
+/* App #003 — QR & Barcode Studio
+   All classes are prefixed with `qbs-` and scoped under `.qbs-page` so this
+   stylesheet never leaks into App #001, App #002, the base project, the
+   admin panel, or auth pages. Supports light/dark themes via the host's
+   `.dark` class on a root ancestor (Tailwind convention) and falls back to
+   */
+.qbs-page {
+  --qbs-bg: var(--tool-page-bg);
+  --qbs-surface: var(--tool-surface);
+  --qbs-border: var(--tool-border);
+  --qbs-text: var(--tool-text);
+  --qbs-muted: var(--tool-surface-soft);
+  --qbs-accent: var(--tool-accent);
+  --qbs-accent-contrast: #ffffff;
+  --qbs-danger: #dc2626;
+  --qbs-success: #16a34a;
+
+  color: var(--qbs-text);
+  background: var(--qbs-bg);
+  min-height: 100%;
+  padding: 1.5rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.qbs-page * {
+  box-sizing: border-box;
+}
+.qbs-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--qbs-border);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.qbs-tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--qbs-muted);
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.qbs-tab:hover {
+  color: var(--qbs-text);
+}
+
+.qbs-tab[aria-selected='true'] {
+  color: var(--qbs-accent);
+  border-bottom-color: var(--qbs-accent);
+}
+
+.qbs-tab:focus-visible {
+  outline: 2px solid var(--qbs-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.qbs-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .qbs-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.qbs-panel {
+  background: var(--qbs-surface);
+  border: 1px solid var(--qbs-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.qbs-panel + .qbs-panel {
+  margin-top: 1rem;
+}
+
+.qbs-panel-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+}
+
+.qbs-field {
+  margin-bottom: 0.9rem;
+}
+
+.qbs-field:last-child {
+  margin-bottom: 0;
+}
+
+.qbs-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  color: var(--qbs-text);
+}
+
+.qbs-hint {
+  font-size: 0.78rem;
+  color: var(--qbs-muted);
+  margin-top: 0.25rem;
+}
+
+.qbs-input,
+.qbs-select,
+.qbs-textarea {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--qbs-border);
+  border-radius: 8px;
+  background: var(--qbs-bg);
+  color: var(--qbs-text);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.qbs-textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.qbs-input:focus-visible,
+.qbs-select:focus-visible,
+.qbs-textarea:focus-visible,
+.qbs-color-input:focus-visible {
+  outline: 2px solid var(--qbs-accent);
+  outline-offset: 1px;
+}
+
+.qbs-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.qbs-row > .qbs-field {
+  flex: 1;
+}
+
+.qbs-color-input {
+  width: 100%;
+  height: 2.4rem;
+  border: 1px solid var(--qbs-border);
+  border-radius: 8px;
+  background: var(--qbs-bg);
+  padding: 0.2rem;
+}
+
+.qbs-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.qbs-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.qbs-type-btn {
+  appearance: none;
+  border: 1px solid var(--qbs-border);
+  background: var(--qbs-bg);
+  color: var(--qbs-text);
+  border-radius: 8px;
+  padding: 0.55rem 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.qbs-type-btn[aria-pressed='true'] {
+  border-color: var(--qbs-accent);
+  background: var(--qbs-accent);
+  color: var(--qbs-accent-contrast);
+}
+
+.qbs-btn {
+  appearance: none;
+  border: 1px solid var(--qbs-accent);
+  background: var(--qbs-accent);
+  color: var(--qbs-accent-contrast);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 2.5rem;
+}
+
+.qbs-btn:hover {
+  filter: brightness(1.05);
+}
+
+.qbs-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.qbs-btn-secondary {
+  background: transparent;
+  color: var(--qbs-text);
+  border-color: var(--qbs-border);
+}
+
+.qbs-btn-danger {
+  background: transparent;
+  color: var(--qbs-danger);
+  border-color: var(--qbs-danger);
+}
+
+.qbs-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.qbs-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  border: 1px dashed var(--qbs-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  background: var(--qbs-bg);
+}
+
+.qbs-preview-image {
+  max-width: 100%;
+  max-height: 320px;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.qbs-preview-placeholder {
+  color: var(--qbs-muted);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.qbs-error {
+  color: var(--qbs-danger);
+  background: color-mix(in srgb, var(--qbs-danger) 12%, transparent);
+  border: 1px solid var(--qbs-danger);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.qbs-warning {
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.82rem;
+  margin-top: 0.5rem;
+}
+
+.qbs-scanner {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.qbs-scanner-video-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 4 / 3;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.qbs-scanner-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.qbs-dropzone {
+  border: 2px dashed var(--qbs-border);
+  border-radius: 12px;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--qbs-muted);
+  cursor: pointer;
+}
+
+.qbs-dropzone:hover {
+  border-color: var(--qbs-accent);
+  color: var(--qbs-text);
+}
+
+.qbs-result {
+  border: 1px solid var(--qbs-border);
+  border-radius: 12px;
+  padding: 1rem;
+  background: var(--qbs-surface);
+}
+
+.qbs-result-format {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--qbs-accent);
+  margin-bottom: 0.35rem;
+}
+
+.qbs-result-value {
+  font-size: 0.95rem;
+  word-break: break-all;
+  margin-bottom: 0.75rem;
+}
+
+.qbs-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.qbs-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--qbs-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+.qbs-history-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.qbs-history-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.qbs-icon-btn {
+  appearance: none;
+  border: 1px solid var(--qbs-border);
+  background: var(--qbs-bg);
+  color: var(--qbs-text);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.qbs-empty-state {
+  color: var(--qbs-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.qbs-char-count {
+  font-size: 0.75rem;
+  color: var(--qbs-muted);
+  text-align: right;
+  margin-top: 0.25rem;
+}
+
+.qbs-logo-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.qbs-logo-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: contain;
+  border: 1px solid var(--qbs-border);
+  background: #fff;
+}
+
+@media print {
+  .qbs-page {
+    padding: 0;
+  }
+}
