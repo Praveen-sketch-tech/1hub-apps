@@ -1,3 +1,4 @@
+@import "../../shared/styles/app-theme-contract.css";
 .asset-map-page {
   width: min(1180px, calc(100% - 24px));
   margin: 0 auto;

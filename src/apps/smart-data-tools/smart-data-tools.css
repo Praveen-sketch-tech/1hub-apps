@@ -1,3 +1,4 @@
+@import "../../shared/styles/app-theme-contract.css";
 .sdt-page{--a:var(--tool-accent);--b:var(--tool-border);--m:var(--tool-muted);width:min(1240px,calc(100% - 28px));margin:0 auto;padding:34px 0 50px;color:inherit}
 
 .sdt-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}.sdt-stats>div,.sdt-panel{border:1px solid var(--b);border-radius:16px;background:var(--tool-surface)}.sdt-stats>div{padding:12px}.sdt-stats span{display:block;color:var(--m);font-size:.75rem}.sdt-stats strong{font-size:1.15rem}

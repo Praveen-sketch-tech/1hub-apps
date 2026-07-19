@@ -1,3 +1,4 @@
+@import "../../shared/styles/app-theme-contract.css";
 /* ============================================================================
    Smart Metadata & Privacy Tools — scoped styles
    Falls back to sensible light/dark values if the host app's CSS variables

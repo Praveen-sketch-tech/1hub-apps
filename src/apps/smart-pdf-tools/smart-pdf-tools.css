@@ -1,3 +1,4 @@
+@import "../../shared/styles/app-theme-contract.css";
 /*
  * Smart PDF Tools styles.
  * All selectors are scoped with the spt- prefix and nested under .spt-root

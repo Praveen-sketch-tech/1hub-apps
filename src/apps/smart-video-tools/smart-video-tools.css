@@ -1,3 +1,4 @@
+@import "../../shared/styles/app-theme-contract.css";
 .svt-page{
   max-width:1180px;
   margin:0 auto;
