@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { ToolAppHeader } from "../../shared/components/tools/ToolAppHeader";
-import { LocalProcessingBadge } from "../../shared/components/tools/LocalProcessingBadge";
 import "./SmartNetworkWebToolsPage.css";
 
 type Tab =
@@ -149,10 +148,7 @@ export function SmartNetworkWebToolsPage() {
           title="Smart Network & Web Tools"
           description="Analyze URLs, encode data, calculate IPv4/CIDR ranges and inspect browser details — all locally in your browser."
         />
-
-        <LocalProcessingBadge />
-
-        <section className="network-web-tabs" aria-label="Tool sections">
+<section className="network-web-tabs" aria-label="Tool sections">
           {tabs.map((item) => (
             <button
               key={item.id}

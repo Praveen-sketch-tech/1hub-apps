@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import JSZip from 'jszip'
 import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
-import { LocalProcessingBadge } from '@shared/components/tools/LocalProcessingBadge'
 import { ArchiveEntryList } from './components/ArchiveEntryList'
 import {
   createZip,
@@ -124,8 +123,7 @@ export function SmartArchiveToolsPage() {
       />
 
       <div className="sat-topline">
-        <LocalProcessingBadge />
-      </div>
+</div>
 
       <div className="sat-grid">
         <section className="sat-card">

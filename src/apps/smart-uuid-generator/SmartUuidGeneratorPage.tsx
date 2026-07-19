@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
-import { LocalProcessingBadge } from '@shared/components/tools/LocalProcessingBadge'
 import { generateUuids } from './lib/uuid'
 import './smart-uuid-generator.css'
 
@@ -38,8 +37,7 @@ export default function SmartUuidGeneratorPage() {
       />
 
       <div className="uuid-local-badge">
-        <LocalProcessingBadge />
-      </div>
+</div>
 
       <section className="uuid-panel">
         <label className="uuid-label" htmlFor="uuid-count">

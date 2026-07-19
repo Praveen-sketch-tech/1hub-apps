@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
-import { LocalProcessingBadge } from '@shared/components/tools/LocalProcessingBadge'
 import type { AssetGenerationOptions, AssetType, GeneratedAsset } from './types'
 import { generateTestAsset } from './lib/assetFactory'
 
@@ -119,10 +118,7 @@ export function UniversalTestAssetFactoryPage() {
           title="Universal Test Asset Factory"
           description="Generate rich reusable test files locally for OCR, documents, spreadsheets, QR/barcodes, cross-app workflows and automated demos."
         />
-
-        <LocalProcessingBadge />
-
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+<div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">1. Choose asset type</h2>
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">

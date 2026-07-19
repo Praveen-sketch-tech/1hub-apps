@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader';
-import { LocalProcessingBadge } from '@shared/components/tools/LocalProcessingBadge';
 import FileDropZone from './components/FileDropZone';
 import MetadataTable from './components/MetadataTable';
 import PrivacyRiskPanel from './components/PrivacyRiskPanel';
@@ -59,10 +58,7 @@ const SmartMetadataPrivacyToolsPage: React.FC = () => {
         title="Smart Metadata & Privacy Tools"
         description="Inspect and remove privacy-sensitive metadata from files directly in your browser."
       />
-
-      <LocalProcessingBadge />
-
-      {!file && (
+{!file && (
         <div className="smpt-card">
           <FileDropZone
             onFileSelected={setFile}

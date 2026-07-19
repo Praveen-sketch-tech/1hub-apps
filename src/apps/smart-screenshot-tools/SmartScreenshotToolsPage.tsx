@@ -1,6 +1,5 @@
 import { ChangeEvent, MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ToolAppHeader } from '../../shared/components/tools/ToolAppHeader';
-import { LocalProcessingBadge } from '../../shared/components/tools/LocalProcessingBadge';
 import './smart-screenshot-tools.css';
 
 type Item = {
@@ -264,7 +263,8 @@ export default function SmartScreenshotToolsPage() {
         description="Stitch, blur, annotate and export screenshots locally in your browser."
       />
 
-      <div className="sst-badge-wrap"><LocalProcessingBadge /></div>
+      <div className="sst-badge-wrap">
+</div>
 
       <section className="sst-card sst-upload-card">
         <label className="sst-dropzone">

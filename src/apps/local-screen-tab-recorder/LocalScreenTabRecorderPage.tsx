@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
-import { LocalProcessingBadge } from '@shared/components/tools/LocalProcessingBadge'
 import type {
   FrameRatePreference,
   RecordedVideoResult,
@@ -117,10 +116,7 @@ export function LocalScreenTabRecorderPage() {
           title="Local Screen & Tab Recorder"
           description="Record a user-selected browser tab, window or screen locally with explicit browser permission, reusable recording controls and WebM export."
         />
-
-        <LocalProcessingBadge />
-
-        {!displaySupported || !recorderSupported ? (
+{!displaySupported || !recorderSupported ? (
           <section className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
             <h2 className="font-semibold">Recording is not supported in this browser</h2>
             <p className="mt-2 text-sm leading-6">

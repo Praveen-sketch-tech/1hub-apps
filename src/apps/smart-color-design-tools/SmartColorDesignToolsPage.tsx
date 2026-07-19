@@ -1,6 +1,5 @@
 import { ChangeEvent, useMemo, useRef, useState } from 'react';
 import { ToolAppHeader } from '../../shared/components/tools/ToolAppHeader';
-import { LocalProcessingBadge } from '../../shared/components/tools/LocalProcessingBadge';
 import './smart-color-design-tools.css';
 
 type RGB = { r: number; g: number; b: number };
@@ -177,7 +176,8 @@ export default function SmartColorDesignToolsPage() {
         description="Pick colors, extract palettes, generate harmonies and gradients, and check accessibility — all locally in your browser."
       />
 
-      <div className="scdt-badge-wrap"><LocalProcessingBadge /></div>
+      <div className="scdt-badge-wrap">
+</div>
 
       <section className="scdt-grid scdt-grid-2">
         <article className="scdt-card">
