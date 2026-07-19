@@ -239,3 +239,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'visual-capture-demo-fallback-engine',
+  async () => {
+    const module = await import('@apps/visual-capture-demo-fallback-engine/chatActions')
+    return module.chatModule
+  },
+)

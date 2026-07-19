@@ -232,4 +232,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/visual-capture-demo-fallback-engine',
+    name: "Visual Capture & Demo Fallback Engine",
+    component: lazy(() =>
+      import('@apps/visual-capture-demo-fallback-engine').then((module) => ({
+        default: module.VisualCaptureDemoFallbackEnginePage,
+      }))
+    ),
+  },
 ]

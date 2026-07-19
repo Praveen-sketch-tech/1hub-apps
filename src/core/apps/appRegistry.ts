@@ -208,4 +208,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-asset-to-action-mapper',
     tags: ["Asset Mapping","Demo Assets","Upload Actions","Test Asset Factory","Workflow Automation"],
   },
+  {
+    id: 'visual-capture-demo-fallback-engine',
+    number: '025',
+    name: "Visual Capture & Demo Fallback Engine",
+    description: "Create truthful user-permitted visual demo captures with reusable cursor, click, focus, zoom and caption cues when direct page automation is unavailable.",
+    path: '/apps/visual-capture-demo-fallback-engine',
+    tags: ["Visual Capture","Demo Fallback","Screen Capture","Cursor Effects","Demo Recording"],
+  },
 ]
