@@ -187,4 +187,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/web-interaction-simulation-engine',
+    name: "Web Interaction Simulation Engine",
+    component: lazy(() =>
+      import('@apps/web-interaction-simulation-engine').then((module) => ({
+        default: module.WebInteractionSimulationEnginePage,
+      }))
+    ),
+  },
 ]

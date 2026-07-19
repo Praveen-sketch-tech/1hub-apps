@@ -199,3 +199,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'web-interaction-simulation-engine',
+  async () => {
+    const module = await import('@apps/web-interaction-simulation-engine/chatActions')
+    return module.chatModule
+  },
+)

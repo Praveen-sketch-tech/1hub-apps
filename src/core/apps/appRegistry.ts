@@ -168,4 +168,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/browser-video-processing-studio',
     tags: ["Video Editing","Trim Video","Resize Video","Aspect Ratio","Demo Video Processing"],
   },
+  {
+    id: 'web-interaction-simulation-engine',
+    number: '020',
+    name: "Web Interaction Simulation Engine",
+    description: "Create, validate and visually simulate reusable structured demo actions locally in your browser.",
+    path: '/apps/web-interaction-simulation-engine',
+    tags: ["Interaction Simulation","Demo Actions","Cursor Animation","Typing Simulation","Workflow Automation"],
+  },
 ]
