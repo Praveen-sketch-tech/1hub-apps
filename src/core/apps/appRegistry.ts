@@ -160,4 +160,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/local-screen-tab-recorder',
     tags: ["Screen Recorder","Tab Recorder","Window Capture","WebM","Local Recording"],
   },
+  {
+    id: 'browser-video-processing-studio',
+    number: '019',
+    name: "Browser Video Processing Studio",
+    description: "Edit, process and polish videos locally in your browser with reusable demo-video processing tools.",
+    path: '/apps/browser-video-processing-studio',
+    tags: ["Video Editing","Trim Video","Resize Video","Aspect Ratio","Demo Video Processing"],
+  },
 ]

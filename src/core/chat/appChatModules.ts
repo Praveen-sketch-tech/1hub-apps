@@ -191,3 +191,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'browser-video-processing-studio',
+  async () => {
+    const module = await import('@apps/browser-video-processing-studio/chatActions')
+    return module.chatModule
+  },
+)

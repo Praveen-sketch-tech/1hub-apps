@@ -178,4 +178,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/browser-video-processing-studio',
+    name: "Browser Video Processing Studio",
+    component: lazy(() =>
+      import('@apps/browser-video-processing-studio').then((module) => ({
+        default: module.BrowserVideoProcessingStudioPage,
+      }))
+    ),
+  },
 ]
