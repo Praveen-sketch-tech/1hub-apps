@@ -133,4 +133,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-network-web-tools',
+    name: "Smart Network & Web Tools",
+    component: lazy(() =>
+      import('@apps/smart-network-web-tools').then((module) => ({
+        default: module.SmartNetworkWebToolsPage,
+      }))
+    ),
+  },
 ]

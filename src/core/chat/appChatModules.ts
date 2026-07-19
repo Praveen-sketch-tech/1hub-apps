@@ -151,3 +151,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'smart-network-web-tools',
+  async () => {
+    const module = await import('@apps/smart-network-web-tools/chatActions')
+    return module.chatModule
+  },
+)

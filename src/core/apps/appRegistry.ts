@@ -120,4 +120,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-archive-tools',
     tags: ["ZIP Creator","ZIP Extractor","Archive Browser","File Compression"],
   },
+  {
+    id: 'smart-network-web-tools',
+    number: '015',
+    name: "Smart Network & Web Tools",
+    description: "Analyze URLs, encode data, calculate IPv4/CIDR ranges and inspect browser details locally.",
+    path: '/apps/smart-network-web-tools',
+    tags: ["Network Tools","URL Tools","Developer Tools","IPv4","CIDR","Base64"],
+  },
 ]
