@@ -1,3 +1,4 @@
+@import "./shared/styles/tool-foundation.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -736,3 +737,55 @@ body {
     width: 100%;
   }
 }
+
+/* ==================================================
+   Shared legacy compatibility tokens
+   Existing apps can keep their CSS while resolving common surfaces/colors
+   through the global theme. New apps should use --tool-* tokens directly.
+   ================================================== */
+:root {
+  --surface: var(--tool-surface);
+  --surface-2: var(--tool-surface-soft);
+  --surface-muted: var(--tool-surface-soft);
+  --muted-surface: var(--tool-surface-soft);
+  --input-bg: var(--tool-input-bg);
+  --text: var(--tool-text);
+  --text-primary: var(--tool-text);
+  --text-secondary: var(--tool-muted);
+  --border: var(--tool-border);
+  --border-color: var(--tool-border);
+  --primary: var(--tool-accent);
+  --color-surface: var(--tool-surface);
+  --color-text: var(--tool-text);
+  --color-border: var(--tool-border);
+}
+
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--tool-page-bg);
+  color: var(--tool-text);
+}
+
+.tool-json-output,
+.tool-code-output,
+pre {
+  max-width: 100%;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .tool-card,
+  .tool-panel {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .tool-button {
+    min-height: 44px;
+  }
+}
+
