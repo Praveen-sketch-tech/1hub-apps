@@ -1,5 +1,6 @@
-import { ChangeEvent, useMemo, useState } from 'react'
+import { ChangeEvent, useEffect, useMemo, useState } from 'react'
 import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
+import { ensureDemoWorkflowWiringLoaded } from '@core/apps/demoWorkflowWiring'
 import { listRegisteredWorkflowAdapters } from './lib/adapterRegistry'
 import {
   createDemoWorkflowJob,
@@ -29,7 +30,19 @@ export function AutomatedDemoWorkflowOrchestratorPage() {
   const [status, setStatus] = useState('Ready. Build a workflow plan or run registered reusable stage adapters.')
   const [busy, setBusy] = useState(false)
 
-  const registered = useMemo(() => listRegisteredWorkflowAdapters(), [state.updatedAt])
+  const [wiringReady, setWiringReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    ensureDemoWorkflowWiringLoaded().then(() => {
+      if (!cancelled) setWiringReady(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const registered = useMemo(() => listRegisteredWorkflowAdapters(), [state.updatedAt, wiringReady])
 
   const build = () => {
     const job = createDemoWorkflowJob({

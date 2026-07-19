@@ -99,9 +99,12 @@ export async function runFinalDemoWorkflow(
     }
   }
 
+  const captureStage = state.stages.find((stage) => stage.id === 'capture')
+  const continuingFromCaptureCheckpoint = captureStage?.status === 'waiting-user'
+
   return adapter.run(state, {
     onUpdate,
-    stopBeforePermissionStage: true,
+    stopBeforePermissionStage: !continuingFromCaptureCheckpoint,
   })
 }
 

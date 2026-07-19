@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
+import { ensureDemoWorkflowWiringLoaded } from '@core/apps/demoWorkflowWiring'
 import {
   createFinalDemoWorkflow,
   extractFinalVideoResult,
@@ -28,7 +29,19 @@ export function AutomaticWebsiteDemoVideoGeneratorPage() {
   const [busy, setBusy] = useState(false)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
 
-  const adapterAvailable = !!getFinalDemoOrchestratorAdapter()
+  const [wiringReady, setWiringReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    ensureDemoWorkflowWiringLoaded().then(() => {
+      if (!cancelled) setWiringReady(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const adapterAvailable = wiringReady && !!getFinalDemoOrchestratorAdapter()
   const finalVideo = useMemo(() => extractFinalVideoResult(state), [state])
 
   useEffect(() => {
@@ -66,6 +79,8 @@ export function AutomaticWebsiteDemoVideoGeneratorPage() {
 
     setBusy(true)
     try {
+      await ensureDemoWorkflowWiringLoaded()
+      setWiringReady(true)
       const prepared = createFinalDemoWorkflow(url.trim(), strategy || undefined)
       setState(prepared)
       const result = await runFinalDemoWorkflow(prepared, setState)

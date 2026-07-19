@@ -114,8 +114,8 @@ function shouldSkip(stage: DemoWorkflowStageId, strategy?: DemoWorkflowStrategy)
   return false
 }
 
-function permissionSensitive(stage: DemoWorkflowStageId, strategy?: DemoWorkflowStrategy) {
-  return stage === 'capture' && strategy === 'visual-capture-fallback'
+function permissionSensitive(stage: DemoWorkflowStageId, _strategy?: DemoWorkflowStrategy) {
+  return stage === 'capture'
 }
 
 async function chooseStrategy(state: DemoWorkflowState): Promise<DemoWorkflowStrategy> {
@@ -145,6 +145,10 @@ export async function runDemoWorkflow(
   const maxRetries = Math.max(0, state.job.maxRetries ?? 1)
 
   for (const stageId of ORDER) {
+    const existingStage = state.stages.find((stage) => stage.id === stageId)
+    if (existingStage?.status === 'completed' || existingStage?.status === 'skipped') {
+      continue
+    }
     if (stageId === 'choose-mode') {
       state = updateStage(state, stageId, {
         status: 'running',
