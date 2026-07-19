@@ -192,4 +192,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/web-page-snapshot-local-simulation',
     tags: ["Web Snapshot","Local Simulation","HTML Preview","Page Map","IndexedDB"],
   },
+  {
+    id: 'rule-based-demo-flow-builder',
+    number: '023',
+    name: "Rule-Based Demo Flow Builder",
+    description: "Generate deterministic editable demo workflows from structured Page Maps and convert them into reusable interaction sequences without AI.",
+    path: '/apps/rule-based-demo-flow-builder',
+    tags: ["Demo Flow","Workflow Builder","Rule-Based Automation","Interaction Sequence","Page Map"],
+  },
 ]

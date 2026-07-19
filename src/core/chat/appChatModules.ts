@@ -223,3 +223,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'rule-based-demo-flow-builder',
+  async () => {
+    const module = await import('@apps/rule-based-demo-flow-builder/chatActions')
+    return module.chatModule
+  },
+)

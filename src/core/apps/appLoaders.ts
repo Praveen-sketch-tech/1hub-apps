@@ -214,4 +214,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/rule-based-demo-flow-builder',
+    name: "Rule-Based Demo Flow Builder",
+    component: lazy(() =>
+      import('@apps/rule-based-demo-flow-builder').then((module) => ({
+        default: module.RuleBasedDemoFlowBuilderPage,
+      }))
+    ),
+  },
 ]
