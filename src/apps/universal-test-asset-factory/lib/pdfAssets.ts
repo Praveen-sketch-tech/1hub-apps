@@ -33,7 +33,7 @@ export async function generatePdfAsset(options: AssetGenerationOptions): Promise
   for (let index = 0; index < pageCount; index += 1) {
     const page = pdf.addPage([595.28, 841.89])
     const { width, height } = page.getSize()
-    const rotation = preset === 'scanned-document' || options.scanStyle ? (index % 2 === 0 ? 0.5 : -0.7) : 0
+    const rotation = 0
     page.setRotation(degrees(rotation))
 
     page.drawRectangle({ x: 36, y: 36, width: width - 72, height: height - 72, color: rgb(0.98, 0.98, 0.965) })
