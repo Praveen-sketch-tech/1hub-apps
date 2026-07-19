@@ -207,3 +207,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'website-structure-feature-analyzer',
+  async () => {
+    const module = await import('@apps/website-structure-feature-analyzer/chatActions')
+    return module.chatModule
+  },
+)

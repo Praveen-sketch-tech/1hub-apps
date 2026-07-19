@@ -196,4 +196,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/website-structure-feature-analyzer',
+    name: "Website Structure & Feature Analyzer",
+    component: lazy(() =>
+      import('@apps/website-structure-feature-analyzer').then((module) => ({
+        default: module.WebsiteStructureFeatureAnalyzerPage,
+      }))
+    ),
+  },
 ]

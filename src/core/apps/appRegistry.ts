@@ -176,4 +176,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/web-interaction-simulation-engine',
     tags: ["Interaction Simulation","Demo Actions","Cursor Animation","Typing Simulation","Workflow Automation"],
   },
+  {
+    id: 'website-structure-feature-analyzer',
+    number: '021',
+    name: "Website Structure & Feature Analyzer",
+    description: "Analyze accessible website and page data into reusable structured Page Maps and Feature Maps using browser-local rules.",
+    path: '/apps/website-structure-feature-analyzer',
+    tags: ["Website Analyzer","Page Map","Feature Map","HTML Analyzer","Workflow Detection"],
+  },
 ]
