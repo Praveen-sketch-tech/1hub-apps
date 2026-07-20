@@ -1,20 +1,48 @@
-export async function downloadBlob(blob: Blob, fileName: string, revokeDelayMs = 1500): Promise<void> {
-  if (typeof document === 'undefined' || typeof URL === 'undefined') throw new Error('Download is not available in this environment.')
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = fileName
-  anchor.rel = 'noopener'
-  anchor.style.display = 'none'
-  document.body.appendChild(anchor)
+export function downloadBlob(
+  blob: Blob,
+  fileName: string,
+  revokeDelayMs = 1000,
+): boolean {
+  if (!blob || blob.size === 0) {
+    // A zero-byte/undefined blob is a real failure, not a successful
+    // download of an empty file — callers need to be able to tell the
+    // person the download did not actually produce a usable file.
+    return false
+  }
+
+  let url: string
   try {
+    url = URL.createObjectURL(blob)
+  } catch {
+    return false
+  }
+
+  try {
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = fileName
+    anchor.style.display = 'none'
+
+    document.body.appendChild(anchor)
     anchor.click()
-    await new Promise<void>((resolve) => window.setTimeout(resolve, 0))
-  } finally {
     anchor.remove()
-    window.setTimeout(() => URL.revokeObjectURL(url), revokeDelayMs)
+    return true
+  } catch {
+    return false
+  } finally {
+    window.setTimeout(() => {
+      URL.revokeObjectURL(url)
+    }, revokeDelayMs)
   }
 }
-export async function downloadText(content: string, fileName: string, mimeType = 'text/plain;charset=utf-8'): Promise<void> {
-  await downloadBlob(new Blob([content], { type: mimeType }), fileName)
+
+export function downloadText(
+  content: string,
+  fileName: string,
+  mimeType = 'text/plain;charset=utf-8',
+): void {
+  downloadBlob(
+    new Blob([content], { type: mimeType }),
+    fileName,
+  )
 }

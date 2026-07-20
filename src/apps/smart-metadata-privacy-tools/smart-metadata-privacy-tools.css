@@ -1,3 +1,4 @@
+@import "../../shared/styles/app-theme-contract.css";
 /* ============================================================================
    Smart Metadata & Privacy Tools — scoped styles
    Falls back to sensible light/dark values if the host app's CSS variables
@@ -10,10 +11,10 @@
   --smpt-bg: var(--tool-page-bg);
   --smpt-fg: var(--tool-text);
   --smpt-card: var(--tool-surface);
-  --smpt-card-fg: var(--tool-text);
+  --smpt-card-fg: var(--tool-surface-text);
   --smpt-border: var(--tool-border);
   --smpt-muted: var(--tool-surface-soft);
-  --smpt-muted-fg: var(--tool-muted);
+  --smpt-muted-fg: var(--tool-surface-muted);
   --smpt-primary: var(--tool-accent);
   --smpt-primary-fg: #ffffff;
   --smpt-danger: #dc2626;
@@ -30,6 +31,15 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+/* Dark-mode surfaces now come from the shared --tool-* theme tokens above
+ * (already dark-aware via the app's .dark class) instead of a duplicate
+ * app-local override, so this app can't drift from the rest of the UI. */
+.dark .smpt-app {
+  --smpt-danger-bg: #3f1d1d;
+  --smpt-warn-bg: #3a2a0d;
+  --smpt-ok-bg: #12301c;
 }
 
 .smpt-card {

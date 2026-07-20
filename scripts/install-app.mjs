@@ -77,6 +77,19 @@ if (registry.includes(`id: '${folder}'`)) {
   process.exit(1)
 }
 
+const existingNumbers = [...registry.matchAll(/number:\s*'(\d+)'/g)].map((m) => parseInt(m[1], 10))
+const highestExisting = existingNumbers.length ? Math.max(...existingNumbers) : 0
+const nextAvailable = String(highestExisting + 1).padStart(3, '0')
+
+if (existingNumbers.includes(parseInt(number, 10))) {
+  console.error(`❌ App number '${number}' is already used in appRegistry.ts. Use the next available number: ${nextAvailable}`)
+  process.exit(1)
+}
+
+if (parseInt(number, 10) !== highestExisting + 1) {
+  console.warn(`⚠️  '${number}' is not the next sequential number. The current highest registered number is ${String(highestExisting).padStart(3, '0')}, so ${nextAvailable} was expected. Continuing anyway, but double-check this was intentional.`)
+}
+
 const registryEntry = `  {
     id: '${folder}',
     number: '${number}',
@@ -142,6 +155,8 @@ console.log(`✅ Export: ${exportName}`)
 console.log(`✅ Tags: ${tags.join(', ') || 'None'}`)
 console.log('')
 console.log('Next:')
-console.log('1. Verify shared ToolAppHeader/UI primitives and reusable UI/chat processing functions')
-console.log('2. Quick type check')
-console.log('3. git add / commit / push')
+console.log('1. Verify the page root element has className="tool-page ..." and only uses tool-* shared classes/--tool-* tokens')
+console.log('2. Verify shared ToolAppHeader/UI primitives and reusable UI/chat processing functions')
+console.log('3. node scripts/audit-theme-contract.mjs && node scripts/audit-app-foundation.mjs')
+console.log('4. Quick type check')
+console.log('5. git add / commit / push')

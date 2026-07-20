@@ -109,7 +109,7 @@ export function LocalScreenTabRecorderPage() {
   const canStart = snapshot.state === 'ready'
 
   return (
-    <div className="tool-page min-h-screen px-4 py-6 sm:px-6 lg:px-8">
+    <div className="tool-page lstr-page">
       <div className="mx-auto max-w-7xl space-y-6">
         <ToolAppHeader
           appNumber="018"
@@ -127,16 +127,16 @@ export function LocalScreenTabRecorderPage() {
           </section>
         ) : (
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-            <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <section className="tool-panel space-y-5">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Recording setup</h2>
-                <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">Your browser will show its native source picker. This app cannot silently select or capture a tab, window or display.</p>
+                <h2 className="text-lg font-semibold">Recording setup</h2>
+                <p className="tool-muted mt-1 text-sm leading-6">Your browser will show its native source picker. This app cannot silently select or capture a tab, window or display.</p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                <label className="tool-label text-sm font-medium">
                   Frame-rate preference
-                  <select value={String(frameRate)} onChange={(event) => setFrameRate(event.target.value === 'auto' ? 'auto' : Number(event.target.value) as FrameRatePreference)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-white">
+                  <select value={String(frameRate)} onChange={(event) => setFrameRate(event.target.value === 'auto' ? 'auto' : Number(event.target.value) as FrameRatePreference)} className="tool-select mt-1">
                     <option value="auto">Auto</option>
                     <option value="15">15 FPS</option>
                     <option value="24">24 FPS</option>
@@ -145,9 +145,9 @@ export function LocalScreenTabRecorderPage() {
                   </select>
                 </label>
 
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                <label className="tool-label text-sm font-medium">
                   Recording quality
-                  <select value={quality} onChange={(event) => setQuality(event.target.value as RecordingQuality)} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-white">
+                  <select value={quality} onChange={(event) => setQuality(event.target.value as RecordingQuality)} className="tool-select mt-1">
                     <option value="low">Low</option>
                     <option value="standard">Standard</option>
                     <option value="high">High</option>
@@ -158,27 +158,27 @@ export function LocalScreenTabRecorderPage() {
               </div>
 
               {quality === 'custom' && (
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                <label className="tool-label block text-sm font-medium">
                   Video bitrate: {customMbps} Mbps
                   <input type="range" min={1} max={30} value={customMbps} onChange={(event) => setCustomMbps(Number(event.target.value))} className="mt-2 w-full" />
                 </label>
               )}
 
-              <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm text-slate-700 dark:border-slate-700 dark:text-slate-200">
+              <label className="tool-card flex items-start gap-3 p-3 text-sm">
                 <input type="checkbox" checked={includeAudio} onChange={(event) => setIncludeAudio(event.target.checked)} className="mt-1" />
-                <span><strong>Request available tab/system audio.</strong><span className="mt-1 block text-xs font-normal text-slate-500 dark:text-slate-400">Audio is not guaranteed. Availability depends on the browser, operating system and source you choose.</span></span>
+                <span><strong>Request available tab/system audio.</strong><span className="tool-muted mt-1 block text-xs font-normal">Audio is not guaranteed. Availability depends on the browser, operating system and source you choose.</span></span>
               </label>
 
-              <button type="button" disabled={!canChoose} onClick={() => void chooseSource()} className="w-full rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-slate-900">
+              <button type="button" disabled={!canChoose} onClick={() => void chooseSource()} className="tool-button tool-button-primary w-full py-3">
                 {snapshot.state === 'requesting-permission' ? 'Waiting for browser selection…' : 'Choose Screen / Window / Tab'}
               </button>
 
-              <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
+              <div className="tool-card-muted tool-card p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-200">State</span>
-                  <span className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-600 dark:text-slate-200">{stateLabel[snapshot.state]}</span>
+                  <span className="text-sm font-medium">State</span>
+                  <span className="tool-border rounded-full border px-3 py-1 text-xs font-semibold">{stateLabel[snapshot.state]}</span>
                 </div>
-                <div className="mt-4 text-center font-mono text-4xl font-semibold tracking-wider text-slate-950 dark:text-white">{formatDuration(snapshot.elapsedMs)}</div>
+                <div className="mt-4 text-center font-mono text-4xl font-semibold tracking-wider">{formatDuration(snapshot.elapsedMs)}</div>
               </div>
 
               {snapshot.captureInfo && (
@@ -191,19 +191,19 @@ export function LocalScreenTabRecorderPage() {
               )}
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <button type="button" disabled={!canStart} onClick={startRecording} className="rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-900 disabled:opacity-40 dark:border-slate-600 dark:text-white">Start</button>
-                <button type="button" disabled={snapshot.state !== 'recording'} onClick={() => controller.pauseRecording()} className="rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-900 disabled:opacity-40 dark:border-slate-600 dark:text-white">Pause</button>
-                <button type="button" disabled={snapshot.state !== 'paused'} onClick={() => controller.resumeRecording()} className="rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-900 disabled:opacity-40 dark:border-slate-600 dark:text-white">Resume</button>
-                <button type="button" disabled={!['recording', 'paused'].includes(snapshot.state)} onClick={() => void stopRecording()} className="rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-900 disabled:opacity-40 dark:border-slate-600 dark:text-white">Stop</button>
+                <button type="button" disabled={!canStart} onClick={startRecording} className="tool-button">Start</button>
+                <button type="button" disabled={snapshot.state !== 'recording'} onClick={() => controller.pauseRecording()} className="tool-button">Pause</button>
+                <button type="button" disabled={snapshot.state !== 'paused'} onClick={() => controller.resumeRecording()} className="tool-button">Resume</button>
+                <button type="button" disabled={!['recording', 'paused'].includes(snapshot.state)} onClick={() => void stopRecording()} className="tool-button">Stop</button>
               </div>
 
               {(uiError || snapshot.error) && <div className="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">{uiError || snapshot.error}</div>}
             </section>
 
-            <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <section className="tool-panel space-y-5">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Live view & recording result</h2>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">The selected source is shown locally while capture is active. Your recording stays in the browser until you download it.</p>
+                <h2 className="text-lg font-semibold">Live view & recording result</h2>
+                <p className="tool-muted mt-1 text-sm">The selected source is shown locally while capture is active. Your recording stays in the browser until you download it.</p>
               </div>
 
               {['ready', 'recording', 'paused', 'stopping'].includes(snapshot.state) ? (
@@ -211,7 +211,7 @@ export function LocalScreenTabRecorderPage() {
               ) : result ? (
                 <video src={previewUrl} controls playsInline className="max-h-[520px] min-h-64 w-full rounded-xl bg-black object-contain" />
               ) : (
-                <div className="flex min-h-72 items-center justify-center rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">Choose a source to see the local live preview. After you stop recording, the WebM preview will appear here.</div>
+                <div className="tool-dropzone flex min-h-72 items-center justify-center p-8 text-center text-sm">Choose a source to see the local live preview. After you stop recording, the WebM preview will appear here.</div>
               )}
 
               {result && (
@@ -222,10 +222,10 @@ export function LocalScreenTabRecorderPage() {
                     <Info label="Resolution" value={result.width && result.height ? `${result.width} × ${result.height}` : 'Not reported'} />
                     <Info label="Audio" value={result.hasAudio ? 'Included' : 'No audio track'} />
                   </div>
-                  <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">Output: {result.fileName}<br />MIME: {result.mimeType}</div>
+                  <div className="tool-card-muted tool-card p-3 text-xs">Output: {result.fileName}<br />MIME: {result.mimeType}</div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <button type="button" onClick={() => downloadRecording(result.blob, result.fileName)} className="rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white dark:bg-white dark:text-slate-900">Download WebM</button>
-                    <button type="button" onClick={reset} className="rounded-xl border border-slate-300 px-4 py-3 font-semibold text-slate-900 dark:border-slate-600 dark:text-white">Record Again</button>
+                    <button type="button" onClick={() => downloadRecording(result.blob, result.fileName)} className="tool-button tool-button-primary py-3">Download WebM</button>
+                    <button type="button" onClick={reset} className="tool-button py-3">Record Again</button>
                   </div>
                 </div>
               )}
@@ -233,9 +233,9 @@ export function LocalScreenTabRecorderPage() {
           </div>
         )}
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Reusable demo-video foundation</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">The page uses a UI-independent ScreenRecordingController. Future capture modules and demo orchestrators can attach a user-approved MediaStream and control start, pause, resume and stop without duplicating the recording engine. Browser permission and source selection always remain user-controlled.</p>
+        <section className="tool-panel">
+          <h2 className="text-lg font-semibold">Reusable demo-video foundation</h2>
+          <p className="tool-muted mt-2 text-sm leading-6">The page uses a UI-independent ScreenRecordingController. Future capture modules and demo orchestrators can attach a user-approved MediaStream and control start, pause, resume and stop without duplicating the recording engine. Browser permission and source selection always remain user-controlled.</p>
         </section>
       </div>
     </div>
@@ -243,5 +243,5 @@ export function LocalScreenTabRecorderPage() {
 }
 
 function Info({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700"><div className="text-xs text-slate-500 dark:text-slate-400">{label}</div><div className="mt-1 font-medium text-slate-900 dark:text-white">{value}</div></div>
+  return <div className="tool-card p-3"><div className="tool-muted text-xs">{label}</div><div className="mt-1 font-medium">{value}</div></div>
 }

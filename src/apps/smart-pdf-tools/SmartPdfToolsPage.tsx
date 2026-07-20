@@ -224,7 +224,7 @@ export default function SmartPdfToolsPage() {
   }
 
   return (
-    <div className="tool-page spt-root spt-root--workspace">
+    <div className="spt-root spt-root--workspace">
       <div className="spt-layout">
         <main className="spt-layout__main">
           <PageWorkspace

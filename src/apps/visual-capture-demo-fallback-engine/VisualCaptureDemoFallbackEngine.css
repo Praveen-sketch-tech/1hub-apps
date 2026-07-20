@@ -1,7 +1,8 @@
+@import "../../shared/styles/app-theme-contract.css";
 .vc-page{width:min(1180px,calc(100% - 24px));margin:0 auto;padding-bottom:48px}
 .vc-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:16px;margin-top:16px}
 .vc-grid--top{grid-template-columns:repeat(2,minmax(0,1fr))}
-.vc-card,.vc-notice,.vc-status{border:1px solid var(--tool-border);border-radius:16px;background:var(--tool-surface);color:var(--tool-text)}
+.vc-card,.vc-notice,.vc-status{border:1px solid var(--tool-border);border-radius:16px;background:var(--tool-surface);color:var(--tool-surface-text)}
 .vc-card{padding:18px;min-width:0}.vc-notice,.vc-status{margin-top:16px;padding:13px 15px}.vc-notice{display:flex;gap:8px;flex-wrap:wrap}
 .vc-header,.vc-row{display:flex;gap:10px;align-items:center}.vc-header{justify-content:space-between}.vc-wrap{flex-wrap:wrap}
 .vc-card textarea{width:100%;padding:10px 12px;border:1px solid var(--tool-border);border-radius:10px;background:var(--tool-input-bg);color:inherit;font:inherit;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;resize:vertical}

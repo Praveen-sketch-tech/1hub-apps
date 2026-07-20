@@ -1,0 +1,43 @@
+// Copy this into src/apps/<folder>/<ExportName>Page.tsx and adapt.
+// The two things every new app MUST keep from this skeleton:
+//   1. The root element carries the "tool-page" class (plus an app-local
+//      class only for width/margin/unique-layout tweaks). Without
+//      "tool-page" the shared theme contract and safety-net rules in
+//      src/index.css and src/shared/styles/*.css never apply to this app,
+//      and its cards/inputs/buttons silently stay unthemed.
+//   2. Every surface/text/border/button/input color is a var(--tool-*)
+//      token (see the canonical list in the architecture handbook) — never
+//      a hex/rgb literal, and never a var() fallback to a hex/rgb literal.
+//      A var() whose custom property is never defined anywhere always
+//      resolves to its fallback in *every* theme, which is how apps ended
+//      up permanently light-themed or with invisible text in dark mode.
+
+import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
+import './example-tool.css'
+
+export function ExampleToolPage() {
+  return (
+    <main className="tool-page example-tool-page">
+      <ToolAppHeader
+        appNumber="000"
+        title="Example Tool"
+        description="Replace with a real description."
+      />
+
+      <section className="tool-panel">
+        <h2>Section heading</h2>
+        <p className="tool-muted">Use tool-muted for secondary text.</p>
+
+        <div className="tool-field">
+          <label className="tool-label" htmlFor="example-input">Label</label>
+          <input id="example-input" className="tool-input" placeholder="tool-input" />
+        </div>
+
+        <div className="tool-actions">
+          <button type="button" className="tool-button tool-button-primary">Primary action</button>
+          <button type="button" className="tool-button">Secondary action</button>
+        </div>
+      </section>
+    </main>
+  )
+}

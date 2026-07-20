@@ -1,3 +1,4 @@
+@import "../../shared/styles/app-theme-contract.css";
 /*
  * Smart PDF Tools styles.
  * All selectors are scoped with the spt- prefix and nested under .spt-root
@@ -12,8 +13,8 @@
   --spt-surface: var(--tool-surface);
   --spt-surface-alt: var(--tool-surface-soft);
   --spt-border: var(--tool-border);
-  --spt-text: var(--tool-text);
-  --spt-text-muted: var(--tool-muted);
+  --spt-text: var(--tool-surface-text);
+  --spt-text-muted: var(--tool-surface-muted);
   --spt-accent: var(--tool-accent);
   --spt-accent-hover: var(--tool-accent);
   --spt-accent-contrast: #ffffff;
@@ -41,6 +42,9 @@
 .spt-root *::after {
   box-sizing: border-box;
 }
+
+
+
 .spt-visually-hidden {
   position: absolute;
   width: 1px;

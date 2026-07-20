@@ -1,5 +1,6 @@
+@import "../../shared/styles/app-theme-contract.css";
 .final-demo-page{width:min(1180px,calc(100% - 24px));margin:0 auto;padding-bottom:48px}
-.final-demo-hero,.final-demo-card,.final-demo-status{border:1px solid var(--tool-border);border-radius:16px;background:var(--tool-surface);color:var(--tool-text)}
+.final-demo-hero,.final-demo-card,.final-demo-status{border:1px solid var(--tool-border);border-radius:16px;background:var(--tool-surface);color:var(--tool-surface-text)}
 .final-demo-hero,.final-demo-card{padding:18px}.final-demo-hero{margin-top:16px}.final-demo-status{margin-top:16px;padding:13px 15px}
 .final-demo-form{display:grid;grid-template-columns:minmax(0,1fr) 230px auto;gap:10px}
 .final-demo-form input,.final-demo-form select{width:100%;padding:11px 12px;border:1px solid var(--tool-border);border-radius:10px;background:var(--tool-input-bg);color:inherit;font:inherit}

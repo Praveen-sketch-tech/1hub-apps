@@ -1,3 +1,4 @@
+@import "../../shared/styles/app-theme-contract.css";
 .scc-page{--a:var(--tool-accent);--b:var(--tool-border);--m:var(--tool-muted);width:min(1180px,calc(100% - 28px));margin:0 auto;padding:34px 0 50px;color:inherit}
 
 .scc-tabs,.scc-subtabs{display:flex;gap:8px;overflow-x:auto;margin-bottom:18px}.scc-tabs button,.scc-subtabs button{flex:0 0 auto;min-height:42px;padding:9px 14px;border:1px solid var(--b);border-radius:10px;background:var(--tool-surface);color:var(--tool-surface-text);font:inherit;font-weight:800}.scc-tabs button.is-active,.scc-subtabs button.is-active{background:var(--a);color:#fff;border-color:var(--a)}
@@ -16,11 +17,6 @@
 .scc-big-result {
   color: var(--tool-surface-text);
 }
-/* Final dark-theme contrast fix */
-.scc-card,
-.scc-results > div,
-.scc-big-result {
-  color: var(--tool-surface-text);
-}
+
 
 
