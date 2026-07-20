@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react'
 import { APP_REGISTRY } from '@core/apps/appRegistry'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   findAppForInput,
   findChatAction,
@@ -14,7 +14,6 @@ interface ChatMessage {
   id: number
   role: 'user' | 'assistant'
   text: string
-  downloadUrl?: string
   downloadName?: string
   downloadBlob?: Blob
   downloadStatus?: string
@@ -27,7 +26,6 @@ interface GlobalToolChatProps {
 export function GlobalToolChat({
   mode = 'floating',
 }: GlobalToolChatProps) {
-  const location = useLocation()
   const navigate = useNavigate()
 
   registerDefaultChatActions()
@@ -64,38 +62,18 @@ export function GlobalToolChat({
     setIsProcessing(true)
 
     try {
-      const parts = value.split(/(?:\s+(?:and|then|aur|phir)\s+|[,;]+|\s*→\s*)/i).map((part) => part.trim()).filter(Boolean)
-      const requests = parts.length > 1 ? parts : [value]
-      const results = []
-      for (const request of requests) {
-        const result = await executeChatRequest(request, attachment ?? undefined)
-        if (result) results.push(result)
-      }
-      const directResult = results.length ? {
-        text: results.map((result) => result.text).join('\n\n'),
-        blob: results[results.length - 1].blob,
-        fileName: results[results.length - 1].fileName,
-      } : null
-
+      const directResult = await executeChatRequest(value, attachment ?? undefined)
       if (directResult) {
-        let downloadUrl: string | undefined
-
-        if (directResult.blob) {
-          downloadUrl = URL.createObjectURL(directResult.blob)
-        }
-
         setMessages((current) => [
           ...current,
           {
             id: Date.now() + 1,
             role: 'assistant',
             text: directResult.text,
-            downloadUrl,
             downloadName: directResult.fileName,
             downloadBlob: directResult.blob,
           },
         ])
-
         setAttachment(null)
         return
       }
@@ -105,13 +83,9 @@ export function GlobalToolChat({
         {
           id: Date.now() + 1,
           role: 'assistant',
-          text:
-            error instanceof Error
-              ? error.message
-              : 'The requested action could not be completed.',
+          text: error instanceof Error ? error.message : 'The requested action could not be completed.',
         },
       ])
-
       return
     } finally {
       setIsProcessing(false)
@@ -241,19 +215,18 @@ export function GlobalToolChat({
           >
             <span>{message.text}</span>
 
-            {message.downloadUrl && message.downloadName && (
+            {message.downloadBlob && message.downloadName && (
               <button
                 type="button"
                 className="global-tool-chat-download"
-                onClick={() => {
-                  if (!message.downloadUrl || !message.downloadName) return
-
-                  const blob = message.downloadBlob
-                  if (blob) {
-                    downloadBlob(blob, message.downloadName)
-                    setMessages((current) => current.map((item) =>
-                      item.id === message.id ? { ...item, downloadStatus: 'Download started ✓' } : item,
-                    ))
+                onClick={async () => {
+                  if (!message.downloadBlob || !message.downloadName) return
+                  setMessages((current) => current.map((item) => item.id === message.id ? { ...item, downloadStatus: 'Downloading…' } : item))
+                  try {
+                    await downloadBlob(message.downloadBlob, message.downloadName)
+                    setMessages((current) => current.map((item) => item.id === message.id ? { ...item, downloadStatus: 'Download started ✓' } : item))
+                  } catch (error) {
+                    setMessages((current) => current.map((item) => item.id === message.id ? { ...item, downloadStatus: error instanceof Error ? error.message : 'Download failed.' } : item))
                   }
                 }}
               >

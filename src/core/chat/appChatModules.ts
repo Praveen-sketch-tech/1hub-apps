@@ -24,14 +24,16 @@ export async function executeRegisteredChatAction(
 ): Promise<ChatExecutionResult | null> {
   for (const loader of Object.values(CHAT_MODULE_LOADERS)) {
     const module = await loader()
-
     for (const action of module.actions) {
-      if (action.canHandle(context)) {
-        return action.execute(context)
+      if (!action.canHandle(context)) continue
+      const result = await action.execute(context)
+      if (!result) continue
+      return {
+        ...result,
+        handledBy: { appId: module.appId, actionId: action.id, label: action.label },
       }
     }
   }
-
   return null
 }
 
@@ -67,7 +69,7 @@ registerAppChatModule('smart-calculator-converter', async () => {
   return module.chatModule
 })
 
-registerAppChatModule('app-007-smart-file-tools', async () => {
+registerAppChatModule('smart-file-tools', async () => {
   const module = await import('@apps/smart-file-tools/chatActions')
   return module.chatModule
 })
