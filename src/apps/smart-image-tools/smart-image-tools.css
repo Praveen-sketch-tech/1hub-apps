@@ -1,3 +1,4 @@
+@import "../../shared/styles/app-theme-contract.css";
 .sit-page {
   --sit-border: var(--tool-border);
   --sit-muted: var(--tool-muted);
@@ -193,7 +194,7 @@ cropper-handle[action='w-resize'] {
 }
 
 .dark .sit-crop-hint {
-  color: #94a3b8;
+  color: var(--tool-muted);
 }
 
 .sit-secondary-button {
@@ -303,5 +304,5 @@ cropper-handle[action='w-resize'] {
 }
 
 .dark .sit-ready-badge {
-  color: #86efac;
+  color: #4ade80;
 }

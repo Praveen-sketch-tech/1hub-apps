@@ -19,7 +19,7 @@ import {
   fetchAccessibleHtml,
 } from '@apps/web-page-snapshot-local-simulation/lib/snapshotEngine'
 import { sequenceToVisualCapturePlan } from '@apps/visual-capture-demo-fallback-engine/lib/plan'
-import { captureWithVisualPlan } from '@apps/visual-capture-demo-fallback-engine/lib/capture'
+import { captureWithVisualPlan, detectCaptureCapability } from '@apps/visual-capture-demo-fallback-engine/lib/capture'
 import { createDefaultEditPlan, createSource } from '@apps/browser-video-processing-studio/lib/videoProcessing'
 import { inspectVideo } from '@apps/browser-video-processing-studio/lib/inspectVideo'
 import { processEditPlan } from '@apps/browser-video-processing-studio/lib/editPlanProcessor'
@@ -237,6 +237,13 @@ export function initializeDemoRuntime(): () => void {
     async capture({ state }) {
       const sequence = state.outputs.simulationResult as DemoSequence | undefined
       if (!sequence) throw new Error('App #020 interaction sequence is missing.')
+      const capability = detectCaptureCapability()
+      if (!capability.displayCapture || !capability.mediaRecorder || !capability.canvasCapture) {
+        return {
+          requiresUser: true,
+          message: 'This browser cannot record a screen/tab demo. Open this workflow in a desktop browser with screen capture support, then use Retry / continue.',
+        }
+      }
       const plan = sequenceToVisualCapturePlan(sequence)
       const canvas = createCanvas()
       try {

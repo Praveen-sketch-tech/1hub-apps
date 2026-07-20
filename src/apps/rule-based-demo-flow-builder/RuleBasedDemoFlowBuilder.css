@@ -1,3 +1,4 @@
+@import "../../shared/styles/app-theme-contract.css";
 .flow-page {
   width: min(1180px, calc(100% - 24px));
   margin: 0 auto;
@@ -17,10 +18,10 @@
 
 .flow-card,
 .flow-status {
-  border: 1px solid var(--border-color, rgba(127, 127, 127, 0.22));
+  border: 1px solid var(--tool-border);
   border-radius: 16px;
-  background: var(--card-bg, rgba(255, 255, 255, 0.96));
-  color: var(--text-color, inherit);
+  background: var(--tool-surface);
+  color: var(--tool-surface-text);
 }
 
 .flow-card {
@@ -73,9 +74,9 @@
 .flow-card textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border-color, rgba(127, 127, 127, 0.28));
+  border: 1px solid var(--tool-border);
   border-radius: 10px;
-  background: var(--input-bg, transparent);
+  background: var(--tool-input-bg);
   color: inherit;
 }
 
@@ -91,9 +92,9 @@
   justify-content: center;
   min-height: 40px;
   padding: 9px 13px;
-  border: 1px solid var(--border-color, rgba(127, 127, 127, 0.28));
+  border: 1px solid var(--tool-border);
   border-radius: 10px;
-  background: var(--button-bg, rgba(127, 127, 127, 0.12));
+  background: var(--tool-surface-soft);
   color: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -164,7 +165,7 @@
   grid-template-columns: 38px minmax(0, 1fr);
   gap: 12px;
   padding: 12px;
-  border: 1px solid var(--border-color, rgba(127, 127, 127, 0.22));
+  border: 1px solid var(--tool-border);
   border-radius: 14px;
 }
 

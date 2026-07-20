@@ -1,3 +1,4 @@
+@import "../../shared/styles/app-theme-contract.css";
 .stt-page{--stt-accent:var(--tool-accent);--stt-border:var(--tool-border);--stt-muted:var(--tool-muted);width:min(1220px,calc(100% - 28px));margin:0 auto;padding:34px 0 50px;color:inherit}
 
 .stt-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:14px}.stt-stats>div{padding:10px 12px;border:1px solid var(--stt-border);border-radius:11px;background:var(--tool-surface)}.stt-stats span{display:block;color:var(--stt-muted);font-size:.72rem}.stt-stats strong{font-size:1rem}
@@ -19,25 +20,5 @@
   color: var(--tool-surface-text);
 }
 
-.dark 
-
-/* Final dark-theme contrast fix */
-.stt-stats > div,
-.stt-card,
-.stt-panel,
-.stt-input-card,
-.stt-output-card {
-  color: var(--tool-surface-text);
-}
-
-.stt-stats strong,
-.stt-stats span {
-  color: var(--tool-surface-text);
-}
-
-.stt-tabs,
-.stt-tabs button {
-  color: var(--tool-surface-text);
-}
 
 

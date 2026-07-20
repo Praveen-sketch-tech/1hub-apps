@@ -171,7 +171,7 @@ export default function SmartColorDesignToolsPage() {
   return (
     <main className="tool-page scdt-page">
       <ToolAppHeader
-        appNumber="016"
+        appNumber="028"
         title="Smart Color & Design Tools"
         description="Pick colors, extract palettes, generate harmonies and gradients, and check accessibility — all locally in your browser."
       />

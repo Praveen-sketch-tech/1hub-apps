@@ -1,0 +1,13 @@
+/* Copy into src/apps/<folder>/<app>.css and rename the prefix.
+ * Only genuinely unique layout/editor/canvas/timeline rules belong here.
+ * Do NOT put background/color/border colors, button fills, or dark-mode
+ * overrides in this file — those come from the shared tool-* classes and
+ * --tool-* tokens (src/index.css + src/shared/styles). If you find
+ * yourself writing `background:` or `color:` with a hex/rgb value here,
+ * stop and use a shared component/class instead.
+ */
+
+.example-tool-page {
+  width: min(1180px, calc(100% - 24px));
+  margin: 0 auto;
+}

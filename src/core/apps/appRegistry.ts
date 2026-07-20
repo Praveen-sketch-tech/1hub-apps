@@ -138,7 +138,7 @@ export const APP_REGISTRY: AppDefinition[] = [
   },
   {
     id: 'smart-color-design-tools',
-    number: '016',
+    number: '028',
     name: "Smart Color & Design Tools",
     description: "Pick colors, extract palettes, generate gradients and check accessibility locally in your browser.",
     path: '/apps/smart-color-design-tools',

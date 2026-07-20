@@ -16,6 +16,8 @@ interface ChatMessage {
   text: string
   downloadUrl?: string
   downloadName?: string
+  downloadBlob?: Blob
+  downloadStatus?: string
 }
 
 interface GlobalToolChatProps {
@@ -61,47 +63,82 @@ export function GlobalToolChat({
 
     setIsProcessing(true)
 
+    // Split "do X and then Y" / "X, Y" / "X aur Y phir Z" style input into
+    // individually-executable sub-commands. Each part is run and reported on
+    // its own — one failing or unmatched part must never hide the outcome of
+    // the others, and every part that produces a file gets its own visible
+    // download instead of only the last part's file surviving.
+    const parts = value
+      .split(/\n+|(?:\s+(?:and then|and|then|aur phir|uske baad|phir|fir|phle|and also)\s+|[,;]+|\s*→\s*)/i)
+      .map((part) => part.trim())
+      .filter(Boolean)
+    const requests = parts.length > 1 ? parts : [value]
+    const isMultiAction = requests.length > 1
+
+    let messageSeq = 0
+    const nextMessageId = () => Date.now() * 1000 + messageSeq++
+
+    let executedCount = 0
+    let unmatchedCount = 0
+
     try {
-      const directResult = await executeChatRequest(
-        value,
-        attachment ?? undefined,
-      )
+      for (const request of requests) {
+        try {
+          const result = await executeChatRequest(request, attachment ?? undefined)
 
-      if (directResult) {
-        let downloadUrl: string | undefined
+          if (result) {
+            executedCount += 1
 
-        if (directResult.blob) {
-          downloadUrl = URL.createObjectURL(directResult.blob)
+            let downloadUrl: string | undefined
+            if (result.blob) {
+              downloadUrl = URL.createObjectURL(result.blob)
+            }
+
+            setMessages((current) => [
+              ...current,
+              {
+                id: nextMessageId(),
+                role: 'assistant',
+                text: isMultiAction ? `${request}\n${result.text}` : result.text,
+                downloadUrl,
+                downloadName: result.fileName,
+                downloadBlob: result.blob,
+              },
+            ])
+          } else if (isMultiAction) {
+            // Do not silently drop a sub-command just because it did not
+            // match a registered action — the remaining sub-commands still
+            // run, but the person is told this one did not.
+            unmatchedCount += 1
+            setMessages((current) => [
+              ...current,
+              {
+                id: nextMessageId(),
+                role: 'assistant',
+                text: `Could not match an action to: "${request}". Continuing with the rest of the request.`,
+              },
+            ])
+          }
+        } catch (error) {
+          // A failure in one sub-command must not abort the remaining ones.
+          setMessages((current) => [
+            ...current,
+            {
+              id: nextMessageId(),
+              role: 'assistant',
+              text:
+                error instanceof Error
+                  ? error.message
+                  : `The "${request}" action could not be completed.`,
+            },
+          ])
         }
+      }
 
-        setMessages((current) => [
-          ...current,
-          {
-            id: Date.now() + 1,
-            role: 'assistant',
-            text: directResult.text,
-            downloadUrl,
-            downloadName: directResult.fileName,
-          },
-        ])
-
+      if (executedCount > 0 || (isMultiAction && unmatchedCount > 0)) {
         setAttachment(null)
         return
       }
-    } catch (error) {
-      setMessages((current) => [
-        ...current,
-        {
-          id: Date.now() + 1,
-          role: 'assistant',
-          text:
-            error instanceof Error
-              ? error.message
-              : 'The requested action could not be completed.',
-        },
-      ])
-
-      return
     } finally {
       setIsProcessing(false)
     }
@@ -234,15 +271,32 @@ export function GlobalToolChat({
               <button
                 type="button"
                 className="global-tool-chat-download"
+                disabled={message.downloadStatus === 'Downloading…'}
                 onClick={() => {
                   if (!message.downloadUrl || !message.downloadName) return
 
-                  fetch(message.downloadUrl)
-                    .then((response) => response.blob())
-                    .then((blob) => downloadBlob(blob, message.downloadName!))
+                  const blob = message.downloadBlob
+                  if (!blob) {
+                    setMessages((current) => current.map((item) =>
+                      item.id === message.id ? { ...item, downloadStatus: 'Download unavailable — file was not generated' } : item,
+                    ))
+                    return
+                  }
+
+                  setMessages((current) => current.map((item) =>
+                    item.id === message.id ? { ...item, downloadStatus: 'Downloading…' } : item,
+                  ))
+
+                  const succeeded = downloadBlob(blob, message.downloadName)
+
+                  setMessages((current) => current.map((item) =>
+                    item.id === message.id
+                      ? { ...item, downloadStatus: succeeded ? 'Downloaded ✓' : 'Download failed — tap to retry' }
+                      : item,
+                  ))
                 }}
               >
-                Download
+                {message.downloadStatus || 'Download'}
               </button>
             )}
           </div>

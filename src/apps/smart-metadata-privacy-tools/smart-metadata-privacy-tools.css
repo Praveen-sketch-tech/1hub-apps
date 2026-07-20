@@ -1,3 +1,4 @@
+@import "../../shared/styles/app-theme-contract.css";
 /* ============================================================================
    Smart Metadata & Privacy Tools — scoped styles
    Falls back to sensible light/dark values if the host app's CSS variables
@@ -7,15 +8,15 @@
    ============================================================================ */
 
 .smpt-app {
-  --smpt-bg: var(--background, #ffffff);
-  --smpt-fg: var(--foreground, #0f172a);
-  --smpt-card: var(--card, #ffffff);
-  --smpt-card-fg: var(--card-foreground, var(--smpt-fg));
-  --smpt-border: var(--border, #e2e8f0);
-  --smpt-muted: var(--muted, #f1f5f9);
-  --smpt-muted-fg: var(--muted-foreground, #64748b);
-  --smpt-primary: var(--primary, #2563eb);
-  --smpt-primary-fg: var(--primary-foreground, #ffffff);
+  --smpt-bg: var(--tool-page-bg);
+  --smpt-fg: var(--tool-text);
+  --smpt-card: var(--tool-surface);
+  --smpt-card-fg: var(--tool-surface-text);
+  --smpt-border: var(--tool-border);
+  --smpt-muted: var(--tool-surface-soft);
+  --smpt-muted-fg: var(--tool-surface-muted);
+  --smpt-primary: var(--tool-accent);
+  --smpt-primary-fg: #ffffff;
   --smpt-danger: #dc2626;
   --smpt-danger-bg: #fef2f2;
   --smpt-warn: #b45309;
@@ -32,28 +33,10 @@
   gap: 1.5rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  .smpt-app:not([data-theme='light']) {
-    --smpt-bg: var(--background, #0b1220);
-    --smpt-fg: var(--foreground, #e2e8f0);
-    --smpt-card: var(--card, #111827);
-    --smpt-border: var(--border, #1f2937);
-    --smpt-muted: var(--muted, #1e293b);
-    --smpt-muted-fg: var(--muted-foreground, #94a3b8);
-    --smpt-danger-bg: #3f1d1d;
-    --smpt-warn-bg: #3a2a0d;
-    --smpt-ok-bg: #12301c;
-  }
-}
-
-html.dark .smpt-app,
-[data-theme='dark'] .smpt-app {
-  --smpt-bg: var(--background, #0b1220);
-  --smpt-fg: var(--foreground, #e2e8f0);
-  --smpt-card: var(--card, #111827);
-  --smpt-border: var(--border, #1f2937);
-  --smpt-muted: var(--muted, #1e293b);
-  --smpt-muted-fg: var(--muted-foreground, #94a3b8);
+/* Dark-mode surfaces now come from the shared --tool-* theme tokens above
+ * (already dark-aware via the app's .dark class) instead of a duplicate
+ * app-local override, so this app can't drift from the rest of the UI. */
+.dark .smpt-app {
   --smpt-danger-bg: #3f1d1d;
   --smpt-warn-bg: #3a2a0d;
   --smpt-ok-bg: #12301c;

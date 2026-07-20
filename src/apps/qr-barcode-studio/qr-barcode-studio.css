@@ -1,3 +1,4 @@
+@import "../../shared/styles/app-theme-contract.css";
 /* App #003 — QR & Barcode Studio
    All classes are prefixed with `qbs-` and scoped under `.qbs-page` so this
    stylesheet never leaks into App #001, App #002, the base project, the
@@ -26,16 +27,6 @@
 .qbs-page * {
   box-sizing: border-box;
 }
-
-.dark 
-
-
-
-
-
-
-
-
 
 .qbs-tabs {
   display: flex;
