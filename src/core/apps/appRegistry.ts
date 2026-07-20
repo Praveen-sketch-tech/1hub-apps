@@ -240,4 +240,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-image-background-tools',
     tags: ["Background Removal","Color Key","Manual Erase","Transparent PNG","Blur Background","Image Export"],
   },
+  {
+    id: 'smart-document-scan-auto-crop-engine',
+    number: '030',
+    name: "Smart Document Scan & Auto-Crop Engine",
+    description: "Detect document edges, correct perspective, enhance scans and export clean document images locally in your browser.",
+    path: '/apps/smart-document-scan-auto-crop-engine',
+    tags: ["Document Scanner","Auto Crop","Perspective Correction","Camera Scan","Scan Enhancement"],
+  },
 ]

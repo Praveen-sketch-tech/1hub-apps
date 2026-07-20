@@ -268,4 +268,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-document-scan-auto-crop-engine',
+    name: "Smart Document Scan & Auto-Crop Engine",
+    component: lazy(() =>
+      import('@apps/smart-document-scan-auto-crop-engine').then((module) => ({
+        default: module.SmartDocumentScanAutoCropEnginePage,
+      }))
+    ),
+  },
 ]

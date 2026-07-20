@@ -271,3 +271,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'smart-document-scan-auto-crop-engine',
+  async () => {
+    const module = await import('@apps/smart-document-scan-auto-crop-engine/chatActions')
+    return module.chatModule
+  },
+)
