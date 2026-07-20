@@ -232,4 +232,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/automatic-website-demo-video-generator',
     tags: ["Website Demo Video","Automatic Demo","Demo Generator","Workflow Orchestration","Video Automation"],
   },
+  {
+    id: 'smart-image-background-tools',
+    number: '029',
+    name: "Smart Image Background Tools",
+    description: "Remove flat or mostly uniform image backgrounds locally with color controls, manual brush refinement and flexible exports.",
+    path: '/apps/smart-image-background-tools',
+    tags: ["Background Removal","Color Key","Manual Erase","Transparent PNG","Blur Background","Image Export"],
+  },
 ]

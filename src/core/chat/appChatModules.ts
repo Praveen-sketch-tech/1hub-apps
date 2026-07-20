@@ -263,3 +263,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'smart-image-background-tools',
+  async () => {
+    const module = await import('@apps/smart-image-background-tools/chatActions')
+    return module.chatModule
+  },
+)

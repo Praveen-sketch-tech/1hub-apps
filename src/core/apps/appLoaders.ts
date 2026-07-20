@@ -259,4 +259,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-image-background-tools',
+    name: "Smart Image Background Tools",
+    component: lazy(() =>
+      import('@apps/smart-image-background-tools').then((module) => ({
+        default: module.SmartImageBackgroundToolsPage,
+      }))
+    ),
+  },
 ]
