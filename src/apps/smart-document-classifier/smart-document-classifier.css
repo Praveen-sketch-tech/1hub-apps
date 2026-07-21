@@ -1,0 +1,354 @@
+.sdc-page {
+  display: grid;
+  gap: 18px;
+  padding: clamp(16px, 3vw, 32px);
+}
+
+.sdc-page h2,
+.sdc-page p {
+  margin-top: 0;
+}
+
+.sdc-intro,
+.sdc-card-head,
+.sdc-file-line,
+.sdc-classification-line,
+.sdc-results-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.sdc-intro p,
+.sdc-card-head p {
+  margin-bottom: 0;
+}
+
+.sdc-trust,
+.sdc-count,
+.sdc-review-badge {
+  flex: 0 0 auto;
+  border: 1px solid var(--tool-border);
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: var(--tool-surface-soft);
+  color: var(--tool-surface-text);
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.sdc-setup-grid {
+  align-items: stretch;
+}
+
+.sdc-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--tool-border);
+  border-radius: 12px;
+  background: var(--tool-surface-soft);
+  cursor: pointer;
+}
+
+.sdc-check-row input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+.sdc-check-row span {
+  display: grid;
+  gap: 3px;
+}
+
+.sdc-check-row small {
+  color: var(--tool-surface-muted);
+}
+
+.sdc-custom-rule {
+  display: grid;
+  grid-template-columns: minmax(140px, .7fr) minmax(220px, 1.5fr) auto;
+  gap: 10px;
+}
+
+.sdc-rule-list,
+.sdc-signal-list,
+.sdc-summary-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sdc-rule-chip,
+.sdc-signal-list span,
+.sdc-summary-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--tool-border);
+  border-radius: 999px;
+  background: var(--tool-surface-soft);
+  color: var(--tool-surface-text);
+  font-size: .8rem;
+}
+
+.sdc-rule-chip button,
+.sdc-remove {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--tool-border);
+  border-radius: 50%;
+  background: var(--tool-surface);
+  color: var(--tool-surface-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+}
+
+.sdc-status {
+  padding: 11px 14px;
+  border: 1px solid var(--tool-border);
+  border-radius: 12px;
+  background: var(--tool-surface-soft);
+  color: var(--tool-surface-text);
+  font-weight: 650;
+}
+
+.sdc-metrics article {
+  display: grid;
+  gap: 4px;
+}
+
+.sdc-metrics span {
+  color: var(--tool-surface-muted);
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.sdc-metrics strong {
+  font-size: 1.7rem;
+}
+
+.sdc-results-section {
+  display: grid;
+  gap: 16px;
+}
+
+.sdc-result-list {
+  display: grid;
+  gap: 12px;
+}
+
+.sdc-result-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 280px);
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--tool-border);
+  border-radius: 14px;
+  background: var(--tool-surface-soft);
+  color: var(--tool-surface-text);
+}
+
+.sdc-result-main,
+.sdc-result-side {
+  min-width: 0;
+}
+
+.sdc-result-main {
+  display: grid;
+  align-content: start;
+  gap: 11px;
+}
+
+.sdc-result-main p {
+  margin: 0;
+}
+
+.sdc-result-side {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding-left: 16px;
+  border-left: 1px solid var(--tool-border);
+}
+
+.sdc-file-line > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.sdc-file-line strong {
+  overflow-wrap: anywhere;
+}
+
+.sdc-file-line span {
+  color: var(--tool-surface-muted);
+  font-size: .8rem;
+}
+
+.sdc-category {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--tool-accent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tool-accent) 12%, var(--tool-surface));
+  color: var(--tool-surface-text);
+  font-weight: 850;
+}
+
+.sdc-category.needs-review {
+  border-style: dashed;
+}
+
+.sdc-review-badge {
+  padding: 4px 8px;
+}
+
+.sdc-progress-wrap {
+  display: grid;
+  gap: 5px;
+}
+
+.sdc-progress {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--tool-surface);
+  border: 1px solid var(--tool-border);
+}
+
+.sdc-progress span {
+  display: block;
+  height: 100%;
+  background: var(--tool-accent);
+  transition: width .2s ease;
+}
+
+.sdc-progress-wrap small,
+.sdc-warning {
+  color: var(--tool-surface-muted);
+}
+
+.sdc-error {
+  padding: 10px;
+  border: 1px solid var(--tool-border);
+  border-radius: 10px;
+  background: var(--tool-surface);
+  font-weight: 700;
+}
+
+.sdc-result-side details {
+  border-top: 1px solid var(--tool-border);
+  padding-top: 10px;
+}
+
+.sdc-result-side summary {
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.sdc-details {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0;
+}
+
+.sdc-details div,
+.sdc-score-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sdc-details dt,
+.sdc-score-list span {
+  color: var(--tool-surface-muted);
+}
+
+.sdc-details dd {
+  margin: 0;
+  text-align: right;
+}
+
+.sdc-score-list {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sdc-summary-list span {
+  justify-content: space-between;
+  min-width: 150px;
+}
+
+.sdc-summary-list b {
+  display: inline-grid;
+  place-items: center;
+  min-width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: var(--tool-accent);
+  color: #fff;
+}
+
+.sdc-empty-review {
+  padding: 28px;
+  border: 1px dashed var(--tool-border);
+  border-radius: 14px;
+  text-align: center;
+  color: var(--tool-surface-muted);
+}
+
+@media (max-width: 900px) {
+  .sdc-result-card {
+    grid-template-columns: 1fr;
+  }
+
+  .sdc-result-side {
+    padding-left: 0;
+    padding-top: 14px;
+    border-left: 0;
+    border-top: 1px solid var(--tool-border);
+  }
+}
+
+@media (max-width: 700px) {
+  .sdc-page {
+    padding: 14px;
+  }
+
+  .sdc-intro,
+  .sdc-card-head,
+  .sdc-file-line,
+  .sdc-classification-line,
+  .sdc-results-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sdc-custom-rule {
+    grid-template-columns: 1fr;
+  }
+
+  .sdc-result-card {
+    padding: 13px;
+  }
+
+  .sdc-classification-line strong {
+    font-size: .9rem;
+  }
+}

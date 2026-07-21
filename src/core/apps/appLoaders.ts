@@ -277,4 +277,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-document-classifier',
+    name: "Smart Document Classifier",
+    component: lazy(() =>
+      import('@apps/smart-document-classifier').then((module) => ({
+        default: module.SmartDocumentClassifierPage,
+      }))
+    ),
+  },
 ]

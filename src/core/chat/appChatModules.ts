@@ -279,3 +279,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'smart-document-classifier',
+  async () => {
+    const module = await import('@apps/smart-document-classifier/chatActions')
+    return module.chatModule
+  },
+)

@@ -248,4 +248,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-document-scan-auto-crop-engine',
     tags: ["Document Scanner","Auto Crop","Perspective Correction","Camera Scan","Scan Enhancement"],
   },
+  {
+    id: 'smart-document-classifier',
+    number: '031',
+    name: "Smart Document Classifier",
+    description: "Classify PDFs, DOCX files, text documents and scanned images locally using transparent keyword and pattern rules with OCR fallback.",
+    path: '/apps/smart-document-classifier',
+    tags: ["Document Classification","PDF Text Extraction","Image OCR","DOCX Reader","Batch Classification","CSV Export"],
+  },
 ]
