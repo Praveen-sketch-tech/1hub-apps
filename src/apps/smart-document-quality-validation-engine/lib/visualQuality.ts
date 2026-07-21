@@ -69,29 +69,49 @@ function estimateSkew(gray: Float32Array, width: number, height: number) {
   if (points.length < 120) return 0
   let bestAngle = 0
   let bestScore = -Infinity
-  for (let angle = -7; angle <= 7; angle += 0.5) {
+  let zeroScore = 0
+  const minAngle = -10
+  const maxAngle = 10
+
+  for (let angle = minAngle; angle <= maxAngle; angle += 0.5) {
     const radians = angle * Math.PI / 180
     const sin = Math.sin(radians)
     const cos = Math.cos(radians)
     const bins = new Map<number, number>()
+
     for (const point of points) {
       const projected = Math.round(point.y * cos + point.x * sin)
       bins.set(projected, (bins.get(projected) ?? 0) + 1)
     }
+
     let sum = 0
     let sumSquares = 0
     for (const value of bins.values()) {
       sum += value
       sumSquares += value * value
     }
+
     const mean = sum / Math.max(1, bins.size)
     const score = sumSquares / Math.max(1, bins.size) - mean * mean
+
+    if (angle === 0) zeroScore = score
     if (score > bestScore) {
       bestScore = score
       bestAngle = angle
     }
   }
-  return Math.abs(bestAngle) < 0.35 ? 0 : Math.round(bestAngle * 10) / 10
+
+  // A result at the search boundary usually means logos, photos, QR codes,
+  // card borders or dense graphics confused the projection heuristic.
+  if (bestAngle === minAngle || bestAngle === maxAngle) return 0
+
+  // Do not report skew unless the rotated alignment is meaningfully stronger
+  // than the unrotated page. This prevents false positives on ID cards.
+  const improvement = bestScore - zeroScore
+  const confidence = improvement / Math.max(1, Math.abs(zeroScore))
+  if (confidence < 0.08 || Math.abs(bestAngle) < 0.75) return 0
+
+  return Math.round(bestAngle * 10) / 10
 }
 
 export function createPerceptualHash(canvas: HTMLCanvasElement) {
@@ -172,8 +192,8 @@ export function analyzePageCanvas(
   if (mean < 75) add('error', 'too-dark', 'Page is too dark', 'The average exposure is very low.')
   else if (mean < 115) add('warning', 'dark-page', 'Page is dark', 'Brightness enhancement may improve readability.')
   if (mean > 248 && blankRatio < 0.992) add('warning', 'overexposed', 'Page may be overexposed', 'Highlights may have removed light text or signatures.')
-  if (Math.abs(skewAngle) >= 4) add('error', 'severe-skew', 'Strong page skew', `Estimated document skew is ${skewAngle.toFixed(1)}°.`)
-  else if (Math.abs(skewAngle) >= 1.8) add('warning', 'page-skew', 'Page is tilted', `Estimated document skew is ${skewAngle.toFixed(1)}°.`)
+  if (Math.abs(skewAngle) >= 7) add('error', 'severe-skew', 'Strong page skew', `Estimated document skew is ${skewAngle.toFixed(1)}°.`)
+  else if (Math.abs(skewAngle) >= 2.5) add('warning', 'page-skew', 'Page may be tilted', `Estimated document skew is ${skewAngle.toFixed(1)}°. Review the preview before accepting this result.`)
   if (canvas.width < 700 || canvas.height < 700) add('warning', 'low-resolution', 'Low page resolution', `Page dimensions are only ${canvas.width}×${canvas.height}px.`)
 
   return {
