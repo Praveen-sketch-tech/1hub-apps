@@ -1,6 +1,7 @@
 import {
   type ChangeEvent,
   type DragEvent,
+  useEffect,
   useMemo,
   useState,
 } from 'react'
@@ -37,6 +38,7 @@ interface ValidationItem {
   error?: string
   overrideDecision?: ValidationDecision
   reviewNote?: string
+  previewUrl: string
 }
 
 function createItem(file: File): ValidationItem {
@@ -46,6 +48,7 @@ function createItem(file: File): ValidationItem {
     status: 'queued',
     progress: 0,
     statusText: 'Queued',
+    previewUrl: URL.createObjectURL(file),
   }
 }
 
@@ -101,6 +104,13 @@ export default function SmartDocumentQualityValidationEnginePage() {
   const [customPatternText, setCustomPatternText] = useState('')
   const [includeTextInJson, setIncludeTextInJson] = useState(false)
   const [filter, setFilter] = useState<ResultFilter>('all')
+  const [previewItem, setPreviewItem] = useState<ValidationItem | null>(null)
+
+  useEffect(() => {
+    return () => {
+      items.forEach((item) => URL.revokeObjectURL(item.previewUrl))
+    }
+  }, [])
 
   const updateItem = (id: string, patch: Partial<ValidationItem>) => {
     setItems((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item))
@@ -176,7 +186,7 @@ export default function SmartDocumentQualityValidationEnginePage() {
           })
         }
       }
-      setStatus('Validation finished. Review warnings, missing fields and any manual decisions before exporting.')
+      setStatus('Validation complete. Documents below show whether they passed the configured score and quality checks.')
     } finally {
       if (ocrSession) await ocrSession.dispose()
       setBusy(false)
@@ -295,7 +305,18 @@ export default function SmartDocumentQualityValidationEnginePage() {
             <button className="tool-button tool-button-primary" disabled={!queuedIds.length || busy} onClick={() => void validateIds(queuedIds)}>
               {busy ? 'Validating…' : `Validate ${items.length || ''} document${items.length === 1 ? '' : 's'}`}
             </button>
-            <button className="tool-button" disabled={!items.length || busy} onClick={() => { setItems([]); setStatus('Workspace cleared.') }}>Clear all</button>
+            <button
+              className="tool-button"
+              disabled={!items.length || busy}
+              onClick={() => {
+                items.forEach((item) => URL.revokeObjectURL(item.previewUrl))
+                setItems([])
+                setPreviewItem(null)
+                setStatus('Workspace cleared.')
+              }}
+            >
+              Clear all
+            </button>
           </div>
         </article>
       </section>
@@ -359,6 +380,20 @@ export default function SmartDocumentQualityValidationEnginePage() {
               return (
                 <article className="tool-card sdqv-result-card" key={item.id}>
                   <div className="sdqv-result-head">
+                    <button
+                      type="button"
+                      className="sdqv-file-preview"
+                      onClick={() => setPreviewItem(item)}
+                      aria-label={`Preview ${item.file.name}`}
+                    >
+                      {item.file.type.startsWith('image/') ? (
+                        <img src={item.previewUrl} alt="" />
+                      ) : item.file.type === 'application/pdf' || item.file.name.toLowerCase().endsWith('.pdf') ? (
+                        <iframe src={item.previewUrl} title={`Preview ${item.file.name}`} />
+                      ) : (
+                        <span>DOC</span>
+                      )}
+                    </button>
                     <div className="sdqv-file-title">
                       <h3>{item.file.name}</h3>
                       <p className="tool-muted">{formatFileSize(item.file.size)} · {item.file.type || 'Unknown type'}</p>
@@ -369,7 +404,18 @@ export default function SmartDocumentQualityValidationEnginePage() {
                         <span>{decisionLabel(decision)} · Grade {report.grade}</span>
                       </div>
                     )}
-                    <button className="sdqv-remove" aria-label={`Remove ${item.file.name}`} disabled={busy} onClick={() => setItems((current) => current.filter((candidate) => candidate.id !== item.id))}>×</button>
+                    <button
+                      className="sdqv-remove"
+                      aria-label={`Remove ${item.file.name}`}
+                      disabled={busy}
+                      onClick={() => {
+                        URL.revokeObjectURL(item.previewUrl)
+                        setItems((current) => current.filter((candidate) => candidate.id !== item.id))
+                        if (previewItem?.id === item.id) setPreviewItem(null)
+                      }}
+                    >
+                      ×
+                    </button>
                   </div>
 
                   {item.status === 'processing' && (
@@ -383,7 +429,11 @@ export default function SmartDocumentQualityValidationEnginePage() {
 
                   {report && (
                     <div className="tool-stack">
-                      <p className="sdqv-summary">{report.summary}</p>
+                      <p className="sdqv-summary">
+  {decision === 'fail'
+    ? `Document needs review: score ${report.score}/100 is below the configured threshold of ${threshold}. ${errors} error${errors === 1 ? '' : 's'} and ${warnings} warning${warnings === 1 ? '' : 's'} detected.`
+    : report.summary}
+</p>
                       <div className="sdqv-result-stats">
                         <span><strong>{report.pagesRead}</strong> pages checked</span>
                         <span><strong>{report.ocrPages}</strong> OCR pages</span>
@@ -461,6 +511,44 @@ export default function SmartDocumentQualityValidationEnginePage() {
             })}
           </section>
         </>
+      )}
+
+      {previewItem && (
+        <div
+          className="sdqv-preview-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Preview ${previewItem.file.name}`}
+          onClick={() => setPreviewItem(null)}
+        >
+          <div className="sdqv-preview-dialog" onClick={(event) => event.stopPropagation()}>
+            <div className="sdqv-preview-head">
+              <div>
+                <strong>{previewItem.file.name}</strong>
+                <span>{formatFileSize(previewItem.file.size)}</span>
+              </div>
+              <button
+                type="button"
+                className="tool-button"
+                onClick={() => setPreviewItem(null)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="sdqv-preview-body">
+              {previewItem.file.type.startsWith('image/') ? (
+                <img src={previewItem.previewUrl} alt={`Preview of ${previewItem.file.name}`} />
+              ) : previewItem.file.type === 'application/pdf' || previewItem.file.name.toLowerCase().endsWith('.pdf') ? (
+                <iframe src={previewItem.previewUrl} title={`Preview of ${previewItem.file.name}`} />
+              ) : (
+                <div className="sdqv-no-preview">
+                  Preview is not available for this file type.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </main>
   )
