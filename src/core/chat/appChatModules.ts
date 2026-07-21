@@ -287,3 +287,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'smart-document-quality-validation-engine',
+  async () => {
+    const module = await import('@apps/smart-document-quality-validation-engine/chatActions')
+    return module.chatModule
+  },
+)

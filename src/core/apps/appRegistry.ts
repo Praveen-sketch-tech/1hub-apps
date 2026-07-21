@@ -256,4 +256,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-document-classifier',
     tags: ["Document Classification","PDF Text Extraction","Image OCR","DOCX Reader","Batch Classification","CSV Export"],
   },
+  {
+    id: 'smart-document-quality-validation-engine',
+    number: '032',
+    name: "Smart Document Quality & Validation Engine",
+    description: "Inspect document readability, page quality, OCR text, required fields, duplicates and file integrity locally with transparent browser-based checks.",
+    path: '/apps/smart-document-quality-validation-engine',
+    tags: ["Document Quality","Validation Engine","Blur Detection","OCR Quality","Required Fields","Duplicate Pages"],
+  },
 ]

@@ -286,4 +286,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-document-quality-validation-engine',
+    name: "Smart Document Quality & Validation Engine",
+    component: lazy(() =>
+      import('@apps/smart-document-quality-validation-engine').then((module) => ({
+        default: module.SmartDocumentQualityValidationEnginePage,
+      }))
+    ),
+  },
 ]
