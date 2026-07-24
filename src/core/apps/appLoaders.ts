@@ -295,4 +295,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/smart-multi-document-ocr-pdf-builder',
+    name: "Smart Multi-Document OCR & PDF Builder",
+    component: lazy(() =>
+      import('@apps/smart-multi-document-ocr-pdf-builder').then((module) => ({
+        default: module.SmartMultiDocumentOcrPdfBuilderPage,
+      }))
+    ),
+  },
 ]

@@ -295,3 +295,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'smart-multi-document-ocr-pdf-builder',
+  async () => {
+    const module = await import('@apps/smart-multi-document-ocr-pdf-builder/chatActions')
+    return module.chatModule
+  },
+)

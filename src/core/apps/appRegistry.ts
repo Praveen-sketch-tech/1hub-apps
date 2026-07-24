@@ -264,4 +264,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-document-quality-validation-engine',
     tags: ["Document Quality","Validation Engine","Blur Detection","OCR Quality","Required Fields","Duplicate Pages"],
   },
+  {
+    id: 'smart-multi-document-ocr-pdf-builder',
+    number: '033',
+    name: "Smart Multi-Document OCR & PDF Builder",
+    description: "Enhance multiple documents, run PaddleOCR, identify document types and export one colour PDF with OCR summary pages.",
+    path: '/apps/smart-multi-document-ocr-pdf-builder',
+    tags: ["PaddleOCR","Document OCR","Hindi OCR","Multi Document","Colour PDF","Document Classification"],
+  },
 ]

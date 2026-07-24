@@ -20,6 +20,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
+    "@paddleocr/paddleocr-js": "^0.4.2",
     "@supabase/supabase-js": "^2.45.4",
     "@zxing/browser": "^0.2.1",
     "@zxing/library": "^0.23.0",
