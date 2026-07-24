@@ -1,4 +1,4 @@
-export type OcrLanguage = 'hi' | 'en'
+export type OcrLanguage = 'auto' | 'hi' | 'en'
 export type PageStatus = 'queued' | 'processing' | 'done' | 'error'
 export interface OcrLine { text:string; score:number; poly:number[][] }
 export interface DocumentDetection { type:string; confidence:number; matchedSignals:string[]; fields:Record<string,string> }

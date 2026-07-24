@@ -14,7 +14,7 @@ const ACCEPT='image/*,.pdf,application/pdf'
 async function createPage(file:File):Promise<DocumentPage>{const image=await loadImage(file);return{id:crypto.randomUUID(),fileName:file.name,sourceFile:file,sourceUrl:URL.createObjectURL(file),width:image.naturalWidth,height:image.naturalHeight,rotation:0,status:'queued',progress:0,statusText:'Ready',ocrText:'',ocrLines:[],averageConfidence:0}}
 
 export function SmartMultiDocumentOcrPdfBuilderPage(){
- const[pages,setPages]=useState<DocumentPage[]>([]),[language,setLanguage]=useState<OcrLanguage>('hi'),[busy,setBusy]=useState(false),[status,setStatus]=useState('Add multiple document images or PDFs.'),[previewId,setPreviewId]=useState<string|null>(null)
+ const[pages,setPages]=useState<DocumentPage[]>([]),[language,setLanguage]=useState<OcrLanguage>('auto'),[busy,setBusy]=useState(false),[status,setStatus]=useState('Add multiple document images or PDFs.'),[previewId,setPreviewId]=useState<string|null>(null)
  const completed=useMemo(()=>pages.filter(p=>p.status==='done'),[pages]),previewPage=pages.find(p=>p.id===previewId)
  useEffect(()=>()=>{pages.forEach(p=>{URL.revokeObjectURL(p.sourceUrl);if(p.colorUrl)URL.revokeObjectURL(p.colorUrl)})},[])
  const update=(id:string,patch:Partial<DocumentPage>)=>setPages(cur=>cur.map(p=>p.id===id?{...p,...patch}:p))
@@ -51,7 +51,7 @@ export function SmartMultiDocumentOcrPdfBuilderPage(){
    </div>
   </section>
   <section className="tool-panel smdop-toolbar">
-   <label className="tool-field"><span className="tool-label">OCR model</span><select className="tool-select" value={language} onChange={e=>setLanguage(e.target.value as OcrLanguage)} disabled={busy}><option value="hi">Hindi + English</option><option value="en">English only (faster)</option></select></label>
+   <label className="tool-field"><span className="tool-label">OCR model</span><select className="tool-select" value={language} onChange={e=>setLanguage(e.target.value as OcrLanguage)} disabled={busy}><option value="auto">Auto detect</option><option value="hi">Hindi + English</option><option value="en">English only (faster)</option></select></label>
    <div className="tool-actions">
     <button className="tool-button tool-button-primary" disabled={!pages.length||busy} onClick={()=>void processIds(pages.map(p=>p.id))}>{busy?'Working…':`Process all ${pages.length||''}`}</button>
     <button className="tool-button" disabled={!completed.length||busy} onClick={()=>void generatePdf()}>Generate colour PDF + OCR summary</button>
