@@ -1,5 +1,5 @@
 
-import { ImportResult } from './types';
+import { ImportResult } from '../types';
 
 export function parseAIOutput(input:string):ImportResult{
 

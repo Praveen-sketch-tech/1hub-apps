@@ -27,6 +27,7 @@
     "cropperjs": "^2.1.1",
     "jsbarcode": "^3.12.3",
     "jszip": "^3.10.1",
+    "lucide-react": "^1.28.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.10.38",
     "qrcode": "^1.5.4",
