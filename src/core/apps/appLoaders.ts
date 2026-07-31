@@ -304,4 +304,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: "/apps/ai-app-importer",
+    name: "AI App Importer",
+    component: lazy(() =>
+      import("@apps/ai-app-importer").then((module) => ({
+        default: module.AIAppImporterPage || module.default,
+      }))
+    ),
+  }
 ]

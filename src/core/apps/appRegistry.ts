@@ -272,4 +272,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: '/apps/smart-multi-document-ocr-pdf-builder',
     tags: ["PaddleOCR","Document OCR","Hindi OCR","Multi Document","Colour PDF","Document Classification"],
   },
+ {
+  id: "ai-app-importer",
+  number: "034",
+  name: "AI App Importer",
+  description: "Import complete multi-file apps from AI chat output.",
+  path: "/apps/ai-app-importer",
+  tags: ["AI Import","App Builder","Developer Tools","Code Parser"],
+},
 ]

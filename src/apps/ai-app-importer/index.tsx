@@ -164,3 +164,5 @@ export default function AIAppImporter() {
     </div>
   );
 }
+
+export const AIAppImporterPage = AIAppImporter;
