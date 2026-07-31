@@ -1,0 +1,9 @@
+{
+  "title": "AI App Importer",
+  "slug": "ai-app-importer",
+  "icon": "🤖",
+  "description": "Import complete multi-file apps from AI chat output.",
+  "category": "Developer",
+  "version": "1.0.0",
+  "number": "034"
+}
