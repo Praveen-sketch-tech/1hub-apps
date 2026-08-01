@@ -41,8 +41,10 @@ export function parseAIOutput(input:string):ImportResult{
   }
 
   return{
+    success: errors.length===0,
     files,
-    errors
+    errors,
+    filesCount: files.length
   };
 }
 
