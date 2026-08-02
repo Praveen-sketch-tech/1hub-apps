@@ -1,0 +1,7 @@
+{
+  "id": "test-calculator-app",
+  "number": "035",
+  "name": "Test Calculator App",
+  "description": "Testing AI App Importer file parser and auto registration",
+  "path": "/apps/test-calculator-app"
+}

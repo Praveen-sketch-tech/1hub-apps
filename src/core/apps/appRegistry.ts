@@ -281,4 +281,12 @@ export const APP_REGISTRY: AppDefinition[] = [
   tags: ["AI Import","App Builder","Developer Tools","Code Parser"],
 },
 
+  {
+    id: "test-calculator-app",
+    number: "035",
+    name: "Test Calculator App",
+    description: "Testing AI App Importer file parser and auto registration",
+    path: "/apps/test-calculator-app",
+    tags: [],
+  },
 ]

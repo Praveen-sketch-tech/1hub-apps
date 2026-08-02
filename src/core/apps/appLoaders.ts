@@ -313,5 +313,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
-
+  {
+    path: "/apps/test-calculator-app",
+    name: "Test Calculator App",
+    component: lazy(() =>
+      import("@apps/test-calculator-app").then((module) => ({
+        default: module.TestCalculatorAppPage || module.default,
+      }))
+    ),
+  },
 ]
