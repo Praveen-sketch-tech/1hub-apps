@@ -4,7 +4,7 @@ export async function pushFilesToGitHub(
   config: GitHubConfig,
   files: (ParsedFileItem | ParsedFile)[],
   manifest?: AppManifest,
-  commitMessage = 'feat: auto-deploy new app via AI App Factory v2'
+  commitMessage = 'feat: auto-deploy new app via AI App Importer'
 ): Promise<GitHubResult> {
   const { token, owner, repo, branch = 'main' } = config;
 
@@ -15,12 +15,12 @@ export async function pushFilesToGitHub(
       'Content-Type': 'application/json'
     };
 
-    const refRes = await fetch(`[https://api.github.com/repos/$](https://api.github.com/repos/$){owner}/${repo}/git/ref/heads/${branch}`, { headers });
+    const refRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${branch}`, { headers });
     if (!refRes.ok) throw new Error(`Failed to fetch branch ref: ${refRes.statusText}`);
     const refData = await refRes.json();
     const latestCommitSha = refData.object.sha;
 
-    const commitRes = await fetch(`[https://api.github.com/repos/$](https://api.github.com/repos/$){owner}/${repo}/git/commits/${latestCommitSha}`, { headers });
+    const commitRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits/${latestCommitSha}`, { headers });
     const commitData = await commitRes.json();
     const baseTreeSha = commitData.tree.sha;
 
@@ -28,12 +28,12 @@ export async function pushFilesToGitHub(
 
     if (manifest) {
       try {
-        const regRes = await fetch(`[https://api.github.com/repos/$](https://api.github.com/repos/$){owner}/${repo}/contents/src/core/apps/appRegistry.ts?ref=${branch}`, { headers });
+        const regRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/src/core/apps/appRegistry.ts?ref=${branch}`, { headers });
         if (regRes.ok) {
           const regData = await regRes.json();
           const regContent = atob(regData.content.replace(/\n/g, ''));
           if (!regContent.includes(manifest.id)) {
-            const regEntry = `  {\n    id: "${manifest.id}",\n    number: "${manifest.number}",\n    name: "${manifest.name}",\n    description: "${manifest.description}",\n    path: "${manifest.path}"\n  }`;
+            const regEntry = `  {\n    id: "${manifest.id}",\n    number: "${manifest.number}",\n    name: "${manifest.name}",\n    description: "${manifest.description}",\n    path: "${manifest.path}",\n    tags: []\n  }`;
             const lastBracket = regContent.lastIndexOf(']');
             if (lastBracket !== -1) {
               const before = regContent.slice(0, lastBracket).trimEnd();
@@ -44,7 +44,7 @@ export async function pushFilesToGitHub(
           }
         }
 
-        const loaderRes = await fetch(`[https://api.github.com/repos/$](https://api.github.com/repos/$){owner}/${repo}/contents/src/core/apps/appLoaders.ts?ref=${branch}`, { headers });
+        const loaderRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/src/core/apps/appLoaders.ts?ref=${branch}`, { headers });
         if (loaderRes.ok) {
           const loaderData = await loaderRes.json();
           const loaderContent = atob(loaderData.content.replace(/\n/g, ''));
@@ -72,7 +72,7 @@ export async function pushFilesToGitHub(
       content: file.content
     }));
 
-    const treeRes = await fetch(`[https://api.github.com/repos/$](https://api.github.com/repos/$){owner}/${repo}/git/trees`, {
+    const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ base_tree: baseTreeSha, tree: treeItems })
@@ -80,7 +80,7 @@ export async function pushFilesToGitHub(
     if (!treeRes.ok) throw new Error(`Failed to create tree: ${treeRes.statusText}`);
     const treeData = await treeRes.json();
 
-    const newCommitRes = await fetch(`[https://api.github.com/repos/$](https://api.github.com/repos/$){owner}/${repo}/git/commits`, {
+    const newCommitRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ message: commitMessage, tree: treeData.sha, parents: [latestCommitSha] })
@@ -88,7 +88,7 @@ export async function pushFilesToGitHub(
     if (!newCommitRes.ok) throw new Error(`Failed to create commit: ${newCommitRes.statusText}`);
     const newCommitData = await newCommitRes.json();
 
-    const updateRefRes = await fetch(`[https://api.github.com/repos/$](https://api.github.com/repos/$){owner}/${repo}/git/refs/heads/${branch}`, {
+    const updateRefRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branch}`, {
       method: 'PATCH',
       headers,
       body: JSON.stringify({ sha: newCommitData.sha, force: false })
@@ -96,7 +96,8 @@ export async function pushFilesToGitHub(
     if (!updateRefRes.ok) throw new Error(`Failed to update branch ref: ${updateRefRes.statusText}`);
 
     return { success: true, commitSha: newCommitData.sha };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'GitHub push failed' };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'GitHub push failed';
+    return { success: false, error: message };
   }
 }

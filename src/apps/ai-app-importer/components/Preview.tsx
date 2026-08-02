@@ -11,6 +11,7 @@ interface PreviewProps {
   onGenerate: () => void;
   onPushGitHub: () => void;
   isDeploying: boolean;
+  isGenerating?: boolean;
 }
 
 export const Preview: React.FC<PreviewProps> = ({
@@ -22,7 +23,8 @@ export const Preview: React.FC<PreviewProps> = ({
   onValidate,
   onGenerate,
   onPushGitHub,
-  isDeploying
+  isDeploying,
+  isGenerating = false
 }) => {
   return (
     <div className="flex flex-col space-y-4 p-4 bg-slate-900 border border-slate-800 rounded-xl shadow-lg">
@@ -38,10 +40,10 @@ export const Preview: React.FC<PreviewProps> = ({
           </button>
           <button
             onClick={onGenerate}
-            disabled={files.length === 0 || !isValid}
+            disabled={files.length === 0 || !isValid || isGenerating}
             className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 transition active:scale-95"
           >
-            Generate Local
+            {isGenerating ? 'Generating...' : 'Generate Local'}
           </button>
           <button
             onClick={onPushGitHub}

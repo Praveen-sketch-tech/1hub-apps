@@ -1,6 +1,10 @@
 import { ParsedFileItem, ParsedFile, ValidationResult, AppManifest } from '../types';
+import type { AppDefinition } from '@core/apps/appRegistry';
 
-export function validateParsedFiles(files: (ParsedFileItem | ParsedFile)[], existingRegistry: any[] = []): ValidationResult {
+export function validateParsedFiles(
+  files: (ParsedFileItem | ParsedFile)[],
+  existingRegistry: AppDefinition[] = []
+): ValidationResult {
   const errors: string[] = [];
   const fileErrors: Record<string, string> = {};
   let manifest: AppManifest | undefined;

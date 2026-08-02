@@ -54,7 +54,7 @@ export function detectSlug(files:{path:string}[]){
 
   if(!app) return null;
 
-  const m=app.path.match(/src\/apps\/([^\/]+)/);
+  const m=app.path.match(/src\/apps\/([^/]+)/);
 
   return m?m[1]:null;
 }
