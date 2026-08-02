@@ -312,5 +312,6 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
         default: module.AIAppImporterPage || module.default,
       }))
     ),
-  }
+  },
+
 ]

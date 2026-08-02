@@ -280,4 +280,5 @@ export const APP_REGISTRY: AppDefinition[] = [
   path: "/apps/ai-app-importer",
   tags: ["AI Import","App Builder","Developer Tools","Code Parser"],
 },
+
 ]

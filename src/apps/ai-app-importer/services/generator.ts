@@ -32,6 +32,22 @@ function toTitleCase(slug: string): string {
     .join(' ');
 }
 
+
+function ensurePageExport(content: string, pageExportName: string): string {
+  if (content.includes(pageExportName)) return content;
+
+  const defaultMatch = content.match(/export default function\s+([A-Za-z0-9_]+)/);
+
+  if (defaultMatch) {
+    return content.replace(
+      `export default function ${defaultMatch[1]}`,
+      `export function ${pageExportName}`
+    ) + `\n\nexport default ${pageExportName};\n`;
+  }
+
+  return content;
+}
+
 /** Finds the next free App # by scanning the live registry, so nothing is hardcoded. */
 function nextAvailableAppNumber(): string {
   const numbers = APP_REGISTRY.map((app) => parseInt(app.number, 10)).filter((n) => !Number.isNaN(n));
@@ -123,8 +139,8 @@ export const ${pageExportName} = ${componentName};
     notes.push(`Created missing ${appDir}/index.tsx with a default component and "${pageExportName}" export.`);
   } else {
     const indexFile = updatedFiles.find((f) => f.path === `${appDir}/index.tsx` || f.path === `${appDir}/index.ts`);
-    if (indexFile && !indexFile.content.includes(pageExportName) && !indexFile.content.includes('export default')) {
-      notes.push(`Warning: ${indexFile.path} does not export "${pageExportName}" or a default export — the app loader may fail to resolve a component.`);
+    if (indexFile) {
+      indexFile.content = ensurePageExport(indexFile.content, pageExportName);
     }
   }
 
@@ -166,7 +182,13 @@ export const chatModule: AppChatModule = {
     const loaderEntry = `  {\n    path: "${manifest.path}",\n    name: ${JSON.stringify(manifest.name)},\n    component: lazy(() =>\n      import("@apps/${appSlug}").then((module) => ({\n        default: module.${pageExportName} || module.default,\n      }))\n    ),\n  },\n`;
     const lastBracket = appLoadersSource.lastIndexOf(']');
     if (lastBracket !== -1) {
-      const updatedLoaders = appLoadersSource.slice(0, lastBracket) + loaderEntry + appLoadersSource.slice(lastBracket);
+      let before = appLoadersSource.slice(0, lastBracket).trimEnd();
+
+      if (!before.endsWith(',')) {
+        before += ',';
+      }
+
+      const updatedLoaders = before + '\n' + loaderEntry + appLoadersSource.slice(lastBracket);
       updatedFiles.push({ path: 'src/core/apps/appLoaders.ts', content: updatedLoaders });
       loadersUpdated = true;
       notes.push(`Auto-registered a lazy route for "${appSlug}" in src/core/apps/appLoaders.ts.`);
