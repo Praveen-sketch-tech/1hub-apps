@@ -1,0 +1,9 @@
+{
+  "id": "universal-file-converter",
+  "number": "037",
+  "name": "Universal File Converter",
+  "description": "Convert images (JPG, PNG, WEBP), create formatted text files, and generate client-side PDF documents entirely inside your browser.",
+  "path": "/apps/universal-file-converter",
+  "icon": "FileSpreadsheet",
+  "category": "Utilities"
+}

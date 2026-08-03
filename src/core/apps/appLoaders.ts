@@ -330,5 +330,14 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
         default: module.default || module.SimpleNotesPage,
       }))
     ),
+  },
+  {
+    path: "/apps/universal-file-converter",
+    name: "Universal File Converter",
+    component: lazy(() =>
+      import("@apps/universal-file-converter").then((module) => ({
+        default: module.default || module.UniversalFileConverterPage,
+      }))
+    ),
   }
 ]

@@ -316,3 +316,8 @@ registerAppChatModule('simple-notes', async () => {
   const module = await import('@apps/simple-notes/chatActions')
   return module.chatModule
 })
+
+registerAppChatModule('universal-file-converter', async () => {
+  const module = await import('@apps/universal-file-converter/chatActions')
+  return module.chatModule
+})

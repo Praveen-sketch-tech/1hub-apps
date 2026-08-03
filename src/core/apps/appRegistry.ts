@@ -296,5 +296,13 @@ export const APP_REGISTRY: AppDefinition[] = [
     description: "A simple notes app for testing App Importer",
     path: "/apps/simple-notes",
     tags: []
+  },
+  {
+    id: "universal-file-converter",
+    number: "037",
+    name: "Universal File Converter",
+    description: "Convert images (JPG, PNG, WEBP), create formatted text files, and generate client-side PDF documents entirely inside your browser.",
+    path: "/apps/universal-file-converter",
+    tags: []
   }
 ]
