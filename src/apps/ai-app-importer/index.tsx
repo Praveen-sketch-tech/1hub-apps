@@ -1,3 +1,4 @@
+export { chatModule } from "./chatActions";
 import React, { useState } from 'react';
 import { TextEditor } from './components/TextEditor';
 import { Parser, ParsedFile } from './components/Parser';
