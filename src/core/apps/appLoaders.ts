@@ -348,5 +348,14 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
         default: module.default || module.LiveResumePortfolioStudioPage,
       }))
     ),
+  },
+  {
+    path: "/apps/smart-legal-deed-studio",
+    name: "Smart Business Contract & Legal Deed Studio",
+    component: lazy(() =>
+      import("@apps/smart-legal-deed-studio").then((module) => ({
+        default: module.default || module.SmartBusinessContractLegalDeedStudioPage,
+      }))
+    ),
   }
 ]

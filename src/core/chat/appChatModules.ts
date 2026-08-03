@@ -326,3 +326,8 @@ registerAppChatModule('live-resume-builder', async () => {
   const module = await import('@apps/live-resume-builder/chatActions')
   return module.chatModule
 })
+
+registerAppChatModule('smart-legal-deed-studio', async () => {
+  const module = await import('@apps/smart-legal-deed-studio/chatActions')
+  return module.chatModule
+})

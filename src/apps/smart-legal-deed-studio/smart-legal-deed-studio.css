@@ -1,0 +1,21 @@
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-deed, #printable-deed * {
+    visibility: visible;
+  }
+  #printable-deed {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 25px;
+    box-shadow: none;
+    border: none;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

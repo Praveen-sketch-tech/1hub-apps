@@ -312,5 +312,13 @@ export const APP_REGISTRY: AppDefinition[] = [
     description: "Create, customize, and export professional ATS-friendly resumes and portfolio cards in real time.",
     path: "/apps/live-resume-builder",
     tags: []
+  },
+  {
+    id: "smart-legal-deed-studio",
+    number: "39",
+    name: "Smart Business Contract & Legal Deed Studio",
+    description: "Generate, customize, edit and print legal contracts, deeds, affidavits and notices in Hindi and English with Party Profile book support.",
+    path: "/apps/smart-legal-deed-studio",
+    tags: []
   }
 ]
