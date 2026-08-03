@@ -1,8 +1,9 @@
 import React from 'react';
 import LiveResumeBuilderPage from './LiveResumeBuilderPage';
 
-export const LiveResumeBuilderApp: React.FC = () => {
+export const LiveResumeBuilderPageExport: React.FC = () => {
   return <LiveResumeBuilderPage />;
 };
 
-export default LiveResumeBuilderApp;
+export { LiveResumeBuilderPage as LiveResumePortfolioStudioPage };
+export default LiveResumeBuilderPage;
