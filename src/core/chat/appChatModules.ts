@@ -321,3 +321,8 @@ registerAppChatModule('universal-file-converter', async () => {
   const module = await import('@apps/universal-file-converter/chatActions')
   return module.chatModule
 })
+
+registerAppChatModule('live-resume-builder', async () => {
+  const module = await import('@apps/live-resume-builder/chatActions')
+  return module.chatModule
+})

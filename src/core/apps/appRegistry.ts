@@ -304,5 +304,13 @@ export const APP_REGISTRY: AppDefinition[] = [
     description: "Convert images (JPG, PNG, WEBP), create formatted text files, and generate client-side PDF documents entirely inside your browser.",
     path: "/apps/universal-file-converter",
     tags: []
+  },
+  {
+    id: "live-resume-builder",
+    number: "35",
+    name: "Live Resume & Portfolio Studio",
+    description: "Create, customize, and export professional ATS-friendly resumes and portfolio cards in real time.",
+    path: "/apps/live-resume-builder",
+    tags: []
   }
 ]

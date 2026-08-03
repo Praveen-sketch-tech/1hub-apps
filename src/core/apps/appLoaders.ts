@@ -339,5 +339,14 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
         default: module.default || module.UniversalFileConverterPage,
       }))
     ),
+  },
+  {
+    path: "/apps/live-resume-builder",
+    name: "Live Resume & Portfolio Studio",
+    component: lazy(() =>
+      import("@apps/live-resume-builder").then((module) => ({
+        default: module.default || module.LiveResumePortfolioStudioPage,
+      }))
+    ),
   }
 ]
