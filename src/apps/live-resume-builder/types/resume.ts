@@ -25,6 +25,15 @@ export interface Project {
   description: string;
 }
 
+export interface PersonalDetails {
+  dob: string;
+  fatherName: string;
+  languages: string;
+  typingSpeed: string;
+  declarationPlace: string;
+  showDeclaration: boolean;
+}
+
 export interface ResumeData {
   personal: {
     fullName: string;
@@ -37,6 +46,7 @@ export interface ResumeData {
     github: string;
     summary: string;
   };
+  details: PersonalDetails;
   experiences: Experience[];
   education: Education[];
   skills: string[];
