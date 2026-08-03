@@ -303,3 +303,11 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule(
+  'ai-app-importer',
+  async () => {
+    const module = await import('@apps/ai-app-importer/chatActions')
+    return module.chatModule
+  },
+)
