@@ -151,11 +151,20 @@ export const ${pageExportName} = ${componentName};
   if (!hasChatActions) {
     const chatScaffold = `import type { AppChatModule } from '@core/chat/types';
 
-// Keep processing in reusable lib functions and call the same functions from the UI + chat.
 export const chatModule: AppChatModule = {
   appId: '${appSlug}',
   actions: [
-    // Add chat-accessible app actions here.
+    {
+      appId: '${appSlug}',
+      id: 'open-app',
+      label: 'Open App',
+      description: 'Open and get help with this app.',
+      keywords: ['open app', 'help', 'use app'],
+      canHandle: (context) => /open app|help|use app/i.test(context.input),
+      execute: async () => ({
+        text: '${manifest.name} chat action is connected successfully.'
+      })
+    }
   ],
 };
 `;

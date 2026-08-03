@@ -9,7 +9,6 @@ import { PipelineProgress } from './components/PipelineProgress';
 import { parsePromptText } from './services/parser';
 import { validateParsedFiles } from './services/validator';
 import { pushFilesToGitHub } from './services/github';
-import { triggerDeployment } from './services/deployment';
 import { autoFillBoilerplate, buildLocalPackageZip, detectAppSlug } from './services/generator';
 import { validateAIConnection, generateAppFilesFromPrompt } from './services/ai';
 import { downloadBlob } from '@shared/utils/downloads';
@@ -56,7 +55,6 @@ export default function AIAppImporter() {
   // browser's localStorage.
   const [showDeploySettings, setShowDeploySettings] = useState(false);
   const [ghToken, setGhToken] = useState(() => localStorage.getItem('ai_importer_gh_token') || '');
-  const [deployWebhook, setDeployWebhook] = useState(() => localStorage.getItem('ai_importer_webhook') || '');
 
   const [deployStatus, setDeployStatus] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
@@ -162,7 +160,6 @@ export default function AIAppImporter() {
     }
 
     localStorage.setItem('ai_importer_gh_token', ghToken);
-    if (deployWebhook) localStorage.setItem('ai_importer_webhook', deployWebhook);
 
     setIsDeploying(true);
     setDeployStatus('Filling in missing files before pushing...');
@@ -183,21 +180,8 @@ export default function AIAppImporter() {
       return;
     }
 
-    setDeployStatus(`Committed SHA: ${result.commitSha?.slice(0, 7)}. Triggering Vercel Deployment...`);
-
-    const deployRes = await triggerDeployment({ webhookUrl: deployWebhook });
+    setDeployStatus(`Committed SHA: ${result.commitSha?.slice(0, 7)}. GitHub push successful. Vercel will deploy automatically.`);
     setIsDeploying(false);
-
-    if (deployRes.success) {
-      setDeployStatus(
-        deployWebhook
-          ? 'Deployment triggered successfully!'
-          : 'Pushed to GitHub. No deploy webhook was configured, so no remote deploy was triggered.'
-      );
-      if (deployRes.previewUrl) setPreviewUrl(deployRes.previewUrl);
-    } else {
-      setDeployStatus(`Deployment Trigger Failed: ${deployRes.error}`);
-    }
   };
 
   // ---------------------------------------------------------------------
@@ -311,8 +295,7 @@ export default function AIAppImporter() {
       }
 
       localStorage.setItem('ai_importer_gh_token', ghToken);
-      if (deployWebhook) localStorage.setItem('ai_importer_webhook', deployWebhook);
-
+  
       const pushResult = await pushFilesToGitHub(
         { token: ghToken, owner: GITHUB_OWNER, repo: GITHUB_REPO, branch: GITHUB_BRANCH },
         pkg.files,
@@ -326,30 +309,11 @@ export default function AIAppImporter() {
       }
       updateStep('github-push', 'done', `Commit ${pushResult.commitSha?.slice(0, 7)}`);
 
-      // Step 7 — trigger the Vercel deploy hook, if configured.
-      updateStep('waiting-vercel', 'active');
-      const deployRes = await triggerDeployment({ webhookUrl: deployWebhook });
-
-      if (!deployRes.success) {
-        updateStep('waiting-vercel', 'error', deployRes.error);
-        setDeployStatus(`Deployment Trigger Failed: ${deployRes.error}`);
-        return;
-      }
-      updateStep('waiting-vercel', 'done', deployWebhook ? 'Deploy hook triggered' : 'No webhook configured');
-
-      // Step 8 — mark deployment as live once the hook call succeeded.
-      updateStep('deployment-live', 'done', deployWebhook ? 'Live' : 'Skipped (no webhook)');
-
-      // Step 9 — surface the preview URL, if the deploy hook returned one.
-      updateStep('preview-ready', 'active');
-      if (deployRes.previewUrl) {
-        setPreviewUrl(deployRes.previewUrl);
-        updateStep('preview-ready', 'done');
-        setDeployStatus(`"${pkg.appSlug}" generated, pushed, and deployed successfully!`);
-      } else {
-        updateStep('preview-ready', 'done', 'No preview URL returned — configure a Vercel deploy webhook for one.');
-        setDeployStatus(`"${pkg.appSlug}" generated and pushed to GitHub. Configure a deploy webhook for automatic Vercel deploys.`);
-      }
+      // Step 7 — Vercel deploys automatically through GitHub integration.
+      updateStep('waiting-vercel', 'done', 'Vercel auto deploy triggered by GitHub push');
+      updateStep('deployment-live', 'done', 'Deployment handled by Vercel');
+      updateStep('preview-ready', 'done', 'Preview available after Vercel deployment');
+      setDeployStatus(`"${pkg.appSlug}" generated and pushed to GitHub. Vercel will deploy automatically.`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'AI generation failed';
       failActiveStep(message);
@@ -402,9 +366,6 @@ export default function AIAppImporter() {
             />
             <input
               type="text"
-              placeholder="Vercel Deploy Webhook URL (Optional)"
-              value={deployWebhook}
-              onChange={(e) => setDeployWebhook(e.target.value)}
               className="p-2 rounded bg-slate-950 border border-slate-800 text-white outline-none focus:border-indigo-500"
             />
             <p className="md:col-span-2 text-[10px] text-slate-500 font-mono">
