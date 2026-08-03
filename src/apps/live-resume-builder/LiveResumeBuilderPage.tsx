@@ -44,6 +44,34 @@ export const LiveResumeBuilderPage: React.FC = () => {
     }
   };
 
+  const handleReset = () => {
+    setResumeData({
+      personal: {
+        fullName: '',
+        jobTitle: '',
+        email: '',
+        phone: '',
+        location: '',
+        website: '',
+        linkedin: '',
+        github: '',
+        summary: ''
+      },
+      details: {
+        dob: '',
+        fatherName: '',
+        languages: '',
+        typingSpeed: '',
+        declarationPlace: '',
+        showDeclaration: false
+      },
+      experiences: [],
+      education: [],
+      skills: [],
+      projects: []
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -56,7 +84,7 @@ export const LiveResumeBuilderPage: React.FC = () => {
           config={styleConfig}
           onChange={setStyleConfig}
           onLoadSample={() => setResumeData(sampleResumeData)}
-          onReset={() => setResumeData({ personal: { fullName: '', jobTitle: '', email: '', phone: '', location: '', website: '', linkedin: '', github: '', summary: '' }, experiences: [], education: [], skills: [], projects: [] })}
+          onReset={handleReset}
           onExportJSON={handleExportJSON}
           onImportJSON={handleImportJSON}
           onPrint={handlePrint}
