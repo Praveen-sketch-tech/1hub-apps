@@ -55,3 +55,25 @@ export interface DeployHookConfig {
   vercelProjectId?: string;
   vercelToken?: string;
 }
+
+/** MODE 3 — AI Generation: which LLM provider the pasted-in API key belongs to. */
+export type AIProvider = 'openai' | 'anthropic' | 'google';
+
+export interface AICredentials {
+  provider: AIProvider;
+  apiKey: string;
+}
+
+export interface AIConnectionResult {
+  success: boolean;
+  error?: string;
+}
+
+export type PipelineStepStatus = 'pending' | 'active' | 'done' | 'error';
+
+export interface PipelineStep {
+  id: string;
+  label: string;
+  status: PipelineStepStatus;
+  detail?: string;
+}

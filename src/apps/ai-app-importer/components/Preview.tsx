@@ -74,15 +74,25 @@ export const Preview: React.FC<PreviewProps> = ({
       )}
 
       {previewUrl && (
-        <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/50 flex items-center justify-between">
-          <span className="text-xs font-semibold text-emerald-400">Deployed Successfully!</span>
+        <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-800/50 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-col">
+            <span className="text-xs font-semibold text-emerald-400">Deployed Successfully!</span>
+            <a
+              href={previewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-indigo-400 underline font-mono hover:text-indigo-300"
+            >
+              {previewUrl}
+            </a>
+          </div>
           <a
             href={previewUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-indigo-400 underline font-mono hover:text-indigo-300"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition active:scale-95"
           >
-            {previewUrl}
+            Open Preview
           </a>
         </div>
       )}
