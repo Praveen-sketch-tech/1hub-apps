@@ -322,4 +322,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: "/apps/simple-notes",
+    name: "Simple Notes",
+    component: lazy(() =>
+      import("@apps/simple-notes").then((module) => ({
+        default: module.default || module.SimpleNotesPage,
+      }))
+    ),
+  }
 ]

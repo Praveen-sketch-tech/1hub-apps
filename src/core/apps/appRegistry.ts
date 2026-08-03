@@ -289,4 +289,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: "/apps/test-calculator-app",
     tags: [],
   },
+  {
+    id: "simple-notes",
+    number: "036",
+    name: "Simple Notes",
+    description: "A simple notes app for testing App Importer",
+    path: "/apps/simple-notes",
+    tags: []
+  }
 ]

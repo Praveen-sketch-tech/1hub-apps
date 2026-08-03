@@ -311,3 +311,8 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule('simple-notes', async () => {
+  const module = await import('@apps/simple-notes/chatActions')
+  return module.chatModule
+})
