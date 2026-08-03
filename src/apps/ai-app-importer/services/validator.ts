@@ -1,6 +1,76 @@
 import { ParsedFileItem, ParsedFile, ValidationResult, AppManifest } from '../types';
 import type { AppDefinition } from '@core/apps/appRegistry';
 
+/**
+ * Scans source text for a "${" interpolation marker that is NOT actually
+ * inside a backtick template literal — i.e. the exact corruption pattern
+ * where an AI response has its backticks stripped and
+ *   `Hello ${name}`
+ * becomes
+ *   Hello ${name}
+ * which is invalid JS/TS (or silently wrong, e.g. inside a plain string).
+ * Returns the 1-based line number of the first offending occurrence, or
+ * null if none is found. This is a lightweight single-pass scanner, not a
+ * full parser, but it reliably catches this specific, recurring failure
+ * mode without needing a real TypeScript compiler in the browser.
+ */
+function findBrokenInterpolationLine(content: string): number | null {
+  let inTemplate = false;
+  let inSingle = false;
+  let inDouble = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+  let line = 1;
+
+  for (let i = 0; i < content.length; i++) {
+    const ch = content[i];
+    const prev = content[i - 1];
+
+    if (ch === '\n') {
+      line++;
+      inLineComment = false;
+      continue;
+    }
+
+    if (inLineComment) continue;
+
+    if (inBlockComment) {
+      if (ch === '/' && prev === '*') inBlockComment = false;
+      continue;
+    }
+
+    if (!inTemplate && !inSingle && !inDouble) {
+      if (ch === '/' && content[i + 1] === '/') {
+        inLineComment = true;
+        continue;
+      }
+      if (ch === '/' && content[i + 1] === '*') {
+        inBlockComment = true;
+        continue;
+      }
+    }
+
+    if (!inTemplate && !inDouble && ch === "'" && prev !== '\\') {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (!inTemplate && !inSingle && ch === '"' && prev !== '\\') {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (!inSingle && !inDouble && ch === '`' && prev !== '\\') {
+      inTemplate = !inTemplate;
+      continue;
+    }
+
+    if (!inTemplate && !inSingle && !inDouble && ch === '{' && prev === '$') {
+      return line;
+    }
+  }
+
+  return null;
+}
+
 export function validateParsedFiles(
   files: (ParsedFileItem | ParsedFile)[],
   existingRegistry: AppDefinition[] = []
@@ -49,6 +119,25 @@ export function validateParsedFiles(
         fileErrors[f.path] = err;
         errors.push(`${f.path}: ${err}`);
       }
+
+      // Catch the recurring "AI stripped the backticks" bug: ${...} used
+      // outside of an actual template literal (e.g. className={px-6 ${x}}
+      // instead of className={`px-6 ${x}`}).
+      const brokenLine = findBrokenInterpolationLine(f.content);
+      if (brokenLine !== null) {
+        const err = `Broken template literal near line ${brokenLine}: "\${...}" is used without surrounding backticks (\`). This usually means the AI output had its backticks stripped — wrap the string in backticks.`;
+        fileErrors[f.path] = err;
+        errors.push(`${f.path}: ${err}`);
+      }
+
+      // Catch invalid union type ordering, e.g. useState<File null |>(null)
+      // instead of useState<File | null>(null).
+      const badUnionMatch = f.content.match(/<\s*\w+\s+(?:null|undefined)\s*\|\s*>/);
+      if (badUnionMatch) {
+        const err = `Invalid TypeScript union type syntax "${badUnionMatch[0]}" — should be written as "<Type | null>".`;
+        fileErrors[f.path] = err;
+        errors.push(`${f.path}: ${err}`);
+      }
     }
   });
 
@@ -83,6 +172,39 @@ export function validateParsedFiles(
   } else if (!indexFile.content.includes('export default') && !indexFile.content.includes('export const')) {
     fileErrors[indexFile.path] = 'Main index.tsx must export a React component.';
     errors.push('index.tsx: Missing React component export');
+  }
+
+  // chatActions.ts must use the app's real chat contract from
+  // @core/chat/types instead of inventing its own shape — this was the
+  // exact cause of a prior tsc build failure (missing "appId", wrong
+  // context/return shape).
+  const chatActionsFile = files.find((f) => f.path.endsWith('chatActions.ts'));
+  if (chatActionsFile) {
+    const content = chatActionsFile.content;
+    const importsCoreTypes = /from\s+['"]@core\/chat\/types['"]/.test(content);
+    const definesLocalTypes = /interface\s+(ChatAction|AppChatModule|ChatActionContext|ChatExecutionResult)\b/.test(content);
+
+    if (!importsCoreTypes) {
+      const err = "chatActions.ts must import AppChatModule, ChatActionContext, and ChatExecutionResult from '@core/chat/types' instead of defining its own types.";
+      fileErrors[chatActionsFile.path] = err;
+      errors.push(`${chatActionsFile.path}: ${err}`);
+    } else if (definesLocalTypes) {
+      const err = "chatActions.ts defines its own ChatAction/AppChatModule/ChatActionContext/ChatExecutionResult interface(s), which conflicts with '@core/chat/types'. Remove the local interfaces and use the imported ones.";
+      fileErrors[chatActionsFile.path] = err;
+      errors.push(`${chatActionsFile.path}: ${err}`);
+    }
+
+    if (/context\.query\b|context\.payload\b/.test(content)) {
+      const err = 'chatActions.ts uses "context.query"/"context.payload" — the real contract uses "context.input" (and optional "context.file").';
+      fileErrors[chatActionsFile.path] = err;
+      errors.push(`${chatActionsFile.path}: ${err}`);
+    }
+
+    if (!/appId\s*:/.test(content)) {
+      const err = 'chatActions.ts: each chat action (and the module itself) must include an "appId" field matching the app slug.';
+      fileErrors[chatActionsFile.path] = err;
+      errors.push(`${chatActionsFile.path}: ${err}`);
+    }
   }
 
   return {

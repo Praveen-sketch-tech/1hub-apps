@@ -45,14 +45,16 @@ export default function AIAppImporter() {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [detectedSlug, setDetectedSlug] = useState('');
 
-  // GitHub push / Vercel deploy are entirely optional — nothing in this app
-  // requires these credentials to parse, validate, or generate a local app
-  // package. The panel is hidden by default and only matters for the
-  // "Push & Deploy" button (MODE 2) and for the automated AI pipeline (MODE 3).
-  // Owner/Repo/Branch are fixed for this deployment target (see constants
-  // above) and are intentionally not editable fields anymore — only the
-  // GitHub Token is entered by the user, and it is only ever stored in this
-  // browser's localStorage.
+  // GitHub push is entirely optional — nothing in this app requires this
+  // credential to parse, validate, or generate a local app package. The
+  // panel is hidden by default and only matters for the "Push & Deploy"
+  // button (MODE 2) and for the automated AI pipeline (MODE 3). Owner/Repo/
+  // Branch are fixed for this deployment target (see constants above) and
+  // are intentionally not editable fields anymore — only the GitHub Token
+  // is entered by the user, and it is only ever stored in this browser's
+  // localStorage. Vercel deployment itself happens automatically via
+  // Vercel's own GitHub integration once the push lands on the branch —
+  // no separate deploy webhook is used or needed.
   const [showDeploySettings, setShowDeploySettings] = useState(false);
   const [ghToken, setGhToken] = useState(() => localStorage.getItem('ai_importer_gh_token') || '');
 
@@ -115,6 +117,14 @@ export default function AIAppImporter() {
   const handleGenerateLocal = async () => {
     if (parsedFiles.length === 0) return;
 
+    const revalidated = validateParsedFiles(parsedFiles, APP_REGISTRY);
+    setIsValid(revalidated.isValid);
+    setValidationErrors(revalidated.errors);
+    if (!revalidated.isValid) {
+      setDeployStatus(`Generate Local blocked — validation failed: ${revalidated.errors.join(' | ')}`);
+      return;
+    }
+
     setIsGenerating(true);
     setDeployStatus('Auto-detecting app slug and manifest, and filling in any missing files...');
 
@@ -159,6 +169,14 @@ export default function AIAppImporter() {
       return;
     }
 
+    const revalidated = validateParsedFiles(parsedFiles, APP_REGISTRY);
+    setIsValid(revalidated.isValid);
+    setValidationErrors(revalidated.errors);
+    if (!revalidated.isValid) {
+      setDeployStatus(`GitHub Push blocked — validation failed: ${revalidated.errors.join(' | ')}`);
+      return;
+    }
+
     localStorage.setItem('ai_importer_gh_token', ghToken);
 
     setIsDeploying(true);
@@ -174,14 +192,16 @@ export default function AIAppImporter() {
       pkg.manifest
     );
 
+    setIsDeploying(false);
+
     if (!result.success) {
       setDeployStatus(`GitHub Push Error: ${result.error}`);
-      setIsDeploying(false);
       return;
     }
 
-    setDeployStatus(`Committed SHA: ${result.commitSha?.slice(0, 7)}. GitHub push successful. Vercel will deploy automatically.`);
-    setIsDeploying(false);
+    setDeployStatus(
+      `Committed SHA: ${result.commitSha?.slice(0, 7)}. Pushed to GitHub — Vercel will auto-deploy via its GitHub integration.`
+    );
   };
 
   // ---------------------------------------------------------------------
@@ -248,6 +268,15 @@ export default function AIAppImporter() {
       setParsedFiles(list);
       setIsValid(validated.isValid);
       setValidationErrors(validated.errors);
+
+      if (!validated.isValid) {
+        updateStep('generate-files', 'error', 'Validation failed — see issues below');
+        setDeployStatus(
+          `AI output failed validation and was NOT pushed: ${validated.errors.join(' | ')}`
+        );
+        return;
+      }
+
       updateStep('generate-files', 'done', `${list.length} file(s) parsed`);
 
       // Steps 2–5 — autoFillBoilerplate performs the package generation,
@@ -295,7 +324,7 @@ export default function AIAppImporter() {
       }
 
       localStorage.setItem('ai_importer_gh_token', ghToken);
-  
+
       const pushResult = await pushFilesToGitHub(
         { token: ghToken, owner: GITHUB_OWNER, repo: GITHUB_REPO, branch: GITHUB_BRANCH },
         pkg.files,
@@ -309,11 +338,16 @@ export default function AIAppImporter() {
       }
       updateStep('github-push', 'done', `Commit ${pushResult.commitSha?.slice(0, 7)}`);
 
-      // Step 7 — Vercel deploys automatically through GitHub integration.
-      updateStep('waiting-vercel', 'done', 'Vercel auto deploy triggered by GitHub push');
-      updateStep('deployment-live', 'done', 'Deployment handled by Vercel');
-      updateStep('preview-ready', 'done', 'Preview available after Vercel deployment');
-      setDeployStatus(`"${pkg.appSlug}" generated and pushed to GitHub. Vercel will deploy automatically.`);
+      // Steps 7–9 — Vercel is connected directly to the GitHub repo, so a
+      // successful push already kicks off its own deployment. No deploy
+      // webhook is called here.
+      updateStep('waiting-vercel', 'active');
+      updateStep('waiting-vercel', 'done', 'Vercel auto-deploys via GitHub integration');
+
+      updateStep('deployment-live', 'done', 'Triggered by GitHub push');
+
+      updateStep('preview-ready', 'done', 'Check your Vercel dashboard for the live deployment URL');
+      setDeployStatus(`"${pkg.appSlug}" generated and pushed to GitHub — Vercel will auto-deploy via its GitHub integration.`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'AI generation failed';
       failActiveStep(message);
@@ -356,7 +390,7 @@ export default function AIAppImporter() {
         </button>
 
         {showDeploySettings && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 pt-0 text-xs">
+          <div className="grid grid-cols-1 gap-3 p-3 pt-0 text-xs">
             <input
               type="password"
               placeholder="GitHub Token"
@@ -364,12 +398,9 @@ export default function AIAppImporter() {
               onChange={(e) => setGhToken(e.target.value)}
               className="p-2 rounded bg-slate-950 border border-slate-800 text-white outline-none focus:border-indigo-500"
             />
-            <input
-              type="text"
-              className="p-2 rounded bg-slate-950 border border-slate-800 text-white outline-none focus:border-indigo-500"
-            />
-            <p className="md:col-span-2 text-[10px] text-slate-500 font-mono">
+            <p className="text-[10px] text-slate-500 font-mono">
               Pushes to {GITHUB_OWNER}/{GITHUB_REPO} on branch "{GITHUB_BRANCH}". Token is stored only in this browser's local storage.
+              Vercel auto-deploys from its own GitHub integration once the push lands — no separate deploy webhook is used.
             </p>
           </div>
         )}
