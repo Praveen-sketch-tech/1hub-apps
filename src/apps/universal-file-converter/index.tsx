@@ -11,22 +11,22 @@ ConvertedFileResult,
 export function UniversalFileConverterPage() {
 const [activeTab, setActiveTab] = useState<'image' | 'text' | 'json'>('image');
 // Image State
-const [imageFile, setImageFile] = useState<File null |>(null);
+const [imageFile, setImageFile] = useState<File | null>(null);
 const [imagePreview, setImagePreview] = useState<string | null>(null);
 const [targetImageFormat, setTargetImageFormat] = useState<ImageFormat>('image/jpeg');
 const [imageQuality, setImageQuality] = useState<number>(0.9);
-const [convertedImage, setConvertedImage] = useState<ConvertedFileResult null |>(null);
+const [convertedImage, setConvertedImage] = useState<ConvertedFileResult | null>(null);
 const [isProcessingImage, setIsProcessingImage] = useState<boolean>(false);
 // Text State
 const [textContent, setTextContent] = useState<string>('');
 const [docTitle, setDocTitle] = useState<string>('My_Document');
 const [targetTextFormat, setTargetTextFormat] = useState<TextFormat>('pdf');
-const [generatedTextFile, setGeneratedTextFile] = useState<ConvertedFileResult null |>(null);
+const [generatedTextFile, setGeneratedTextFile] = useState<ConvertedFileResult | null>(null);
 // JSON to CSV State
 const [jsonInput, setJsonInput] = useState<string>(
 '[\n  { "id": 1, "name": "Aarav", "role": "Developer" },\n  { "id": 2, "name": "Priya", "role": "Designer" }\n]'
 );
-const [csvOutput, setCsvOutput] = useState<ConvertedFileResult null |>(null);
+const [csvOutput, setCsvOutput] = useState<ConvertedFileResult | null>(null);
 const [jsonError, setJsonError] = useState<string | null>(null);
 const fileInputRef = useRef<HTMLInputElement>(null);
 // Drag & Drop
@@ -56,7 +56,7 @@ try {
 const result = await convertImageFile(imageFile, targetImageFormat, imageQuality);
 setConvertedImage(result);
 } catch (err) {
-alert(Error converting image: ${(err as Error).message});
+alert(`Error converting image: ${(err as Error).message}`);
 } finally {
 setIsProcessingImage(false);
 }
@@ -89,7 +89,7 @@ if (bytes === 0) return '0 Bytes';
 const k = 1024;
 const sizes = ['Bytes', 'KB', 'MB'];
 const i = Math.floor(Math.log(bytes) / Math.log(k));
-return ${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]};
+return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 };
 return (
 <div className="max-w-5xl mx-auto p-6 bg-slate-50 min-h-screen text-slate-800">
@@ -103,19 +103,19 @@ Fast, secure, and local browser-based file conversion. No files leave your devic
 <div className="flex justify-center border-b border-slate-200 mb-8">
 <button
 onClick={() => setActiveTab('image')}
-className={px-6 py-3 font-semibold text-sm transition-colors border-b-2 ${ activeTab === 'image' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800' }}
+className={`px-6 py-3 font-semibold text-sm transition-colors border-b-2 ${ activeTab === 'image' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800' }`}
 >
 Image Converter
 </button>
 <button
 onClick={() => setActiveTab('text')}
-className={px-6 py-3 font-semibold text-sm transition-colors border-b-2 ${ activeTab === 'text' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800' }}
+className={`px-6 py-3 font-semibold text-sm transition-colors border-b-2 ${ activeTab === 'text' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800' }`}
 >
 Text & PDF Generator
 </button>
 <button
 onClick={() => setActiveTab('json')}
-className={px-6 py-3 font-semibold text-sm transition-colors border-b-2 ${ activeTab === 'json' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800' }}
+className={`px-6 py-3 font-semibold text-sm transition-colors border-b-2 ${ activeTab === 'json' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800' }`}
 >
 JSON to CSV
 </button>
@@ -133,7 +133,7 @@ setIsDragging(true);
 onDragLeave={() => setIsDragging(false)}
 onDrop={handleDrop}
 onClick={() => fileInputRef.current?.click()}
-className={border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${ isDragging ? 'border-indigo-500 bg-indigo-50' : 'border-slate-300 hover:border-slate-400 bg-slate-50' }}
+className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${ isDragging ? 'border-indigo-500 bg-indigo-50' : 'border-slate-300 hover:border-slate-400 bg-slate-50' }`}
 >
 <input
 type="file"
@@ -184,7 +184,7 @@ className="max-h-40 object-contain rounded"
 <button
 key={fmt.value}
 onClick={() => setTargetImageFormat(fmt.value as ImageFormat)}
-className={py-2 text-sm rounded-md font-medium border transition-colors ${ targetImageFormat === fmt.value ? 'bg-indigo-50 border-indigo-600 text-indigo-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50' }}
+className={`py-2 text-sm rounded-md font-medium border transition-colors ${ targetImageFormat === fmt.value ? 'bg-indigo-50 border-indigo-600 text-indigo-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50' }`}
 >
 {fmt.label}
 </button>
@@ -213,7 +213,7 @@ className="w-full accent-indigo-600"
 <button
 onClick={handleProcessImage}
 disabled={!imageFile || isProcessingImage}
-className={w-full py-3 rounded-lg font-semibold text-white shadow transition-colors ${ !imageFile || isProcessingImage ? 'bg-slate-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700' }}
+className={`w-full py-3 rounded-lg font-semibold text-white shadow transition-colors ${ !imageFile || isProcessingImage ? 'bg-slate-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700' }`}
 >
 {isProcessingImage ? 'Converting...' : 'Convert Image'}
 </button>
@@ -280,7 +280,7 @@ placeholder="Type or paste your content here..."
 ].map((fmt) => (
 <label
 key={fmt.id}
-className={flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${ targetTextFormat === fmt.id ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-slate-200 text-slate-700 hover:bg-slate-50' }}
+className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${ targetTextFormat === fmt.id ? 'border-indigo-600 bg-indigo-50 text-indigo-900' : 'border-slate-200 text-slate-700 hover:bg-slate-50' }`}
 >
 <input
 type="radio"

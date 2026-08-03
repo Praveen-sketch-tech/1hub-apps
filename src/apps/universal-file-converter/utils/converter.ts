@@ -49,7 +49,7 @@ return;
 }
 const ext = targetFormat === 'image/jpeg' ? 'jpg' : targetFormat === 'image/png' ? 'png' : 'webp';
 const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || 'converted_image';
-const filename = ${baseName}.${ext};
+const filename = `${baseName}.${ext}`;
 const url = URL.createObjectURL(blob);
 resolve({
 blob,
@@ -95,7 +95,7 @@ mimeType = 'text/plain';
 break;
 }
 const cleanName = filename.replace(/.[^/.]+$/, '');
-const finalFilename = ${cleanName}.${extension};
+const finalFilename = `${cleanName}.${extension}`;
 const blob = new Blob([text], { type: mimeType });
 const url = URL.createObjectURL(blob);
 return {
@@ -109,23 +109,23 @@ export const createPdfFromText = (
 text: string,
 title: string = 'Document'
 ): ConvertedFileResult => {
-const sanitizedTitle = title.replace(/[()\]/g, '');
+const sanitizedTitle = title.replace(/[()]/g, '');
 const lines = text.split('\n');
-let pdfTextStream = BT\n/F1 12 Tf\n36 750 Td\n16 TL\n;
-pdfTextStream += (${sanitizedTitle}) Tj T*\nT*\n;
+let pdfTextStream = `BT\n/F1 12 Tf\n36 750 Td\n16 TL\n`;
+pdfTextStream += `(${sanitizedTitle}) Tj T*\nT*\n`;
 lines.forEach((line) => {
-const cleanLine = line.replace(/\/g, '\\').replace(/(/g, '\(').replace(/)/g, '\)');
-pdfTextStream += (${cleanLine}) ' \n;
+const cleanLine = line.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+pdfTextStream += `(${cleanLine}) Tj T*\n`;
 });
-pdfTextStream += ET;
-const pdfBody = %PDF-1.4 1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj 2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj 3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 612 792] /Contents 5 0 R >> endobj 4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj 5 0 obj << /Length ${pdfTextStream.length} >> stream ${pdfTextStream} endstream endobj xref 0 6 0000000000 65535 f  0000000009 00000 n  0000000058 00000 n  0000000115 00000 n  0000000242 00000 n  0000000310 00000 n  trailer << /Size 6 /Root 1 0 R >> startxref ${400 + pdfTextStream.length} %%EOF;
+pdfTextStream += `ET`;
+const pdfBody = `%PDF-1.4 1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj 2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj 3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 612 792] /Contents 5 0 R >> endobj 4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj 5 0 obj << /Length ${pdfTextStream.length} >> stream ${pdfTextStream} endstream endobj xref 0 6 0000000000 65535 f  0000000009 00000 n  0000000058 00000 n  0000000115 00000 n  0000000242 00000 n  0000000310 00000 n  trailer << /Size 6 /Root 1 0 R >> startxref ${400 + pdfTextStream.length} %%EOF`;
 const blob = new Blob([pdfBody], { type: 'application/pdf' });
 const url = URL.createObjectURL(blob);
 const cleanTitle = title.trim().toLowerCase().replace(/\s+/g, '_') || 'document';
 return {
 blob,
 url,
-filename: ${cleanTitle}.pdf,
+filename: `${cleanTitle}.pdf`,
 size: blob.size,
 };
 };
@@ -141,7 +141,7 @@ for (const row of array) {
 const values = headers.map((header) => {
 const val = row[header];
 const escaped = ('' + (val ?? '')).replace(/"/g, '\"');
-return "${escaped}";
+return `"${escaped}"`;
 });
 csvRows.push(values.join(','));
 }
