@@ -20,7 +20,15 @@ function findBrokenInterpolationLine(content: string): number | null {
   let inDouble = false;
   let inLineComment = false;
   let inBlockComment = false;
+  let inRegex = false;
+  let inRegexClass = false;
   let line = 1;
+  // Tracks the last non-whitespace character seen, used to guess whether a
+  // "/" starts a regex literal (as opposed to being a division operator).
+  let lastSignificant = '';
+  const regexPrecedingChars = new Set([
+    '(', ',', '=', ':', '!', '&', '|', '?', '{', ';', '[', '+', '-', '*', '%', '<', '>', '\0'
+  ]);
 
   for (let i = 0; i < content.length; i++) {
     const ch = content[i];
@@ -39,6 +47,31 @@ function findBrokenInterpolationLine(content: string): number | null {
       continue;
     }
 
+    // Inside a /regex/ literal, backticks/quotes are just literal
+    // characters (e.g. /`([^`]+)`/g matching Markdown inline-code) and
+    // must NOT toggle template/string state.
+    if (inRegex) {
+      if (ch === '\\') {
+        i++; // skip the escaped character
+        continue;
+      }
+      if (ch === '[') {
+        inRegexClass = true;
+        continue;
+      }
+      if (ch === ']') {
+        inRegexClass = false;
+        continue;
+      }
+      if (ch === '/' && !inRegexClass) {
+        inRegex = false;
+        let j = i + 1;
+        while (j < content.length && /[a-z]/i.test(content[j])) j++;
+        i = j - 1;
+      }
+      continue;
+    }
+
     if (!inTemplate && !inSingle && !inDouble) {
       if (ch === '/' && content[i + 1] === '/') {
         inLineComment = true;
@@ -48,24 +81,33 @@ function findBrokenInterpolationLine(content: string): number | null {
         inBlockComment = true;
         continue;
       }
+      if (ch === '/' && regexPrecedingChars.has(lastSignificant)) {
+        inRegex = true;
+        continue;
+      }
     }
 
     if (!inTemplate && !inDouble && ch === "'" && prev !== '\\') {
       inSingle = !inSingle;
+      lastSignificant = ch;
       continue;
     }
     if (!inTemplate && !inSingle && ch === '"' && prev !== '\\') {
       inDouble = !inDouble;
+      lastSignificant = ch;
       continue;
     }
     if (!inSingle && !inDouble && ch === '`' && prev !== '\\') {
       inTemplate = !inTemplate;
+      lastSignificant = ch;
       continue;
     }
 
     if (!inTemplate && !inSingle && !inDouble && ch === '{' && prev === '$') {
       return line;
     }
+
+    if (!/\s/.test(ch)) lastSignificant = ch;
   }
 
   return null;
