@@ -307,7 +307,7 @@ export const APP_REGISTRY: AppDefinition[] = [
   },
   {
     id: "live-resume-builder",
-    number: "35",
+    number: "038",
     name: "Live Resume & Portfolio Studio",
     description: "Create, customize, and export professional ATS-friendly resumes and portfolio cards in real time.",
     path: "/apps/live-resume-builder",
