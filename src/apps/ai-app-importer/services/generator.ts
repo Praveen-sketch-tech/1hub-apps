@@ -78,6 +78,36 @@ export function detectAppSlug(files: (ParsedFileItem | ParsedFile)[]): string {
  * credential — this operates entirely on the files already in memory plus
  * the registry bundled with this build.
  */
+/**
+ * The registry's "tags" pills are what show up as the quick-glance chips
+ * on the homepage (e.g. "OCR", "Document Scanner"). AI-imported apps never
+ * supply this field themselves (manifest.json only has id/number/name/
+ * description/path/icon/category), so without a derived default every
+ * auto-registered app silently got "tags: []" and showed no chips at all.
+ * This builds a small, reasonable tag set from the manifest instead.
+ */
+function deriveDefaultTags(manifest: AppManifest): string[] {
+  const tags: string[] = [];
+
+  if (manifest.category && manifest.category.trim()) {
+    tags.push(manifest.category.trim());
+  }
+
+  const slugWords = manifest.id
+    .split(/[-_]/)
+    .filter((w) => w.length > 2)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1));
+
+  for (const w of slugWords) {
+    if (tags.length >= 5) break;
+    if (!tags.some((t) => t.toLowerCase() === w.toLowerCase())) {
+      tags.push(w);
+    }
+  }
+
+  return tags;
+}
+
 export function autoFillBoilerplate(files: (ParsedFileItem | ParsedFile)[]): GeneratedPackage {
   const updatedFiles: ParsedFileItem[] = files.map((f) => ({ path: f.path, content: f.content }));
   const notes: string[] = [];
@@ -151,20 +181,11 @@ export const ${pageExportName} = ${componentName};
   if (!hasChatActions) {
     const chatScaffold = `import type { AppChatModule } from '@core/chat/types';
 
+// Keep processing in reusable lib functions and call the same functions from the UI + chat.
 export const chatModule: AppChatModule = {
   appId: '${appSlug}',
   actions: [
-    {
-      appId: '${appSlug}',
-      id: 'open-app',
-      label: 'Open App',
-      description: 'Open and get help with this app.',
-      keywords: ['open app', 'help', 'use app'],
-      canHandle: (context) => /open app|help|use app/i.test(context.input),
-      execute: async () => ({
-        text: '${manifest.name} chat action is connected successfully.'
-      })
-    }
+    // Add chat-accessible app actions here.
   ],
 };
 `;
@@ -177,7 +198,8 @@ export const chatModule: AppChatModule = {
 
   const alreadyInRegistry = appRegistrySource.includes(`id: "${appSlug}"`) || appRegistrySource.includes(`id: '${appSlug}'`);
   if (!alreadyInRegistry) {
-    const entry = `  {\n    id: "${manifest.id}",\n    number: "${manifest.number}",\n    name: ${JSON.stringify(manifest.name)},\n    description: ${JSON.stringify(manifest.description)},\n    path: "${manifest.path}",\n    tags: [],\n  },\n`;
+    const defaultTags = deriveDefaultTags(manifest);
+    const entry = `  {\n    id: "${manifest.id}",\n    number: "${manifest.number}",\n    name: ${JSON.stringify(manifest.name)},\n    description: ${JSON.stringify(manifest.description)},\n    path: "${manifest.path}",\n    tags: ${JSON.stringify(defaultTags)},\n  },\n`;
     const lastBracket = appRegistrySource.lastIndexOf(']');
     if (lastBracket !== -1) {
       const updatedRegistry = appRegistrySource.slice(0, lastBracket) + entry + appRegistrySource.slice(lastBracket);
