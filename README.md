@@ -129,3 +129,4 @@ npm run preview   # preview the production build locally
 Any static host works (Vercel, Netlify, Cloudflare Pages, etc.) — `npm run build` outputs
 a static `dist/` folder. Set the same environment variables from `.env.example` in your
 host's dashboard.
+
