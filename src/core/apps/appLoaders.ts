@@ -366,5 +366,16 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
         default: module.default || module.MarkdownLivePreviewerPage,
       }))
     ),
+  },
+
+  {
+    path: "/apps/repo-duplicate-analyzer",
+    name: "Repo Duplicate & Capability Analyzer",
+    component: lazy(() =>
+      import("@apps/repo-duplicate-analyzer").then((module) => ({
+        default: module.default || module.RepoDuplicateAnalyzerPage,
+      }))
+    ),
   }
+
 ]

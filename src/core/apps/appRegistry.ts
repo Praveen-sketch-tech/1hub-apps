@@ -328,5 +328,15 @@ export const APP_REGISTRY: AppDefinition[] = [
     description: "Live side-by-side Markdown editor with a custom regex-based parser and styled HTML export.",
     path: "/apps/markdown-live-previewer",
     tags: []
+  },
+
+  {
+    id: "repo-duplicate-analyzer",
+    number: "041",
+    name: "Repo Duplicate & Capability Analyzer",
+    description: "Upload any JS/TS repo as a zip and get a full duplicate-code, capability-overlap, and registry-health report — all analysis runs locally in your browser.",
+    path: "/apps/repo-duplicate-analyzer",
+    tags: ["Repository Analysis","Duplicate Detection","Capability Overlap","Registry Health","Developer Tools"]
   }
+
 ]

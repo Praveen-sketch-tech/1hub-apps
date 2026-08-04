@@ -336,3 +336,9 @@ registerAppChatModule('markdown-live-previewer', async () => {
   const module = await import('@apps/markdown-live-previewer/chatActions')
   return module.chatModule
 })
+
+registerAppChatModule('repo-duplicate-analyzer', async () => {
+  const module = await import('@apps/repo-duplicate-analyzer/chatActions')
+  return module.chatModule
+})
+

@@ -1,0 +1,9 @@
+{
+  "id": "repo-duplicate-analyzer",
+  "number": "041",
+  "name": "Repo Duplicate & Capability Analyzer",
+  "description": "Upload any JS/TS repo as a zip and get a full duplicate-code, capability-overlap, and registry-health report — all analysis runs locally in your browser.",
+  "path": "/apps/repo-duplicate-analyzer",
+  "icon": "GitCompare",
+  "category": "Developer Tools"
+}
