@@ -320,5 +320,13 @@ export const APP_REGISTRY: AppDefinition[] = [
     description: "Generate, customize, edit and print legal contracts, deeds, affidavits and notices in Hindi and English with Party Profile book support.",
     path: "/apps/smart-legal-deed-studio",
     tags: []
+  },
+  {
+    id: "markdown-live-previewer",
+    number: "040",
+    name: "Markdown Live Previewer",
+    description: "Live side-by-side Markdown editor with a custom regex-based parser and styled HTML export.",
+    path: "/apps/markdown-live-previewer",
+    tags: []
   }
 ]

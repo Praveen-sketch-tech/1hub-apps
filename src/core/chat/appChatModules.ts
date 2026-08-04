@@ -331,3 +331,8 @@ registerAppChatModule('smart-legal-deed-studio', async () => {
   const module = await import('@apps/smart-legal-deed-studio/chatActions')
   return module.chatModule
 })
+
+registerAppChatModule('markdown-live-previewer', async () => {
+  const module = await import('@apps/markdown-live-previewer/chatActions')
+  return module.chatModule
+})

@@ -1,0 +1,9 @@
+{
+  "id": "markdown-live-previewer",
+  "number": "040",
+  "name": "Markdown Live Previewer",
+  "description": "Live side-by-side Markdown editor with a custom regex-based parser and styled HTML export.",
+  "path": "/apps/markdown-live-previewer",
+  "icon": "FileCode",
+  "category": "Developer Tools"
+}

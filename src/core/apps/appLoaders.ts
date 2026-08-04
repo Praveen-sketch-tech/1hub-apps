@@ -357,5 +357,14 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
         default: module.default || module.SmartBusinessContractLegalDeedStudioPage,
       }))
     ),
+  },
+  {
+    path: "/apps/markdown-live-previewer",
+    name: "Markdown Live Previewer",
+    component: lazy(() =>
+      import("@apps/markdown-live-previewer").then((module) => ({
+        default: module.default || module.MarkdownLivePreviewerPage,
+      }))
+    ),
   }
 ]
