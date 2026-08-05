@@ -391,7 +391,7 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
     name: "HTML Viewer & Editor",
     component: lazy(() =>
       import("@apps/html-viewer-editor").then((module) => ({
-        default: module.default || module.HTMLViewerEditorPage,
+        default: module.default || module.HtmlViewerEditorPage,
       }))
     ),
   }
