@@ -33,7 +33,19 @@ export async function pushFilesToGitHub(
           const regData = await regRes.json();
           const regContent = atob(regData.content.replace(/\n/g, ''));
           if (!regContent.includes(manifest.id)) {
-            const regEntry = `  {\n    id: "${manifest.id}",\n    number: "${manifest.number}",\n    name: "${manifest.name}",\n    description: "${manifest.description}",\n    path: "${manifest.path}",\n    tags: []\n  }`;
+            const tags =
+  (manifest as any).tags && Array.isArray((manifest as any).tags)
+    ? (manifest as any).tags
+    : [manifest.category || "Developer Tools"];
+
+const regEntry = `  {
+    id: "${manifest.id}",
+    number: "${manifest.number}",
+    name: ${JSON.stringify(manifest.name)},
+    description: ${JSON.stringify(manifest.description)},
+    path: "${manifest.path}",
+    tags: ${JSON.stringify(tags)}
+  }`;
             const lastBracket = regContent.lastIndexOf(']');
             if (lastBracket !== -1) {
               const before = regContent.slice(0, lastBracket).trimEnd();

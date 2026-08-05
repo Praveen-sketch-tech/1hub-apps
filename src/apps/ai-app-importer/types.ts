@@ -18,6 +18,7 @@ export interface AppManifest {
   path: string;
   icon?: string;
   category?: string;
+  tags?: string[];
 }
 
 export interface ValidationResult {
