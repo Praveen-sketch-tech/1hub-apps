@@ -350,8 +350,7 @@ export const APP_REGISTRY: AppDefinition[] = [
   "AI Context",
   "Code Export",
   "Developer Tools",
-  "Context Splitter"
-],
+  "Context Splitter"],
   },
   {
     id: "html-viewer-editor",
@@ -359,6 +358,6 @@ export const APP_REGISTRY: AppDefinition[] = [
     name: "HTML Viewer & Editor",
     description: "Professional HTML code editor with live preview, DOM inspection, and responsive device testing.",
     path: "/apps/html-viewer-editor",
-    tags: []
+    tags: ["HTML Editor", "Live Preview", "Code Editor", "Responsive Testing", "DOM Inspector", "Developer Tools"]
   }
 ]
