@@ -382,7 +382,7 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
     name: "Zip2Text Studio",
     component: lazy(() =>
       import("@apps/zip2text-studio").then((module) => ({
-        default: module.default || module.Zip2TextStudioPage,
+      default: module.default || module.Zip2TextStudioApp,
       }))
     ),
   }
