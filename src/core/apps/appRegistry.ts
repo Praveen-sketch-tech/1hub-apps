@@ -344,6 +344,13 @@ export const APP_REGISTRY: AppDefinition[] = [
     name: "Zip2Text Studio",
     description: "Extract, analyze, and format repository ZIP files into AI-ready text chunks. Features smart file detection and context splitting.",
     path: "/apps/zip2text-studio",
-    tags: []
+    tags: [
+  "ZIP",
+  "Repository",
+  "AI Context",
+  "Code Export",
+  "Developer Tools",
+  "Context Splitter"
+],
   }
 ]
