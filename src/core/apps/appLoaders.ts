@@ -385,5 +385,14 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       default: module.default || module.Zip2TextStudioApp,
       }))
     ),
+  },
+  {
+    path: "/apps/html-viewer-editor",
+    name: "HTML Viewer & Editor",
+    component: lazy(() =>
+      import("@apps/html-viewer-editor").then((module) => ({
+        default: module.default || module.HTMLViewerEditorPage,
+      }))
+    ),
   }
 ]

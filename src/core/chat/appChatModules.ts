@@ -346,3 +346,8 @@ registerAppChatModule('zip2text-studio', async () => {
   const module = await import('@apps/zip2text-studio/chatActions')
   return module.chatModule
 })
+
+registerAppChatModule('html-viewer-editor', async () => {
+  const module = await import('@apps/html-viewer-editor/chatActions')
+  return module.chatModule
+})

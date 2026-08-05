@@ -334,7 +334,7 @@ export const APP_REGISTRY: AppDefinition[] = [
     id: "repo-duplicate-analyzer",
     number: "041",
     name: "Repo Duplicate & Capability Analyzer",
-    description: "Upload any JS/TS repo as a zip and get a full duplicate-code, capability-overlap, and registry-health report â all analysis runs locally in your browser.",
+    description: "Upload any JS/TS repo as a zip and get a full duplicate-code, capability-overlap, and registry-health report Ã¢ÂÂ all analysis runs locally in your browser.",
     path: "/apps/repo-duplicate-analyzer",
     tags: ["Repository Analysis","Duplicate Detection","Capability Overlap","Registry Health","Developer Tools"]
   },
@@ -352,5 +352,13 @@ export const APP_REGISTRY: AppDefinition[] = [
   "Developer Tools",
   "Context Splitter"
 ],
+  },
+  {
+    id: "html-viewer-editor",
+    number: "43",
+    name: "HTML Viewer & Editor",
+    description: "Professional HTML code editor with live preview, DOM inspection, and responsive device testing.",
+    path: "/apps/html-viewer-editor",
+    tags: []
   }
 ]

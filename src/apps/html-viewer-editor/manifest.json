@@ -1,0 +1,9 @@
+{
+  "id": "html-viewer-editor",
+  "number": 43,
+  "name": "HTML Viewer & Editor",
+  "description": "Professional HTML code editor with live preview, DOM inspection, and responsive device testing.",
+  "path": "/apps/html-viewer-editor",
+  "icon": "Code",
+  "category": "developer-tools"
+}
