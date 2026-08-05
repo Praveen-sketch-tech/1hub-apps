@@ -359,5 +359,18 @@ export const APP_REGISTRY: AppDefinition[] = [
     description: "Professional HTML code editor with live preview, DOM inspection, and responsive device testing.",
     path: "/apps/html-viewer-editor",
     tags: ["HTML Editor", "Live Preview", "Code Editor", "Responsive Testing", "DOM Inspector", "Developer Tools"]
-  }
+  },
+  {
+    id: "smart-workflow-builder",
+    number: "044",
+    name: "Smart Workflow Builder",
+    description: "Create reusable workflows visually with connected steps and automation logic.",
+    path: "/apps/smart-workflow-builder",
+    tags: [
+      "Workflow Builder",
+      "Automation",
+      "Steps",
+      "Visual Workflow"
+    ]
+  },
 ]
