@@ -342,3 +342,7 @@ registerAppChatModule('repo-duplicate-analyzer', async () => {
   return module.chatModule
 })
 
+registerAppChatModule('zip2text-studio', async () => {
+  const module = await import('@apps/zip2text-studio/chatActions')
+  return module.chatModule
+})

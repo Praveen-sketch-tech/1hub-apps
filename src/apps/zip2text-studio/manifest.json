@@ -1,0 +1,9 @@
+{
+  "id": "zip2text-studio",
+  "number": 42,
+  "name": "Zip2Text Studio",
+  "description": "Extract, analyze, and format repository ZIP files into AI-ready text chunks. Features smart file detection and context splitting.",
+  "path": "/apps/zip2text-studio",
+  "icon": "FileArchive",
+  "category": "developer-tools"
+}

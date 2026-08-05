@@ -376,6 +376,14 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
         default: module.default || module.RepoDuplicateAnalyzerPage,
       }))
     ),
+  },
+  {
+    path: "/apps/zip2text-studio",
+    name: "Zip2Text Studio",
+    component: lazy(() =>
+      import("@apps/zip2text-studio").then((module) => ({
+        default: module.default || module.Zip2TextStudioPage,
+      }))
+    ),
   }
-
 ]

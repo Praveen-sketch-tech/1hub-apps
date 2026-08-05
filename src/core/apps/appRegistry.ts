@@ -334,9 +334,16 @@ export const APP_REGISTRY: AppDefinition[] = [
     id: "repo-duplicate-analyzer",
     number: "041",
     name: "Repo Duplicate & Capability Analyzer",
-    description: "Upload any JS/TS repo as a zip and get a full duplicate-code, capability-overlap, and registry-health report — all analysis runs locally in your browser.",
+    description: "Upload any JS/TS repo as a zip and get a full duplicate-code, capability-overlap, and registry-health report â all analysis runs locally in your browser.",
     path: "/apps/repo-duplicate-analyzer",
     tags: ["Repository Analysis","Duplicate Detection","Capability Overlap","Registry Health","Developer Tools"]
+  },
+  {
+    id: "zip2text-studio",
+    number: "42",
+    name: "Zip2Text Studio",
+    description: "Extract, analyze, and format repository ZIP files into AI-ready text chunks. Features smart file detection and context splitting.",
+    path: "/apps/zip2text-studio",
+    tags: []
   }
-
 ]
