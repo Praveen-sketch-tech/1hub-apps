@@ -211,9 +211,6 @@ export function validateParsedFiles(
   const indexFile = files.find((f) => f.path.endsWith('index.tsx') || f.path.endsWith('index.ts'));
   if (!indexFile) {
     errors.push('Missing main entry point (index.tsx)');
-  } else if (!indexFile.content.includes('export default') && !indexFile.content.includes('export const')) {
-    fileErrors[indexFile.path] = 'Main index.tsx must export a React component.';
-    errors.push('index.tsx: Missing React component export');
   }
 
   // chatActions.ts must use the app's real chat contract from
