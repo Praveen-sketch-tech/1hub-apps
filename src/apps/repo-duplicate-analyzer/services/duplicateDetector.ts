@@ -113,7 +113,11 @@ export function detectCodeDuplication(files: RepoFile[]): DuplicateGroup[] {
         representativeCode
       };
     })
-    .filter((g) => g.kind === 'exact' || (g.confidence >= MIN_CONFIDENCE && g.occurrences.length >= MIN_NEAR_ONLY_OCCURRENCES))
+    .filter(
+      (g) =>
+        g.occurrences.length >= MIN_OCCURRENCES &&
+        (g.kind === 'exact' || (g.confidence >= MIN_CONFIDENCE && g.occurrences.length >= MIN_NEAR_ONLY_OCCURRENCES))
+    )
     .sort((a, b) => b.occurrences.length - a.occurrences.length || b.confidence - a.confidence)
     .slice(0, MAX_REPORTED_GROUPS);
 
@@ -197,6 +201,6 @@ function estimateConfidence(allNorm: string[][]): number {
 
 function suggestModulePath(code: string, idx: number): string {
   const fnMatch = code.match(/function\s+([A-Za-z_$][A-Za-z0-9_$]*)/) || code.match(/const\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=/);
-  const name = fnMatch ? fnMatch[1] : `sharedHelper${idx + 1}`;
-  return `src/shared/utils/${name}.ts`;
+  const base = fnMatch ? fnMatch[1] : 'sharedHelper';
+  return `src/shared/utils/${base}${idx + 1}.ts`;
 }

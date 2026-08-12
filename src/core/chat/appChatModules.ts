@@ -351,3 +351,9 @@ registerAppChatModule('html-viewer-editor', async () => {
   const module = await import('@apps/html-viewer-editor/chatActions')
   return module.chatModule
 })
+
+registerAppChatModule('fancy-text-generator', async () => {
+  const module = await import('@apps/fancy-text-generator/chatActions')
+  return module.chatModule
+})
+

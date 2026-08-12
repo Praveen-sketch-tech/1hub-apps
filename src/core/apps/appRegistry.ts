@@ -360,4 +360,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: "/apps/html-viewer-editor",
     tags: ["HTML Editor", "Live Preview", "Code Editor", "Responsive Testing", "DOM Inspector", "Developer Tools"]
   },
- ]
+   {
+    id: "fancy-text-generator",
+    number: "044",
+    name: "Fancy Text Generator",
+    description: "Turn plain text into 20+ stylish Unicode fonts for Instagram bio, WhatsApp status, and more — copy as text or as a shareable image.",
+    path: "/apps/fancy-text-generator",
+    tags: ["Fun & Social", "Text", "Fonts"]
+  },
+]

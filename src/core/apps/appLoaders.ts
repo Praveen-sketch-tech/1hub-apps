@@ -394,5 +394,14 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
         default: module.default || module.HtmlViewerEditorPage,
       }))
     ),
-  }
+  },
+  {
+    path: "/apps/fancy-text-generator",
+    name: "Fancy Text Generator",
+    component: lazy(() =>
+      import("@apps/fancy-text-generator").then((module) => ({
+        default: module.FancyTextGeneratorPage || module.default,
+      }))
+    ),
+  },
 ]
