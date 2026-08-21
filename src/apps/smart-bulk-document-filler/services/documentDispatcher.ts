@@ -75,6 +75,10 @@ export async function parseAnyDocument(file: File, docIndex: number): Promise<{ 
       try {
         const textModel = await parsePdfText(file);
 
+        if (!textModel) {
+          throw new Error('Unable to parse selectable text from PDF.');
+        }
+
         const fields: FieldPair[] = textModel.paragraphs
           .filter((p) => p.isLabelValue)
           .map((p) => ({
