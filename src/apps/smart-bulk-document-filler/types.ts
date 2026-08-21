@@ -1,4 +1,4 @@
-export type DocKind = 'docx' | 'xlsx' | 'pdf-form' | 'unsupported';
+export type DocKind = 'docx' | 'xlsx' | 'pdf-form' | 'pdf-text' | 'unsupported';
 
 export interface ParagraphModel {
   index: number;

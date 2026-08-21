@@ -22,7 +22,7 @@ function FileDropZone({
     <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-700 rounded-lg p-6 cursor-pointer hover:border-indigo-500 transition">
       <Upload className="w-6 h-6 text-slate-500" />
       <span className="text-sm text-slate-300 font-medium">
-        {files.length > 0 ? `${files.length} file(s) selected` : 'Choose .docx, .xlsx, or fillable .pdf files'}
+        {files.length > 0 ? `${files.length} file(s) selected` : 'Choose .docx, .xlsx, or text/fillable .pdf files'}
       </span>
       <span className="text-[11px] text-slate-500">Multiple files supported</span>
       <input
@@ -156,7 +156,7 @@ export default function SmartBulkDocumentFiller() {
       {mode === 'learn' && (
         <div className="space-y-3">
           <p className="text-xs text-slate-400">
-            Upload documents you've already filled out (Word, Excel, or fillable PDF). We'll find values that repeat
+            Upload documents you've already filled out (Word, Excel, or text/fillable PDF). We'll find values that repeat
             across them and save them as your reusable profile.
           </p>
           <FileDropZone files={learnFiles} onFilesChange={setLearnFiles} accept=".docx,.xlsx,.pdf" />
@@ -263,7 +263,7 @@ export default function SmartBulkDocumentFiller() {
                   </button>
                 </div>
                 <p className="text-[10px] text-slate-500 mt-1">
-                  Excel and PDF-form files always stay in their original format regardless of this choice.
+                  Excel and PDF files stay in PDF format. Text PDFs are regenerated with the filled values.
                 </p>
               </div>
 

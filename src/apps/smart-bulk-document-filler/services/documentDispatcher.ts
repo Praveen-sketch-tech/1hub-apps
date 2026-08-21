@@ -1,6 +1,7 @@
 import { parseDocx } from './docxEngine';
 import { parseXlsx } from './xlsxEngine';
 import { parsePdfForm } from './pdfFormEngine';
+import { parsePdfText } from './pdfTextEngine';
 import type { ParsedDocument, FieldPair } from '../types';
 import { normalizeLabel } from './fieldExtractor';
 
@@ -51,29 +52,69 @@ export async function parseAnyDocument(file: File, docIndex: number): Promise<{ 
 
   if (name.endsWith('.pdf')) {
     try {
-      const model = await parsePdfForm(file);
-      if (!model) {
+      // First try a real fillable PDF form.
+      const formModel = await parsePdfForm(file);
+
+      if (formModel) {
+        const fields: FieldPair[] = formModel.fields.map((f) => ({
+          docIndex,
+          fileName: file.name,
+          refId: f.name,
+          rawLabel: f.name,
+          normalizedLabel: normalizeLabel(f.name),
+          value: f.value.trim()
+        }));
+
+        return {
+          doc: { fileName: file.name, kind: 'pdf-form', pdfFields: formModel.fields },
+          fields
+        };
+      }
+
+      // If it is not a form, try a normal selectable-text PDF.
+      try {
+        const textModel = await parsePdfText(file);
+
+        const fields: FieldPair[] = textModel.paragraphs
+          .filter((p) => p.isLabelValue)
+          .map((p) => ({
+            docIndex,
+            fileName: file.name,
+            refId: String(p.index),
+            rawLabel: p.label!,
+            normalizedLabel: normalizeLabel(p.label!),
+            value: (p.value || '').trim()
+          }));
+
+        return {
+          doc: {
+            fileName: file.name,
+            kind: 'pdf-text',
+            paragraphs: textModel.paragraphs
+          },
+          fields
+        };
+      } catch (textErr) {
         return {
           doc: {
             fileName: file.name,
             kind: 'unsupported',
-            unsupportedReason: 'This PDF has no fillable form fields. Flat/scanned PDFs are not supported yet (Phase 2).'
+            unsupportedReason:
+              textErr instanceof Error
+                ? textErr.message
+                : 'PDF is not a supported fillable form or selectable-text document.'
           },
           fields: []
         };
       }
-      const fields: FieldPair[] = model.fields.map((f) => ({
-        docIndex,
-        fileName: file.name,
-        refId: f.name,
-        rawLabel: f.name,
-        normalizedLabel: normalizeLabel(f.name),
-        value: f.value.trim()
-      }));
-      return { doc: { fileName: file.name, kind: 'pdf-form', pdfFields: model.fields }, fields };
     } catch (err) {
       return {
-        doc: { fileName: file.name, kind: 'unsupported', unsupportedReason: err instanceof Error ? err.message : 'Failed to parse .pdf' },
+        doc: {
+          fileName: file.name,
+          kind: 'unsupported',
+          unsupportedReason:
+            err instanceof Error ? err.message : 'Failed to parse .pdf'
+        },
         fields: []
       };
     }

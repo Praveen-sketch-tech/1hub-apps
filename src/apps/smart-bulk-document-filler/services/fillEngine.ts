@@ -102,6 +102,32 @@ export async function generateFilledDocuments(
       results.push({ fileName: file.name, blob: filledBlob, originalKind: 'pdf-form' });
       continue;
     }
+
+    if (doc.kind === 'pdf-text') {
+      const paragraphs = (doc.paragraphs || []).map((paragraph) => {
+        const replacement = docReplacements.get(String(paragraph.index));
+
+        if (replacement === undefined || !paragraph.isLabelValue) {
+          return paragraph;
+        }
+
+        return {
+          ...paragraph,
+          text: `${paragraph.label || ''}: ${replacement}`,
+          value: replacement
+        };
+      });
+
+      const filledBlob = await renderParagraphsAsPdf(paragraphs);
+
+      results.push({
+        fileName: file.name,
+        blob: filledBlob,
+        originalKind: 'pdf-text'
+      });
+
+      continue;
+    }
   }
 
   return results;
