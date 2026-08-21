@@ -303,6 +303,16 @@ export async function parsePdfText(
 
   const bytes = new Uint8Array(await file.arrayBuffer());
 
+  // Browser/Vite: use the bundled PDF.js worker.
+  // Node/Kali tests: leave workerSrc unset so PDF.js uses its fake-worker
+  // fallback without trying to resolve a browser asset path.
+  if (typeof window !== 'undefined' && pdfjs.GlobalWorkerOptions) {
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+      '/assets/pdf.worker.min.mjs',
+      window.location.origin
+    ).toString();
+  }
+
   const loadingTask = pdfjs.getDocument({
     data: bytes
   });
