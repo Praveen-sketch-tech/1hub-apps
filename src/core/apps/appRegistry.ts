@@ -368,4 +368,12 @@ export const APP_REGISTRY: AppDefinition[] = [
     path: "/apps/fancy-text-generator",
     tags: ["Fun & Social", "Text", "Fonts"]
   },
+  {
+    id: "smart-bulk-document-filler",
+    number: "045",
+    name: "Smart Bulk Document Filler",
+    description: "Upload filled documents to learn your repeated fields (name, company, address...), then auto-fill new Word/Excel/PDF documents in one click and download them all as a zip.",
+    path: "/apps/smart-bulk-document-filler",
+    tags: ["Productivity", "Documents", "Automation"],
+  },
 ]

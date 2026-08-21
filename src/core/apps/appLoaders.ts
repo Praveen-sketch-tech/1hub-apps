@@ -404,4 +404,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: "/apps/smart-bulk-document-filler",
+    name: "Smart Bulk Document Filler",
+    component: lazy(() =>
+      import("@apps/smart-bulk-document-filler").then((module) => ({
+        default: module.SmartBulkDocumentFillerPage || module.default,
+      }))
+    ),
+  },
 ]

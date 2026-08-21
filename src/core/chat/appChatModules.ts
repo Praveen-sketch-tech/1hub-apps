@@ -357,3 +357,7 @@ registerAppChatModule('fancy-text-generator', async () => {
   return module.chatModule
 })
 
+registerAppChatModule('smart-bulk-document-filler', async () => {
+  const module = await import('@apps/smart-bulk-document-filler/chatActions')
+  return module.chatModule
+})
