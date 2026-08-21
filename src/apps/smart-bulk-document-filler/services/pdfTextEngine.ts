@@ -146,7 +146,10 @@ export async function parsePdfText(file: File): Promise<PdfTextModel | null> {
     const page = await pdf.getPage(pageNo);
     const content = await page.getTextContent();
 
-    let current = '';
+    // PDF.js returns text as positioned items rather than reliable
+    // newline-separated strings. Reconstruct visual lines using the
+    // Y coordinate, then sort each line left-to-right.
+    const positioned: Array<{ text: string; x: number; y: number }> = [];
 
     for (const item of content.items) {
       if (!('str' in item)) continue;
@@ -154,17 +157,62 @@ export async function parsePdfText(file: File): Promise<PdfTextModel | null> {
       const text = clean(String(item.str || ''));
       if (!text) continue;
 
-      if (current && /\s$/.test(current)) {
-        current += text;
-      } else if (current) {
-        current += ' ' + text;
-      } else {
-        current = text;
-      }
+      const raw = item as unknown as {
+        transform?: number[];
+        width?: number;
+      };
+
+      const transform = raw.transform || [];
+      const x = Number(transform[4] || 0);
+      const y = Number(transform[5] || 0);
+
+      positioned.push({ text, x, y });
     }
 
-    if (current) {
-      lines.push(...current.split(/\r?\n/).map(clean).filter(Boolean));
+    // Group items whose baseline is visually on the same line.
+    const lineGroups: Array<{
+      y: number;
+      items: Array<{ text: string; x: number }>;
+    }> = [];
+
+    const Y_TOLERANCE = 3;
+
+    for (const item of positioned) {
+      let group = lineGroups.find((g) => Math.abs(g.y - item.y) <= Y_TOLERANCE);
+
+      if (!group) {
+        group = { y: item.y, items: [] };
+        lineGroups.push(group);
+      }
+
+      group.items.push({
+        text: item.text,
+        x: item.x
+      });
+    }
+
+    // PDF coordinates normally run bottom-to-top, so reverse Y order
+    // to reconstruct normal reading order.
+    lineGroups.sort((a, b) => b.y - a.y);
+
+    for (const group of lineGroups) {
+      group.items.sort((a, b) => a.x - b.x);
+
+      let line = '';
+
+      for (const item of group.items) {
+        if (!line) {
+          line = item.text;
+          continue;
+        }
+
+        // Preserve separation between independently positioned PDF text
+        // fragments. This is important for "Label: Value" and underscores.
+        line += ' ' + item.text;
+      }
+
+      const cleanedLine = clean(line);
+      if (cleanedLine) lines.push(cleanedLine);
     }
   }
 
