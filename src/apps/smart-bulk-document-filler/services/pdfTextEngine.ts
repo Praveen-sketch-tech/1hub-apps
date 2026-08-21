@@ -27,10 +27,19 @@ function parseLabelValue(text: string): { label: string; value: string } | null 
 export async function parsePdfText(file: File): Promise<PdfTextModel> {
   const pdfjs = await import('pdfjs-dist');
 
+  // Vite/browser-compatible PDF.js worker configuration.
+  // The worker is loaded from the same installed pdfjs-dist package.
+  if (pdfjs.GlobalWorkerOptions) {
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url
+    ).toString();
+  }
+
   const bytes = new Uint8Array(await file.arrayBuffer());
 
   const loadingTask = pdfjs.getDocument({
-    data: bytes,
+    data: bytes
   });
 
   const pdf = await loadingTask.promise;
@@ -43,7 +52,10 @@ export async function parsePdfText(file: File): Promise<PdfTextModel> {
     const textContent = await page.getTextContent();
 
     const items = textContent.items
-      .filter((item): item is typeof item & { str: string } => 'str' in item)
+      .filter(
+        (item): item is typeof item & { str: string } =>
+          'str' in item && typeof item.str === 'string'
+      )
       .map((item) => ({
         text: cleanText(item.str),
         x: 'transform' in item ? item.transform[4] : 0,
@@ -51,7 +63,6 @@ export async function parsePdfText(file: File): Promise<PdfTextModel> {
       }))
       .filter((item) => item.text);
 
-    // Group text items approximately by their vertical position.
     const lines: { y: number; parts: typeof items }[] = [];
 
     for (const item of items) {
@@ -82,7 +93,12 @@ export async function parsePdfText(file: File): Promise<PdfTextModel> {
         align: 'left',
         headingLevel: 0,
         isLabelValue: !!pair,
-        ...(pair ? { label: pair.label, value: pair.value } : {})
+        ...(pair
+          ? {
+              label: pair.label,
+              value: pair.value
+            }
+          : {})
       });
     }
   }
