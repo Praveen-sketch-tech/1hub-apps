@@ -149,32 +149,189 @@ function looksLikeSentence(value: string): boolean {
     && words.length >= 5;
 }
 
-function detectSameLineField(line: string): {
-  label: string;
-  value: string;
-} | null {
-  const s = clean(line);
-
-  if (!s || s.length < 4) return null;
-
-  /*
-   * Do NOT guess arbitrary word boundaries.
-   *
-   * A PDF line such as:
-   *
-   *   Address 45 Nehru Nagar, Ratlam...
-   *
-   * contains no reliable delimiter in the extracted text.
-   * Splitting it by words creates false fields and can corrupt
-   * long values.
-   *
-   * Explicit ":" and "=" fields are handled separately by the
-   * parser. Separator-less fields will be handled using PDF
-   * positioning information rather than guessing.
-   */
-  return null;
+/** A visually-separated block of text on one line (one "column"). */
+interface RowSegment {
+  text: string;
+  x: number;
+  width: number;
 }
 
+/** One horizontal line, already split into column segments. */
+interface Row {
+  y: number;
+  segments: RowSegment[];
+}
+
+/**
+ * Strong, unambiguous evidence that text is a *value* rather than a
+ * label/heading — digits, currency, email, etc. Deliberately stricter
+ * than looksLikeValue(), which also treats plain multi-word Title Case
+ * phrases (including things like "Name of Company") as value-like and
+ * is therefore too loose to use when telling a header row apart from
+ * a data row.
+ */
+function hasStrongValueSignal(value: string): boolean {
+  const s = clean(value);
+  if (!s) return false;
+  if (/\d/.test(s)) return true;
+  if (/@/.test(s)) return true;
+  if (/[₹$€£]/.test(s)) return true;
+  if (/\b(?:Rs|INR)\b/i.test(s)) return true;
+  return false;
+}
+
+/**
+ * Merge same-line text items into visually separated column segments,
+ * using real PDF item widths/positions — a horizontal gap of GAP_THRESHOLD
+ * or more between two items means they belong to different columns of a
+ * form/table row, not the same run of text.
+ */
+function buildSegments(
+  items: Array<{ text: string; x: number; width: number }>,
+  gapThreshold = 18
+): RowSegment[] {
+  const sorted = [...items].sort((a, b) => a.x - b.x);
+  const segments: RowSegment[] = [];
+
+  for (const item of sorted) {
+    const last = segments[segments.length - 1];
+
+    if (last) {
+      const gap = item.x - (last.x + last.width);
+
+      if (gap < gapThreshold) {
+        last.text = clean(`${last.text} ${item.text}`);
+        last.width = item.x + item.width - last.x;
+        continue;
+      }
+    }
+
+    segments.push({ text: clean(item.text), x: item.x, width: item.width });
+  }
+
+  return segments.filter((s) => s.text.length > 0);
+}
+
+/**
+ * Detect a 2-row column-aligned table header:
+ *
+ *   Name of Company        Company Seal and Signature
+ *   Shree Balaji Enterprises   Authorized Signatory
+ *
+ * The row above is pure header text (no digits/currency/email in any
+ * column); the row below supplies the actual values, column-aligned
+ * with the header above it. Each aligned column becomes its own field,
+ * instead of (wrongly) treating the two headers on the same row as a
+ * label/value pair.
+ */
+function detectTableFields(rows: Row[]): {
+  fields: Array<{ label: string; value: string; confidence: number }>;
+  consumed: Set<number>;
+} {
+  const fields: Array<{
+    label: string;
+    value: string;
+    confidence: number;
+  }> = [];
+  const consumed = new Set<number>();
+
+  const X_TOLERANCE = 25;
+  const MAX_ROW_GAP_Y = 50;
+
+  for (let i = 0; i < rows.length - 1; i++) {
+    if (consumed.has(i) || consumed.has(i + 1)) continue;
+
+    const headerRow = rows[i];
+    const valueRow = rows[i + 1];
+
+    if (headerRow.segments.length < 2) continue;
+    if (headerRow.segments.length !== valueRow.segments.length) continue;
+    if (headerRow.y - valueRow.y > MAX_ROW_GAP_Y) continue;
+
+    const headerIsPureText = headerRow.segments.every(
+      (seg) =>
+        looksLikeLabel(seg.text) &&
+        !looksLikeSentence(seg.text) &&
+        !hasStrongValueSignal(seg.text)
+    );
+    if (!headerIsPureText) continue;
+
+    const valueRowLooksUseful = valueRow.segments.every(
+      (seg) => isUsefulValue(seg.text) && !looksLikeSentence(seg.text)
+    );
+    if (!valueRowLooksUseful) continue;
+
+    const columnsAlign = headerRow.segments.every(
+      (seg, idx) => Math.abs(seg.x - valueRow.segments[idx].x) <= X_TOLERANCE
+    );
+    if (!columnsAlign) continue;
+
+    for (let c = 0; c < headerRow.segments.length; c++) {
+      const label = headerRow.segments[c].text;
+      const value = valueRow.segments[c].text;
+
+      if (!label || !isUsefulValue(value)) continue;
+
+      fields.push({ label, value, confidence: 0.82 });
+    }
+
+    consumed.add(i);
+    consumed.add(i + 1);
+  }
+
+  return { fields, consumed };
+}
+
+/**
+ * Detect same-row label/value pairs using real column segments
+ * (a genuine horizontal gap between columns, not guessed word
+ * boundaries). Handles one or more label/value pairs on a single
+ * row:
+ *
+ *   Manager Name        Suresh Sharma
+ *   Address              45 Nehru Nagar, Ratlam, Madhya Pradesh 457001
+ *
+ * Rows already consumed by detectTableFields() are skipped so a
+ * header row is never double-counted as a same-row pair.
+ */
+function detectRowPairFields(
+  rows: Row[],
+  consumed: Set<number>
+): Array<{ label: string; value: string; confidence: number }> {
+  const results: Array<{
+    label: string;
+    value: string;
+    confidence: number;
+  }> = [];
+
+  rows.forEach((row, rowIndex) => {
+    if (consumed.has(rowIndex)) return;
+    if (row.segments.length < 2) return;
+
+    // Pair sequentially: (label, value), (label, value), ...
+    const pairCount = Math.floor(row.segments.length / 2);
+
+    for (let p = 0; p < pairCount; p++) {
+      const labelSeg = row.segments[p * 2];
+      const valueSeg = row.segments[p * 2 + 1];
+
+      const label = labelSeg.text;
+      const value = valueSeg.text;
+
+      if (!label || !isUsefulValue(value)) continue;
+      if (!looksLikeLabel(label) || looksLikeSentence(label)) continue;
+      if (looksLikeSentence(value)) continue;
+
+      let score = 0.75;
+      if (hasStrongValueSignal(value)) score += 0.1;
+      if (label.split(/\s+/).length <= 5) score += 0.04;
+
+      results.push({ label, value, confidence: Math.min(score, 0.9) });
+    }
+  });
+
+  return results;
+}
 
 /**
  * Detect "label on one line, value on the next line" — a very common
@@ -186,9 +343,12 @@ function detectSameLineField(line: string): {
  *   Address
  *   45 Nehru Nagar, Ratlam, Madhya Pradesh 457001
  *
- * This only runs on lines that share (roughly) the same left x position,
- * which is what a genuine single-column label/value form looks like —
- * it is NOT a guess based on any specific label vocabulary.
+ * Only single-column rows (exactly one visual segment) are eligible to
+ * act as a label or a value here — a row that already contains multiple
+ * columns (handled by detectTableFields / detectRowPairFields) is a
+ * compound line, not an atomic label or value, and pairing it whole
+ * against a neighboring line produces nonsense. Skipping it also
+ * prevents it from being chained into an unrelated pair.
  *
  * To avoid misreading two consecutive real labels as a label/value pair
  * (e.g. "Manager Name" followed by the next field's label), each line is
@@ -196,7 +356,7 @@ function detectSameLineField(line: string): {
  * past it instead of re-considering it as a label for the following line.
  */
 function detectNextLineFields(
-  pageLines: Array<{ text: string; x: number }>
+  pageLines: Array<{ text: string; x: number; segmentCount: number }>
 ): Array<{ label: string; value: string; confidence: number }> {
   const results: Array<{
     label: string;
@@ -210,6 +370,11 @@ function detectNextLineFields(
   while (i < pageLines.length - 1) {
     const cur = pageLines[i];
     const nxt = pageLines[i + 1];
+
+    if (cur.segmentCount !== 1) {
+      i += 1;
+      continue;
+    }
 
     const label = clean(cur.text);
     const value = clean(nxt.text);
@@ -231,6 +396,7 @@ function detectNextLineFields(
 
     if (
       !isHeading &&
+      nxt.segmentCount === 1 &&
       looksLikeLabel(label) &&
       !looksLikeSentence(label) &&
       label.split(/\s+/).length <= 6 &&
@@ -244,126 +410,6 @@ function detectNextLineFields(
     }
 
     i += 1;
-  }
-
-  return results;
-}
-
-function detectPositionalFields(
-  items: Array<{ text: string; x: number; y: number }>
-): Array<{ label: string; value: string; confidence: number }> {
-  const results: Array<{
-    label: string;
-    value: string;
-    confidence: number;
-  }> = [];
-
-  if (items.length < 2) return results;
-
-  // Group text items by visual baseline.
-  const groups: Array<{
-    y: number;
-    items: Array<{ text: string; x: number; width: number }>;
-  }> = [];
-
-  for (const item of items) {
-    const existing = groups.find(
-      (g) => Math.abs(g.y - item.y) <= 3
-    );
-
-    if (!existing) {
-      groups.push({
-        y: item.y,
-        items: [{
-          text: item.text,
-          x: item.x,
-          width: Math.max(item.text.length * 5, 1)
-        }]
-      });
-    } else {
-      existing.items.push({
-        text: item.text,
-        x: item.x,
-        width: Math.max(item.text.length * 5, 1)
-      });
-    }
-  }
-
-  for (const group of groups) {
-    group.items.sort((a, b) => a.x - b.x);
-
-    if (group.items.length < 2) continue;
-
-    /*
-     * Look for a genuine horizontal column gap.
-     *
-     * We do not assume field names. We only use layout:
-     *
-     *   [text block]        [text block]
-     *
-     * A large gap between two blocks is stronger evidence than
-     * guessing that the first word is a label.
-     */
-    for (let i = 0; i < group.items.length - 1; i++) {
-      const left = group.items[i];
-      const right = group.items[i + 1];
-
-      const leftEnd = left.x + left.width;
-      const gap = right.x - leftEnd;
-
-      if (gap < 18) continue;
-
-      const label = clean(left.text);
-      const value = clean(
-        group.items
-          .slice(i + 1)
-          .map((item) => item.text)
-          .join(' ')
-      );
-
-      if (!label || !value) continue;
-      if (label.length > 100) continue;
-      if (!isUsefulValue(value)) continue;
-
-      /*
-       * Avoid obvious prose/headings.
-       */
-      if (looksLikeSentence(label)) continue;
-
-      /*
-       * Values containing numbers, email-like strings, dates,
-       * identifiers, currency, or longer multi-word content are
-       * stronger candidates. Pure short prose is intentionally
-       * lower confidence.
-       */
-      let score = 0.70;
-
-      if (/\d/.test(value)) score += 0.08;
-      if (/@/.test(value)) score += 0.08;
-      if (/\b(?:Rs|INR)\b/i.test(value)) score += 0.05;
-      if (value.length >= 8) score += 0.04;
-
-      /*
-       * A left block should look structurally label-like without
-       * requiring a hardcoded list of document-specific fields.
-       */
-      const labelWords = label.split(/\s+/);
-
-      if (labelWords.length <= 5) score += 0.04;
-      if (/^[A-Za-z][A-Za-z0-9 &'().\/-]*$/.test(label)) {
-        score += 0.03;
-      }
-
-      if (score >= 0.78) {
-        results.push({
-          label,
-          value,
-          confidence: Math.min(score, 0.90)
-        });
-      }
-
-      break;
-    }
   }
 
   return results;
@@ -393,16 +439,23 @@ export async function parsePdfText(
   const pdf = await loadingTask.promise;
   const lines: string[] = [];
 
-  const allPositionedItems: Array<{
-    text: string;
-    x: number;
-    y: number;
+  // Label-next-line candidates, kept per-page (reading order) since
+  // pairing must never cross a page boundary.
+  const nextLineCandidates: Array<{
+    label: string;
+    value: string;
+    confidence: number;
   }> = [];
 
-  // Left-aligned line records, kept per-page (reading order), used for
-  // label-next-line detection. Kept separate from `lines` because pairing
-  // must never cross a page boundary.
-  const nextLineCandidates: Array<{
+  // Column-aligned table headers and same-row multi-column pairs, both
+  // resolved per-page using real PDF x/width data — see detectTableFields
+  // and detectRowPairFields.
+  const tableFieldCandidates: Array<{
+    label: string;
+    value: string;
+    confidence: number;
+  }> = [];
+  const rowPairCandidates: Array<{
     label: string;
     value: string;
     confidence: number;
@@ -416,6 +469,7 @@ export async function parsePdfText(
       text: string;
       x: number;
       y: number;
+      width: number;
     }> = [];
 
     for (const item of content.items) {
@@ -426,23 +480,20 @@ export async function parsePdfText(
 
       const raw = item as unknown as {
         transform?: number[];
+        width?: number;
       };
 
       const transform = raw.transform || [];
 
       const x = Number(transform[4] || 0);
       const y = Number(transform[5] || 0);
+      const width = Number(raw.width || text.length * 5);
 
       positioned.push({
         text,
         x,
-        y
-      });
-
-      allPositionedItems.push({
-        text,
-        x,
-        y
+        y,
+        width
       });
     }
 
@@ -451,6 +502,7 @@ export async function parsePdfText(
       items: Array<{
         text: string;
         x: number;
+        width: number;
       }>;
     }> = [];
 
@@ -472,30 +524,46 @@ export async function parsePdfText(
 
       group.items.push({
         text: item.text,
-        x: item.x
+        x: item.x,
+        width: item.width
       });
     }
 
     lineGroups.sort((a, b) => b.y - a.y);
 
-    const pageLines: Array<{ text: string; x: number }> = [];
+    // Build rows (with column segments already split by real x/width
+    // gaps) for this page — used by the table and row-pair detectors.
+    const rows: Row[] = lineGroups.map((group) => ({
+      y: group.y,
+      segments: buildSegments(group.items)
+    }));
 
-    for (const group of lineGroups) {
-      group.items.sort((a, b) => a.x - b.x);
+    const pageLines: Array<{
+      text: string;
+      x: number;
+      segmentCount: number;
+    }> = [];
 
-      const line = group.items
-        .map((item) => item.text)
-        .join(' ');
-
-      const cleanedLine = clean(line);
+    for (const row of rows) {
+      const cleanedLine = clean(
+        row.segments.map((s) => s.text).join(' ')
+      );
 
       if (cleanedLine) {
         lines.push(cleanedLine);
-        pageLines.push({ text: cleanedLine, x: group.items[0].x });
+        pageLines.push({
+          text: cleanedLine,
+          x: row.segments[0]?.x ?? 0,
+          segmentCount: row.segments.length
+        });
       }
     }
 
     nextLineCandidates.push(...detectNextLineFields(pageLines));
+
+    const { fields: tableFields, consumed } = detectTableFields(rows);
+    tableFieldCandidates.push(...tableFields);
+    rowPairCandidates.push(...detectRowPairFields(rows, consumed));
   }
 
   const text = lines.join('\n');
@@ -579,29 +647,21 @@ export async function parsePdfText(
   }
 
   // ------------------------------------------------------------
-  // 5. Separator-less same-line fields
+  // 5. Column-aligned table headers (2-row: header row + value row)
   // ------------------------------------------------------------
-  // Intentionally disabled here. Arbitrary word splitting is unsafe.
-  // Future detection must use PDF x/y positioning rather than guessing.
+  // e.g. "Name of Company | Company Seal and Signature" followed by
+  // "Shree Balaji Enterprises | Authorized Signatory" — see
+  // detectTableFields() for the alignment/heuristic rules.
+  for (const field of tableFieldCandidates) {
+    addField(fields, field.label, field.value, 'same-line', field.confidence);
+  }
 
   // ------------------------------------------------------------
-  // Positional Label / Value detection
+  // Same-row label/value pairs (real column-gap based, no guessed
+  // word boundaries) — see detectRowPairFields().
   // ------------------------------------------------------------
-  //
-  // This is intentionally layout-driven. No document-specific field
-  // names are required. PDF text coordinates are used to identify
-  // separated label/value columns.
-  //
-  const positionalFields = detectPositionalFields(allPositionedItems);
-
-  for (const field of positionalFields) {
-    addField(
-      fields,
-      field.label,
-      field.value,
-      'same-line',
-      field.confidence
-    );
+  for (const field of rowPairCandidates) {
+    addField(fields, field.label, field.value, 'same-line', field.confidence);
   }
 
   // ------------------------------------------------------------
