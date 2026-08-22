@@ -176,6 +176,79 @@ function detectSameLineField(line: string): {
 }
 
 
+/**
+ * Detect "label on one line, value on the next line" — a very common
+ * real-world form layout:
+ *
+ *   Manager Name
+ *   Suresh Sharma
+ *
+ *   Address
+ *   45 Nehru Nagar, Ratlam, Madhya Pradesh 457001
+ *
+ * This only runs on lines that share (roughly) the same left x position,
+ * which is what a genuine single-column label/value form looks like —
+ * it is NOT a guess based on any specific label vocabulary.
+ *
+ * To avoid misreading two consecutive real labels as a label/value pair
+ * (e.g. "Manager Name" followed by the next field's label), each line is
+ * consumed at most once: once a line is used as a value, the scan jumps
+ * past it instead of re-considering it as a label for the following line.
+ */
+function detectNextLineFields(
+  pageLines: Array<{ text: string; x: number }>
+): Array<{ label: string; value: string; confidence: number }> {
+  const results: Array<{
+    label: string;
+    value: string;
+    confidence: number;
+  }> = [];
+
+  const X_TOLERANCE = 40;
+
+  let i = 0;
+  while (i < pageLines.length - 1) {
+    const cur = pageLines[i];
+    const nxt = pageLines[i + 1];
+
+    const label = clean(cur.text);
+    const value = clean(nxt.text);
+
+    // Already handled by the colon/equals passes.
+    if (/[:=]/.test(label)) {
+      i += 1;
+      continue;
+    }
+
+    // All-caps multi-word lines read as document headings/titles
+    // ("CASH SALARY CERTIFICATE"), not field labels — skip using this
+    // line as a label, but leave it free to be re-evaluated as part of
+    // the next pair.
+    const isHeading =
+      label === label.toUpperCase() &&
+      label !== label.toLowerCase() &&
+      label.split(/\s+/).length > 1;
+
+    if (
+      !isHeading &&
+      looksLikeLabel(label) &&
+      !looksLikeSentence(label) &&
+      label.split(/\s+/).length <= 6 &&
+      looksLikeValue(value) &&
+      !looksLikeSentence(value) &&
+      Math.abs(cur.x - nxt.x) <= X_TOLERANCE
+    ) {
+      results.push({ label, value, confidence: 0.72 });
+      i += 2; // Both lines consumed — don't let the value double as a label.
+      continue;
+    }
+
+    i += 1;
+  }
+
+  return results;
+}
+
 function detectPositionalFields(
   items: Array<{ text: string; x: number; y: number }>
 ): Array<{ label: string; value: string; confidence: number }> {
@@ -308,7 +381,7 @@ export async function parsePdfText(
   // fallback without trying to resolve a browser asset path.
   if (typeof window !== 'undefined' && pdfjs.GlobalWorkerOptions) {
     pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-      '/assets/pdf.worker.min.mjs',
+      '/pdf.worker.min.mjs',
       window.location.origin
     ).toString();
   }
@@ -324,6 +397,15 @@ export async function parsePdfText(
     text: string;
     x: number;
     y: number;
+  }> = [];
+
+  // Left-aligned line records, kept per-page (reading order), used for
+  // label-next-line detection. Kept separate from `lines` because pairing
+  // must never cross a page boundary.
+  const nextLineCandidates: Array<{
+    label: string;
+    value: string;
+    confidence: number;
   }> = [];
 
   for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
@@ -396,6 +478,8 @@ export async function parsePdfText(
 
     lineGroups.sort((a, b) => b.y - a.y);
 
+    const pageLines: Array<{ text: string; x: number }> = [];
+
     for (const group of lineGroups) {
       group.items.sort((a, b) => a.x - b.x);
 
@@ -407,8 +491,11 @@ export async function parsePdfText(
 
       if (cleanedLine) {
         lines.push(cleanedLine);
+        pageLines.push({ text: cleanedLine, x: group.items[0].x });
       }
     }
+
+    nextLineCandidates.push(...detectNextLineFields(pageLines));
   }
 
   const text = lines.join('\n');
@@ -476,16 +563,20 @@ export async function parsePdfText(
   // ------------------------------------------------------------
   // 4. Label on one line, value on next line.
   // ------------------------------------------------------------
-  // Disabled until positional PDF information is available here.
-  //
-  // Looking only at adjacent reconstructed lines is unsafe because
-  // ordinary document prose can look exactly like:
-  //
-  //   "Label"
-  //   "Value"
-  //
-  // The universal implementation will use the original PDF x/y
-  // coordinates and visual grouping instead of guessing from text.
+  // Uses the original PDF x/y coordinates (via nextLineCandidates,
+  // built per-page above) rather than guessing from reconstructed
+  // text alone — see detectNextLineFields() for the layout rules
+  // and false-positive guards (heading exclusion, single-use lines,
+  // left-alignment check).
+  for (const candidate of nextLineCandidates) {
+    addField(
+      fields,
+      candidate.label,
+      candidate.value,
+      'next-line',
+      candidate.confidence
+    );
+  }
 
   // ------------------------------------------------------------
   // 5. Separator-less same-line fields
