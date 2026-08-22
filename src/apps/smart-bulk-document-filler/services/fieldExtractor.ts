@@ -39,11 +39,17 @@ export function normalizeLabel(label: string): string {
 
 function canonicalKey(normalized: string): string {
   if (SYNONYM_LOOKUP.has(normalized)) return SYNONYM_LOOKUP.get(normalized)!;
-  // Containment fallback: "name" inside "applicant name" — but only when
-  // the shorter word is at least 3 chars, to avoid over-merging on tiny
-  // common substrings.
+  // Containment fallback: only for multi-word synonym phrases (e.g.
+  // "employee name" inside "our employee name"). Single generic words
+  // like "name" or "employer" are deliberately excluded here — they're
+  // common suffixes of many UNRELATED labels ("Manager Name", "PAN of
+  // employer"), and matching on them merges distinct fields together,
+  // silently hiding one value behind another with the same canonical
+  // key. Single-word forms are already covered by the exact-match
+  // lookup above.
   for (const [term, canonical] of SYNONYM_LOOKUP.entries()) {
-    if (term.length >= 3 && (normalized === term || normalized.endsWith(` ${term}`) || normalized.startsWith(`${term} `))) {
+    if (term.split(' ').length < 2) continue;
+    if (normalized === term || normalized.endsWith(` ${term}`) || normalized.startsWith(`${term} `)) {
       return canonical;
     }
   }
