@@ -1,4 +1,11 @@
 import type { ParagraphModel } from '../types';
+import {
+  clean,
+  isUsefulValue,
+  looksLikeLabel,
+  looksLikeValue,
+  looksLikeSentence
+} from './fieldHeuristics';
 
 function decodeXmlEntities(s: string): string {
   return s
@@ -79,6 +86,179 @@ function detectBold(paragraphXml: string): boolean {
 
 const LABEL_VALUE_PATTERN = /^([^:：]{1,60})[:：]\s*(.*)$/;
 
+interface OffsetSpan {
+  start: number;
+  end: number;
+}
+
+/**
+ * Locate every <w:tr> row and, within it, every <w:tc> cell, as absolute
+ * offset ranges in documentXml — used to work out which table row/cell
+ * each paragraph (found separately, via the flat paragraph regex used
+ * everywhere else in this file) physically sits inside.
+ */
+function findTableRows(documentXml: string): Array<{ row: OffsetSpan; cells: OffsetSpan[] }> {
+  const rows: Array<{ row: OffsetSpan; cells: OffsetSpan[] }> = [];
+  const rowRegex = /<w:tr[ >][\s\S]*?<\/w:tr>/g;
+  let rowMatch: RegExpExecArray | null;
+
+  while ((rowMatch = rowRegex.exec(documentXml))) {
+    const rowXml = rowMatch[0];
+    const rowStart = rowMatch.index;
+    const cells: OffsetSpan[] = [];
+
+    const cellRegex = /<w:tc[ >][\s\S]*?<\/w:tc>/g;
+    let cellMatch: RegExpExecArray | null;
+    while ((cellMatch = cellRegex.exec(rowXml))) {
+      cells.push({
+        start: rowStart + cellMatch.index,
+        end: rowStart + cellMatch.index + cellMatch[0].length
+      });
+    }
+
+    rows.push({ row: { start: rowStart, end: rowStart + rowXml.length }, cells });
+  }
+
+  return rows;
+}
+
+/**
+ * Detect label/value pairs from real Word table rows.
+ *
+ * A table cell is structurally already a distinct field slot — unlike
+ * plain paragraph-to-paragraph adjacency, we don't need to lean on
+ * looksLikeValue() to decide whether the second cell is "value enough"
+ * (that heuristic is deliberately conservative and misses short single
+ * words like "Engineering" or "Sales", which are completely ordinary
+ * table-cell values). We only need the FIRST cell to look like a label;
+ * whatever is in the following cell(s) is trusted as the value(s).
+ */
+function detectTableRowFields(
+  documentXml: string,
+  paragraphOffsets: OffsetSpan[],
+  paragraphTexts: string[]
+): {
+  results: Array<{ labelIndex: number; valueIndex: number; label: string; value: string }>;
+  consumed: Set<number>;
+} {
+  const results: Array<{
+    labelIndex: number;
+    valueIndex: number;
+    label: string;
+    value: string;
+  }> = [];
+  const consumed = new Set<number>();
+
+  const rows = findTableRows(documentXml);
+
+  for (const { cells } of rows) {
+    if (cells.length < 2) continue;
+
+    // For each cell, gather the paragraph indices whose offset falls
+    // inside that cell's span (in document order), and join their text.
+    const cellParagraphIndices: number[][] = cells.map((cell) =>
+      paragraphOffsets
+        .map((span, idx) => ({ span, idx }))
+        .filter(({ span }) => span.start >= cell.start && span.end <= cell.end)
+        .map(({ idx }) => idx)
+    );
+
+    const cellTexts = cellParagraphIndices.map((indices) =>
+      clean(indices.map((i) => paragraphTexts[i]).join(' '))
+    );
+
+    const pairCount = Math.floor(cells.length / 2);
+
+    for (let p = 0; p < pairCount; p++) {
+      const labelIndices = cellParagraphIndices[p * 2];
+      const valueIndices = cellParagraphIndices[p * 2 + 1];
+      const label = cellTexts[p * 2];
+      const value = cellTexts[p * 2 + 1];
+
+      if (!labelIndices.length || !valueIndices.length) continue;
+      if (!label || !isUsefulValue(value)) continue;
+      if (!looksLikeLabel(label) || looksLikeSentence(label)) continue;
+      if (looksLikeSentence(value)) continue;
+
+      const labelIndex = labelIndices[0];
+      const valueIndex = valueIndices[0];
+
+      results.push({ labelIndex, valueIndex, label, value });
+      labelIndices.forEach((i) => consumed.add(i));
+      valueIndices.forEach((i) => consumed.add(i));
+    }
+  }
+
+  return { results, consumed };
+}
+
+/**
+ * Detect "label paragraph, then value paragraph" — this is the same
+ * layout as the PDF engine's next-line detection, and it naturally
+ * covers TWO very common real-world DOCX cases at once:
+ *
+ *  1. A genuine Word table row (a table cell is itself just one or more
+ *     <w:p> paragraphs, and regex-based paragraph extraction already
+ *     walks into table cells in document order, so "Manager Name" and
+ *     "Suresh Sharma" show up as two consecutive paragraph entries even
+ *     though they're really two cells of one row).
+ *  2. A plain label on its own line, with the value typed on the very
+ *     next line (no table involved at all).
+ *
+ * Each paragraph is consumed at most once (as a label or as a value) to
+ * avoid mis-chaining a real label into the previous pair's value slot —
+ * same guard as the PDF engine.
+ */
+function detectAdjacentParagraphFields(
+  entries: Array<{ index: number; text: string; headingLevel: 0 | 1 | 2 | 3; isLabelValue: boolean }>
+): Array<{ labelIndex: number; valueIndex: number; label: string; value: string }> {
+  const results: Array<{
+    labelIndex: number;
+    valueIndex: number;
+    label: string;
+    value: string;
+  }> = [];
+
+  // Only non-empty, not-already-a-field paragraphs can participate —
+  // blank spacer paragraphs (common in Word for visual gaps) are skipped
+  // over rather than treated as a hard break, so "Label" / "" / "Value"
+  // still pairs correctly.
+  const candidates = entries.filter((e) => clean(e.text).length > 0 && !e.isLabelValue);
+
+  let i = 0;
+  while (i < candidates.length - 1) {
+    const cur = candidates[i];
+    const nxt = candidates[i + 1];
+
+    const label = clean(cur.text);
+    const value = clean(nxt.text);
+
+    const isHeading =
+      cur.headingLevel > 0 ||
+      (label === label.toUpperCase() &&
+        label !== label.toLowerCase() &&
+        label.split(/\s+/).length > 1);
+
+    if (
+      !isHeading &&
+      looksLikeLabel(label) &&
+      !looksLikeSentence(label) &&
+      label.split(/\s+/).length <= 6 &&
+      looksLikeValue(value) &&
+      !looksLikeSentence(value) &&
+      isUsefulValue(value)
+    ) {
+      results.push({ labelIndex: cur.index, valueIndex: nxt.index, label, value });
+      i += 2; // both consumed
+      continue;
+    }
+
+    i += 1;
+  }
+
+  return results;
+}
+
 export interface DocxModel {
   documentXml: string;
   paragraphBlocks: string[];
@@ -108,6 +288,56 @@ export async function parseDocx(file: File): Promise<DocxModel> {
       label: match ? match[1].trim() : undefined,
       value: match ? match[2].trim() : undefined
     };
+  });
+
+  // Paragraph offsets in documentXml, in the same order as paragraphBlocks
+  // — used to work out which table row/cell each paragraph belongs to.
+  const paragraphOffsets: OffsetSpan[] = [];
+  {
+    const offsetRegex = /<w:p[ >][\s\S]*?<\/w:p>/g;
+    let m: RegExpExecArray | null;
+    while ((m = offsetRegex.exec(documentXml))) {
+      paragraphOffsets.push({ start: m.index, end: m.index + m[0].length });
+    }
+  }
+
+  // First pass: real Word table rows — structural, so it doesn't need to
+  // second-guess whether a short single-word cell "looks like a value".
+  const { results: tableFields, consumed: tableConsumed } = detectTableRowFields(
+    documentXml,
+    paragraphOffsets,
+    paragraphs.map((p) => p.text)
+  );
+
+  tableFields.forEach(({ valueIndex, label, value }) => {
+    const target = paragraphs[valueIndex];
+    if (!target || target.isLabelValue) return;
+    target.isLabelValue = true;
+    target.label = label;
+    target.value = value;
+  });
+
+  // Second pass: label/value pairs that span two paragraphs OUTSIDE a
+  // table (a label with the value on the next line) — see
+  // detectAdjacentParagraphFields() above. Anything already resolved by
+  // the table pass is excluded so it can't be re-paired incorrectly.
+  const adjacentFields = detectAdjacentParagraphFields(
+    paragraphs
+      .map((p) => ({
+        index: p.index,
+        text: p.text,
+        headingLevel: p.headingLevel,
+        isLabelValue: p.isLabelValue
+      }))
+      .filter((p) => !tableConsumed.has(p.index))
+  );
+
+  adjacentFields.forEach(({ valueIndex, label, value }) => {
+    const target = paragraphs[valueIndex];
+    if (!target || target.isLabelValue) return;
+    target.isLabelValue = true;
+    target.label = label;
+    target.value = value;
   });
 
   return { documentXml, paragraphBlocks, paragraphs };
@@ -140,7 +370,37 @@ export async function fillDocx(file: File, replacements: Map<number, string>): P
     const runs = extractRuns(block);
     const fullText = runs.map((r) => r.text).join('');
     const match = fullText.match(LABEL_VALUE_PATTERN);
-    if (!match) return;
+
+    if (!match) {
+      // No colon in this paragraph — it was detected via the
+      // adjacent-paragraph pass (a table cell, or a value on its own
+      // line right after its label), so this paragraph's ENTIRE text
+      // is the value with nothing else to preserve. Replace all runs
+      // with a single new run carrying the new value, keeping the
+      // first run's formatting.
+      const firstRun = runs[0];
+      if (!firstRun) return;
+
+      const newBlock = block.replace(
+        runs.map((r) => r.rawXml).join(''),
+        buildRunXml(firstRun.rPrXml, newValue)
+      );
+
+      // The runs may not be perfectly contiguous in the raw XML (rare,
+      // but possible with bookmarks/proofing tags between them) — fall
+      // back to replacing the first run and stripping the rest if the
+      // contiguous-join replace didn't match anything.
+      if (newBlock !== block) {
+        updatedXml = updatedXml.replace(block, newBlock);
+      } else {
+        let fallbackBlock = block.replace(firstRun.rawXml, buildRunXml(firstRun.rPrXml, newValue));
+        for (let i = 1; i < runs.length; i++) {
+          fallbackBlock = fallbackBlock.replace(runs[i].rawXml, '');
+        }
+        updatedXml = updatedXml.replace(block, fallbackBlock);
+      }
+      return;
+    }
 
     const label = match[1];
     const colonIdx = fullText.indexOf(':', label.length - 5) >= 0 ? fullText.indexOf(':') : fullText.indexOf('：');

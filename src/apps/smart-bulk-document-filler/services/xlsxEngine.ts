@@ -1,4 +1,5 @@
 import type { CellRef } from '../types';
+import { clean, isUsefulValue, looksLikeLabel, looksLikeSentence } from './fieldHeuristics';
 
 function decodeXmlEntities(s: string): string {
   return s
@@ -131,21 +132,82 @@ export async function parseXlsx(file: File): Promise<XlsxModel> {
     const xml = await sheetFile.async('string');
 
     const rowMatches = xml.match(/<row[^>]*>[\s\S]*?<\/row>/g) || [];
+
+    // Parse every row into its non-empty cells, keeping row order.
+    const rows: Array<{ rowNum: number; cells: { ref: string; col: string; text: string }[] }> = [];
+
     rowMatches.forEach((rowXml) => {
+      const rowRefMatch = rowXml.match(/<row\s+r="(\d+)"/);
       const cellMatches = rowXml.match(/<c[^>]*(?:\/>|>[\s\S]*?<\/c>)/g) || [];
-      const rowCells: { ref: string; text: string }[] = [];
+      const rowCells: { ref: string; col: string; text: string }[] = [];
+
       cellMatches.forEach((cellXml) => {
         const refMatch = cellXml.match(/r="([A-Z]+\d+)"/);
         if (!refMatch) return;
-        rowCells.push({ ref: refMatch[1], text: cellText(cellXml, sharedStrings) });
+        const text = cellText(cellXml, sharedStrings);
+        if (!clean(text)) return;
+        rowCells.push({ ref: refMatch[1], col: colLetter(refMatch[1]), text });
       });
 
-      // Simple, common convention: column A = label, column B = value.
-      const labelCell = rowCells.find((c) => colLetter(c.ref) === 'A');
-      const valueCell = rowCells.find((c) => colLetter(c.ref) === 'B');
-      if (labelCell && labelCell.text.trim()) {
-        const valueRef = valueCell ? valueCell.ref : `B${rowNumber(labelCell.ref)}`;
-        cells.push({ sheetName: sheet.name, ref: valueRef, label: labelCell.text.trim(), value: valueCell ? valueCell.text.trim() : '' });
+      if (rowCells.length > 0) {
+        rows.push({
+          rowNum: rowRefMatch ? parseInt(rowRefMatch[1], 10) : rowNumber(rowCells[0].ref),
+          cells: rowCells
+        });
+      }
+    });
+
+    // ------------------------------------------------------------
+    // Mode 1: header row + single data row ("form-style" sheet) —
+    // e.g. field names typed across row 1, one person's answers typed
+    // into row 2 underneath, same columns. Detected structurally (which
+    // columns are populated in each row), not by guessing at label text.
+    // ------------------------------------------------------------
+    if (rows.length === 2 && rows[0].cells.length >= 2) {
+      const [headerRow, dataRow] = rows;
+      const dataByCol = new Map(dataRow.cells.map((c) => [c.col, c]));
+
+      const columnsMatch = headerRow.cells.every((h) => dataByCol.has(h.col));
+
+      if (columnsMatch) {
+        headerRow.cells.forEach((h) => {
+          const d = dataByCol.get(h.col)!;
+          const label = clean(h.text);
+          const value = clean(d.text);
+          if (!label || !isUsefulValue(value)) return;
+          if (looksLikeSentence(label)) return;
+          cells.push({ sheetName: sheet.name, ref: d.ref, label, value });
+        });
+        continue; // this sheet is fully handled by header/data pairing
+      }
+    }
+
+    // ------------------------------------------------------------
+    // Mode 2: vertical label/value rows — each row has exactly one
+    // label cell and one value cell (not necessarily columns A/B; a
+    // sheet with the label column shifted over, or a leading blank
+    // column, still works).
+    // ------------------------------------------------------------
+    rows.forEach(({ cells: rowCells }) => {
+      if (rowCells.length < 2) return;
+
+      // Pair sequentially in column order: (label, value), (label, value)...
+      // — handles the common single-pair row, and also a row that packs
+      // more than one label/value pair across its columns.
+      const sorted = [...rowCells].sort((a, b) => rowNumber(a.ref) - rowNumber(b.ref) || a.col.localeCompare(b.col));
+      const pairCount = Math.floor(sorted.length / 2);
+
+      for (let p = 0; p < pairCount; p++) {
+        const labelCell = sorted[p * 2];
+        const valueCell = sorted[p * 2 + 1];
+        const label = clean(labelCell.text);
+        const value = clean(valueCell.text);
+
+        if (!label || !isUsefulValue(value)) continue;
+        if (!looksLikeLabel(label) || looksLikeSentence(label)) continue;
+        if (looksLikeSentence(value)) continue;
+
+        cells.push({ sheetName: sheet.name, ref: valueCell.ref, label, value });
       }
     });
   }
