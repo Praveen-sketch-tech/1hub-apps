@@ -112,3 +112,85 @@ export function hasStrongValueSignal(value: string): boolean {
   if (/\b(?:Rs|INR)\b/i.test(s)) return true;
   return false;
 }
+
+const MONTH_NAMES =
+  'January|February|March|April|May|June|July|August|September|October|November|December';
+const WEEKDAY_NAMES = 'Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday';
+
+/**
+ * A small set of narrowly-scoped, well-established convention patterns
+ * seen across many Indian formal documents (certificates, affidavits,
+ * letters) — this is deliberately NOT a general-purpose sentence/NLP
+ * entity extractor. Each pattern targets one specific, recognizable
+ * phrasing, so the risk of a wrong match stays low:
+ *
+ *  1. A standalone written-out dateline (e.g. "Tuesday, March 11, 2025")
+ *     with no label attached — common at the top of letters/certificates.
+ *  2. The "Mr./Mrs./Miss <Name> S/O|D/O|W/O <Relation Name>" convention
+ *     used to formally identify a person.
+ *  3. The "since <date> as a/an <Designation>" convention used in
+ *     experience/salary certificates.
+ *
+ * Anything not matching one of these specific phrasings is left alone —
+ * this only ever adds fields, never overrides or removes ones found by
+ * the structural (colon/table/row) passes.
+ */
+export function detectConventionFields(
+  lines: string[]
+): Array<{ label: string; value: string; confidence: number }> {
+  const results: Array<{ label: string; value: string; confidence: number }> = [];
+
+  const dateLinePattern = new RegExp(
+    `^(?:(?:${WEEKDAY_NAMES}),?\\s+)?(?:${MONTH_NAMES})\\s+\\d{1,2},?\\s+\\d{4}$`,
+    'i'
+  );
+
+  for (const rawLine of lines) {
+    const line = clean(rawLine);
+    if (!line) continue;
+    if (dateLinePattern.test(line)) {
+      results.push({ label: 'Date', value: line, confidence: 0.7 });
+    }
+  }
+
+  const fullText = clean(lines.join(' '));
+
+  // NOTE: deliberately NOT using the /i flag on these two patterns —
+  // under /i, JavaScript's [A-Z] character class also matches lowercase
+  // letters, which silently breaks the "must be a capitalized word" check
+  // used to stop each name/designation capture at the right boundary
+  // (e.g. it would swallow trailing lowercase words like "is working").
+  // Case-insensitivity for the fixed keyword parts is instead spelled out
+  // explicitly below.
+  const nameRelationPattern =
+    /\b(?:Mr|MR|mr|Mrs|MRS|mrs|Miss|MISS|miss|Ms|MS|ms)\.?\s+([A-Z][A-Za-z.]+(?:\s+[A-Z][A-Za-z.]+){0,3})\s+(S\/O|D\/O|W\/O|s\/o|d\/o|w\/o)\s+([A-Z][A-Za-z.]+(?:\s+[A-Z][A-Za-z.]+){0,3})/;
+  const nameMatch = fullText.match(nameRelationPattern);
+  if (nameMatch) {
+    const personName = clean(nameMatch[1]);
+    const relation = nameMatch[2].toUpperCase();
+    const relationName = clean(nameMatch[3]);
+    if (isUsefulValue(personName)) {
+      results.push({ label: 'Name', value: personName, confidence: 0.68 });
+    }
+    if (isUsefulValue(relationName)) {
+      const relLabel = relation === 'W/O' ? "Husband's Name" : "Father's Name";
+      results.push({ label: relLabel, value: relationName, confidence: 0.65 });
+    }
+  }
+
+  const sinceAsPattern =
+    /\b(?:since|SINCE|Since)\s+(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})\s+(?:as|AS|As)\s+(?:an|AN|An|a|A)\s+([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,3})/;
+  const sinceMatch = fullText.match(sinceAsPattern);
+  if (sinceMatch) {
+    const joiningDate = clean(sinceMatch[1]);
+    const designation = clean(sinceMatch[2]);
+    if (isUsefulValue(joiningDate)) {
+      results.push({ label: 'Date of Joining', value: joiningDate, confidence: 0.68 });
+    }
+    if (isUsefulValue(designation) && !looksLikeSentence(designation)) {
+      results.push({ label: 'Designation', value: designation, confidence: 0.65 });
+    }
+  }
+
+  return results;
+}

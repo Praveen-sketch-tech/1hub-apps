@@ -80,10 +80,6 @@ function detectHeadingLevel(paragraphXml: string): 0 | 1 | 2 | 3 {
   return level >= 1 && level <= 3 ? (level as 1 | 2 | 3) : 0;
 }
 
-function detectUnderline(paragraphXml: string): boolean {
-  return /<w:u\s+w:val="(?!none)[^"]*"/.test(paragraphXml);
-}
-
 function detectBold(paragraphXml: string): boolean {
   return /<w:rPr>[\s\S]*?<w:b\/?>|<w:b\s+w:val="(1|true)"/.test(paragraphXml);
 }
@@ -214,13 +210,7 @@ function detectTableRowFields(
  * same guard as the PDF engine.
  */
 function detectAdjacentParagraphFields(
-  entries: Array<{
-    index: number;
-    text: string;
-    headingLevel: 0 | 1 | 2 | 3;
-    isLabelValue: boolean;
-    emphasized: boolean;
-  }>
+  entries: Array<{ index: number; text: string; headingLevel: 0 | 1 | 2 | 3; isLabelValue: boolean }>
 ): Array<{ labelIndex: number; valueIndex: number; label: string; value: string }> {
   const results: Array<{
     labelIndex: number;
@@ -249,17 +239,8 @@ function detectAdjacentParagraphFields(
         label !== label.toLowerCase() &&
         label.split(/\s+/).length > 1);
 
-    // A blank/unfilled template commonly styles every label the same way
-    // (bold, underlined) and has nothing typed after them yet — so two
-    // consecutive paragraphs sharing that same emphasis almost certainly
-    // means "label, then the next label", not "label, then its value".
-    // A real value is normally typed in plain, unstyled text right after
-    // a styled label.
-    const bothEmphasizedSame = cur.emphasized && nxt.emphasized;
-
     if (
       !isHeading &&
-      !bothEmphasizedSame &&
       looksLikeLabel(label) &&
       !looksLikeSentence(label) &&
       label.split(/\s+/).length <= 6 &&
@@ -346,8 +327,7 @@ export async function parseDocx(file: File): Promise<DocxModel> {
         index: p.index,
         text: p.text,
         headingLevel: p.headingLevel,
-        isLabelValue: p.isLabelValue,
-        emphasized: p.bold || detectUnderline(paragraphBlocks[p.index])
+        isLabelValue: p.isLabelValue
       }))
       .filter((p) => !tableConsumed.has(p.index))
   );

@@ -5,7 +5,8 @@ import {
   looksLikeLabel,
   looksLikeValue,
   looksLikeSentence,
-  hasStrongValueSignal
+  hasStrongValueSignal,
+  detectConventionFields
 } from './fieldHeuristics';
 
 export interface PdfTextField {
@@ -556,6 +557,18 @@ export async function parsePdfText(
   // word boundaries) — see detectRowPairFields().
   // ------------------------------------------------------------
   for (const field of rowPairCandidates) {
+    addField(fields, field.label, field.value, 'same-line', field.confidence);
+  }
+
+  // ------------------------------------------------------------
+  // Narrow convention patterns (standalone dateline, "Mr. X S/O Y",
+  // "since <date> as a/an <designation>") — see detectConventionFields()
+  // in fieldHeuristics.ts. These pick up specific, well-established
+  // phrasings that are embedded in prose sentences rather than laid out
+  // as a label/value pair, so none of the structural passes above can
+  // see them.
+  // ------------------------------------------------------------
+  for (const field of detectConventionFields(lines)) {
     addField(fields, field.label, field.value, 'same-line', field.confidence);
   }
 
