@@ -9,6 +9,7 @@ import { ROUTES } from '@core/config/constants'
 import { APP_LOADERS } from '@core/apps/appLoaders'
 
 import { HomePage } from '@apps/home/HomePage'
+import { PersonalAppsPage } from '@apps/home/PersonalAppsPage'
 import { SearchPage } from '@apps/home/SearchPage'
 import { LoginPage } from '@apps/auth/LoginPage'
 import { SignupPage } from '@apps/auth/SignupPage'
@@ -35,6 +36,7 @@ export function AppRoutes() {
       {/* Public + authenticated app shell */}
       <Route element={<AppLayout />}>
         <Route path={ROUTES.home} element={<HomePage />} />
+        <Route path="/personal" element={<PersonalAppsPage />} />
         <Route path={ROUTES.search} element={<SearchPage />} />
         {APP_LOADERS.map((app) => {
           const AppComponent = app.component
