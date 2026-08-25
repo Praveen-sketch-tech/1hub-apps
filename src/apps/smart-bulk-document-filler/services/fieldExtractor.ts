@@ -91,7 +91,45 @@ export function groupFields(pairs: FieldPair[]): FieldGroup[] {
   const groups = new Map<string, FieldGroup>();
 
   pairs.forEach((pair) => {
-    const key = fuzzyKeyFor(pair.normalizedLabel, Array.from(groups.keys()));
+    let key = fuzzyKeyFor(pair.normalizedLabel, Array.from(groups.keys()));
+
+    // A synonym/fuzzy match is meant for the SAME real-world field worded
+    // differently across different documents (e.g. "Full Name" vs
+    // "Applicant Name" on two different filled samples). Within a SINGLE
+    // document, though, two synonym-matched labels with DIFFERENT values
+    // almost certainly mean two different people/entities that happen to
+    // share a wording (e.g. one certificate's "Employee Name" and a
+    // separately-extracted "Name" referring to someone else entirely) —
+    // merging them would silently keep one value and drop the other. If
+    // that conflict shows up, keep this pair under its own exact label
+    // instead of the shared canonical one.
+    const existingGroup = groups.get(key);
+    if (existingGroup) {
+      const conflictsWith = (g: FieldGroup) =>
+        g.occurrences.some(
+          (o) =>
+            o.docIndex === pair.docIndex &&
+            o.value.trim() &&
+            pair.value.trim() &&
+            o.value.trim() !== pair.value.trim()
+        );
+
+      if (conflictsWith(existingGroup)) {
+        // Fall back toward this pair's own (unmerged) label. That alone
+        // can still collide (e.g. the raw label "Name" already equals the
+        // canonical key "name" it was trying to escape), so keep
+        // disambiguating with a suffix until we land on a key that's
+        // either free or doesn't conflict.
+        let fallbackKey = pair.normalizedLabel;
+        let suffix = 0;
+        while (groups.has(fallbackKey) && conflictsWith(groups.get(fallbackKey)!)) {
+          suffix += 1;
+          fallbackKey = `${pair.normalizedLabel}__${suffix}`;
+        }
+        key = fallbackKey;
+      }
+    }
+
     if (!groups.has(key)) {
       groups.set(key, {
         id: `field-${groups.size + 1}`,

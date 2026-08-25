@@ -133,6 +133,7 @@ function detectTableFields(rows: Row[]): {
 
   const X_TOLERANCE = 25;
   const MAX_ROW_GAP_Y = 50;
+  const COMPRESSION_RATIO = 0.85;
 
   for (let i = 0; i < rows.length - 1; i++) {
     if (consumed.has(i) || consumed.has(i + 1)) continue;
@@ -142,7 +143,36 @@ function detectTableFields(rows: Row[]): {
 
     if (headerRow.segments.length < 2) continue;
     if (headerRow.segments.length !== valueRow.segments.length) continue;
-    if (headerRow.y - valueRow.y > MAX_ROW_GAP_Y) continue;
+
+    const gapWithin = headerRow.y - valueRow.y;
+    if (gapWithin <= 0 || gapWithin > MAX_ROW_GAP_Y) continue;
+
+    // Require visual "grouping rhythm": a genuine 2-row header+value table
+    // typically sits noticeably tighter together than the gap to a
+    // neighboring row (the next independent entry). Without this check, a
+    // plain list of unrelated same-row pairs — each row already a
+    // complete, correct "label value" on its own, just with uniform
+    // spacing throughout and no digits in any value — gets mistaken for
+    // this rarer 2-row pattern purely because neither column contains a
+    // number. This is a genuinely ambiguous case from text content alone;
+    // the spacing rhythm is the one physical layout cue that reliably
+    // tells them apart.
+    const gapBefore =
+      i > 0 && rows[i - 1].segments.length >= 2 ? rows[i - 1].y - rows[i].y : null;
+    const gapAfter =
+      i + 2 < rows.length && rows[i + 2].segments.length >= 2
+        ? rows[i + 1].y - rows[i + 2].y
+        : null;
+
+    const hasCompressionEvidence =
+      (gapBefore !== null && gapBefore > 0 && gapWithin <= gapBefore * COMPRESSION_RATIO) ||
+      (gapAfter !== null && gapAfter > 0 && gapWithin <= gapAfter * COMPRESSION_RATIO);
+
+    // Only enforce this when there's actually a neighboring row to compare
+    // against — if this pair of rows is all there is (e.g. the only
+    // content on the page), there's nothing to contradict it with, so
+    // fall through to the existing text-based checks instead.
+    if ((gapBefore !== null || gapAfter !== null) && !hasCompressionEvidence) continue;
 
     const headerIsPureText = headerRow.segments.every(
       (seg) =>
