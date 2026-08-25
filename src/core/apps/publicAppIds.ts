@@ -3,4 +3,5 @@
 export const PUBLIC_APP_IDS: string[] = [
   // 'photo-resizer',
   // 'pdf-compressor',
+  'photo-signature-resizer',
 ]
