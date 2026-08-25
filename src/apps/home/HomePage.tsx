@@ -5,6 +5,7 @@ import { Button } from '@shared/components/ui/Button'
 import { useAuth } from '@core/contexts/AuthContext'
 import { ROUTES, APP_NAME } from '@core/config/constants'
 import { APP_REGISTRY } from '@core/apps/appRegistry'
+import { PUBLIC_APP_IDS } from '@core/apps/publicAppIds'
 import { GlobalToolChat } from '@shared/components/chat/GlobalToolChat'
 
 const FEATURES = [
@@ -61,7 +62,7 @@ export function HomePage() {
 
       <section className="mb-12">
         <div className="grid gap-4 sm:grid-cols-2">
-          {APP_REGISTRY.map((app) => (
+          {APP_REGISTRY.filter((app) => PUBLIC_APP_IDS.includes(app.id)).map((app) => (
             <Card key={app.id}>
               <div className="flex h-full flex-col gap-5">
                 <div>

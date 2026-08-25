@@ -14,3 +14,5 @@ coverage
 *.zip
 *.tsbuildinfo
 app*-temp/
+*.bak
+test-pdf-parser.ts
