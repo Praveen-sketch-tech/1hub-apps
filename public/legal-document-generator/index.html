@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Title Clearance Report Generator</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f4f6f8; color: #222; }
+.container { width: min(950px, 94%); margin: 30px auto; }
+h1 { margin: 0 0 6px; font-size: 25px; }
+.subtitle { color: #666; margin-bottom: 20px; }
+.card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 18px; box-shadow: 0 3px 14px rgba(0,0,0,.08); }
+.card h2 { font-size: 16px; margin: 0 0 14px; }
+label { display: block; font-weight: 700; margin-bottom: 6px; font-size: 13.5px; }
+textarea { width: 100%; min-height: 300px; resize: vertical; padding: 14px; border: 1px solid #ccc; border-radius: 9px; font-size: 15px; line-height: 1.65; outline: none; font-family: Arial, Helvetica, sans-serif; }
+input[type=text] { width: 100%; padding: 9px 11px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; outline: none; }
+textarea:focus, input[type=text]:focus { border-color: #2563eb; }
+button { border: 0; border-radius: 9px; padding: 12px 18px; font-size: 15px; font-weight: 700; cursor: pointer; }
+.generate { background: #2563eb; color: white; width: 100%; padding: 14px; font-size: 16px; }
+.generate:hover { background: #1d4ed8; }
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+.field { margin-bottom: 2px; }
+.field.full { grid-column: 1 / -1; }
+.checkbox-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; font-weight: 500; font-size: 13.5px; }
+.checkbox-row input { width: auto; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.btn-edit { background: #f59e0b; color: #fff; }
+.btn-edit.active { background: #b45309; }
+.btn-edit:hover { background: #d97706; }
+.btn-docx { background: #2563eb; color: #fff; }
+.btn-docx:hover { background: #1d4ed8; }
+.btn-pdf { background: #dc2626; color: #fff; }
+.btn-pdf:hover { background: #b91c1c; }
+.btn-copy { background: #16a34a; color: #fff; }
+.btn-copy:hover { background: #15803d; }
+.hint { font-size: 12.5px; color: #888; margin: -10px 0 16px; }
+
+.fmt-toolbar { display: none; flex-wrap: wrap; align-items: center; gap: 4px; background: #fff7e6; border: 1px solid #f0c36d; border-radius: 9px; padding: 8px 10px; margin-bottom: 14px; position: sticky; top: 8px; z-index: 10; }
+.fmt-toolbar.show { display: flex; }
+.fmt-toolbar button { background: #fff; border: 1px solid #d8d8d8; color: #333; padding: 6px 10px; font-size: 13px; font-weight: 700; border-radius: 6px; min-width: 34px; }
+.fmt-toolbar button:hover { background: #eef2ff; border-color: #93a4f5; }
+.fmt-toolbar button.on { background: #2563eb; color: #fff; border-color: #2563eb; }
+.fmt-toolbar select { padding: 6px 8px; font-size: 13px; border-radius: 6px; border: 1px solid #d8d8d8; background: #fff; font-weight: 600; }
+.fmt-sep { width: 1px; align-self: stretch; background: #e0c584; margin: 0 4px; }
+.fmt-italic { font-style: italic; }
+
+#previewWrap { overflow-x: auto; }
+#reportPreview { background: #fff; width: 794px; margin: 0 auto; padding: 60px 65px; font-family: "Times New Roman", Times, serif; font-size: 14px; line-height: 1.5; color: #000; border: 1px solid #ddd; }
+#reportPreview[contenteditable="true"] { outline: 2px dashed #f59e0b; outline-offset: 4px; }
+#reportPreview .p { margin: 0 0 6px; white-space: pre-wrap; }
+#reportPreview .p-title { text-align: center; font-weight: 700; font-size: 16px; text-decoration: underline; margin: 24px 0; }
+#reportPreview .p-heading { font-weight: 700; margin: 16px 0 6px; }
+#reportPreview .p-note { font-size: 12px; font-style: italic; margin: 0 0 10px; }
+#reportPreview .p-center { text-align: center; }
+#reportPreview .p-justify { text-align: justify; }
+#reportPreview table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; }
+#reportPreview th, #reportPreview td { border: 1px solid #000; padding: 6px 7px; font-size: 12.5px; vertical-align: top; text-align: left; white-space: pre-wrap; }
+#reportPreview th { text-align: center; font-weight: 700; white-space: normal; }
+#reportPreview .spacer { height: 14px; }
+#reportPreview .row-split { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; margin: 0 0 6px; }
+#reportPreview .row-split > span:last-child { white-space: nowrap; }
+#reportPreview .label-line { display: flex; margin: 0 0 6px; }
+#reportPreview .label-line .lbl { font-weight: 700; flex: 0 0 260px; }
+#reportPreview .label-line .val { font-weight: 700; }
+#reportPreview .sig-row { display: flex; justify-content: space-between; margin-top: 30px; }
+.status { font-size: 13.5px; color: #999; padding: 30px 0; text-align: center; }
+
+@media print {
+    body * { visibility: hidden; }
+    #reportPreview, #reportPreview * { visibility: visible; }
+    #reportPreview { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; padding: 10mm 14mm; }
+    @page { size: A4; margin: 12mm; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>Title Clearance Report Generator</h1>
+    <div class="subtitle">Paste the legal flow and click Generate — the complete Title Clearance Report is built automatically.</div>
+
+    <div class="card">
+        <label for="inputText">Legal Flow / Raw Text</label>
+        <textarea id="inputText" placeholder="Paste complete legal drafting here..."></textarea>
+    </div>
+
+    <div class="card">
+        <label for="bankSelect">Select Bank</label>
+        <select id="bankSelect" style="width:100%; padding:11px 12px; border:1px solid #ccc; border-radius:9px; font-size:15px; font-weight:600; background:#fff;">
+            <option value="kotak">Kotak Mahindra Bank</option>
+            <option value="bom">Bank of Maharashtra</option>
+            <option value="iob">Indian Overseas Bank</option>
+        </select>
+    </div>
+
+    <div class="card">
+        <button class="generate" onclick="generateReport()">Generate</button>
+    </div>
+
+    <div class="card" id="previewCard" hidden>
+        <div class="toolbar">
+            <button class="btn-edit" id="editBtn" onclick="toggleEdit()">Edit Report</button>
+            <button class="btn-docx" onclick="downloadDocx()">Download Word File</button>
+            <button class="btn-pdf" onclick="downloadPdf()">Print / Save as PDF</button>
+            <button class="btn-copy" onclick="copyReportText()">Copy Text</button>
+        </div>
+
+        <div class="fmt-toolbar" id="fmtToolbar">
+            <button type="button" onclick="fmt('bold')" title="Bold"><b>B</b></button>
+            <button type="button" onclick="fmt('italic')" title="Italic"><i>I</i></button>
+            <button type="button" onclick="fmt('underline')" title="Underline"><u>U</u></button>
+            <button type="button" onclick="fmt('strikeThrough')" title="Strikethrough"><s>S</s></button>
+            <span class="fmt-sep"></span>
+            <select onchange="fmtFontSize(this.value)" title="Font size">
+                <option value="">Size</option>
+                <option value="2">Small</option>
+                <option value="3">Normal</option>
+                <option value="4">Medium</option>
+                <option value="5">Large</option>
+                <option value="6">X-Large</option>
+            </select>
+            <span class="fmt-sep"></span>
+            <button type="button" onclick="fmt('justifyLeft')" title="Align left">⯇</button>
+            <button type="button" onclick="fmt('justifyCenter')" title="Align center">≡</button>
+            <button type="button" onclick="fmt('justifyFull')" title="Justify">☰</button>
+            <button type="button" onclick="fmt('justifyRight')" title="Align right">⯈</button>
+            <span class="fmt-sep"></span>
+            <button type="button" onclick="fmt('insertUnorderedList')" title="Bullet list">• List</button>
+            <button type="button" onclick="fmt('insertOrderedList')" title="Numbered list">1. List</button>
+            <button type="button" onclick="fmt('indent')" title="Indent">→|</button>
+            <button type="button" onclick="fmt('outdent')" title="Outdent">|←</button>
+            <span class="fmt-sep"></span>
+            <button type="button" onclick="addTableRow()" title="Add a row to the table your cursor is in">+ Row</button>
+            <button type="button" onclick="deleteTableRow()" title="Delete the row your cursor is in">− Row</button>
+            <span class="fmt-sep"></span>
+            <button type="button" onclick="fmt('undo')" title="Undo">↶ Undo</button>
+            <button type="button" onclick="fmt('redo')" title="Redo">↷ Redo</button>
+            <button type="button" onclick="fmt('removeFormat')" title="Clear formatting">Clear</button>
+        </div>
+
+        <div class="hint">Click "Edit Report" to type directly inside the preview (fill boundaries, mutation remarks, etc.), then use the yellow toolbar above the report for bold/italic/alignment/table rows, then click "Edit Report" again to lock and download.</div>
+        <div id="previewWrap">
+            <div id="reportPreview"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+/* =========================================================
+   FIXED / HARDCODED REPORT SETTINGS
+========================================================= */
+const REPORT_DEFAULTS = {
+    refNo: "TR/KMB/153/2026-27",
+    branchLine1: "Kotak Mahindra Bank Ltd.,",
+    branchLine2: "LAP Loan Div., Indore.",
+    place: "INDORE",
+    advocateName: "N. V. Bhalerao",
+    ecPeriod: "2009-10 to 2025-26"
+};
+
+/* Per-bank fixed settings (advocate stays the same across banks; the bank's
+   own name/address/reference format differs). Only the property/owner/
+   document details pulled from the legal flow ever change per report. */
+const BANK_CONFIGS = {
+    kotak: {
+        refNo: "TR/KMB/153/2026-27",
+        branchLine1: "Kotak Mahindra Bank Ltd.,",
+        branchLine2: "LAP Loan Div., Indore.",
+        place: "INDORE",
+        advocateName: "N. V. Bhalerao",
+        ecPeriod: "2009-10 to 2025-26"
+    },
+    bom: {
+        bankName: "Bank of Maharashtra",
+        branchLine: "__________Branch",
+        place: "INDORE",
+        advocateName: "N. V. Bhalerao",
+        ecYears: "30 Years",
+        ecPeriod: "1991-92 to 2020-21"
+    },
+    iob: {
+        refNo: "TR/IOB/IM/53/2020-21",
+        bankName: "Indian Overseas Bank, Indore Main Branch,",
+        branchAddress: "Corporate House, R.N.T. Marg, Indore",
+        place: "INDORE",
+        advocateName: "N. V. Bhalerao",
+        ecPeriod: "2006-07 to 2025-26"
+    }
+};
+
+function todayDate() {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+}
+
+/* Detects the "present owner has agreed to sell to intended purchaser" pattern
+   used by BOM/IOB flows, where the loan borrower is not yet the registered
+   owner but is buying under a sale-agreement. Falls back to null when the
+   flow (like typical Kotak flows) has no such pending-purchase clause. */
+function extractIntendedPurchaser(text) {
+    const match = text.match(/present\s+owner\s+has\s+(?:been\s+)?agreed\s+to\s+sale?\s+(?:the\s+(?:said\s+)?(?:plot|apartment|property)\s+)?to\s+(?:the\s+)?present\s+intended\s+purchaser\s+([\s\S]+?)\s+by\s+a\s+(?:sale[- ]?agreement|Sale-agreement)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/i);
+    if (!match) return null;
+    return { name: clean(match[1]), date: clean(match[2]) };
+}
+
+/* Decide constitution of owner from the final vendee text pulled out of the flow. */
+function determineConstitution(vendeeText) {
+    const value = vendeeText || "";
+    if (/\bM\/s\.?/i.test(value)) {
+        if (/proprietor/i.test(value)) return "Proprietorship";
+        if (/\bLLP\b|Limited\s+Liability\s+Partnership/i.test(value)) return "Limited Liability Partnership (LLP)";
+        if (/Pvt\.?\s*Ltd\.?|Private\s+Limited|\bLimited\b/i.test(value)) return "Private Limited Company";
+        if (/partner/i.test(value)) return "Partnership Firm";
+        return "Firm";
+    }
+
+    const numbered = [...value.matchAll(/\(\d+\)/g)];
+    let count = numbered.length;
+    if (count === 0) count = /\s(?:&|and)\s/i.test(value) ? 2 : 1;
+
+    if (count <= 1) return "Individual";
+    if (count === 2) return "Joint-owners";
+    return "Co-ownership";
+}
+
+/* =========================================================
+   TEXT HELPERS
+========================================================= */
+function normalize(text) {
+    return text.replace(/\r/g, " ").replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function clean(value) {
+    if (!value) return "";
+    return value.replace(/\s+/g, " ").replace(/^[\s:.,;-]+/, "").replace(/[\s:.,;-]+$/, "").trim();
+}
+
+/* Extract the property description immediately before the final plot sale (colony/plotted layouts). */
+function extractPropertySchedule(text) {
+    const unitLabel = /(?:(?:MPL\s+)?House|Plot|Flat|Shop|Bungalow)\s+No\.?/i.source;
+    const matches = [...text.matchAll(new RegExp(`(?:\\bthe\\s+)?(${unitLabel}\\s+[\\s\\S]*?\\b(?:land))\\s+(?:has\\s+(?:been\\s+)?sold|was\\s+(?:purchased|sold))\\b`, "ig"))];
+    if (matches.length) return clean(matches[matches.length - 1][1]);
+
+    /* Case B: verb comes BEFORE the plot phrase, e.g. "... attorney sold the Plot
+       No. 97 of X Colony ... with an area of ... to present owner ...". Look
+       backward from "to present owner" for the nearest "Plot No. ... with an
+       area of ..." clause. */
+    const idx = text.search(/\bto\s+present\s+owner\b/i);
+    if (idx >= 0) {
+        const windowText = text.slice(Math.max(0, idx - 400), idx);
+        const match = windowText.match(new RegExp(`${unitLabel}\\s*[\\s\\S]+?with\\s+(?:an\\s+)?area\\s+of\\s+[\\s\\S]+?$`, "i"));
+        if (match) return clean(match[0]);
+    }
+    return "";
+}
+
+/*
+  Fallback for direct agricultural-land sales (no colony/plot number).
+  Finds the survey no. + area from the clause right before "... to present
+  owner", using a trailing text window so an earlier unrelated "land bearing
+  S. No. ..." near the start of the flow is not picked up instead.
+*/
+function extractFallbackSchedule(text) {
+    const idx = text.search(/\bto\s+present\s+owner\b/i);
+    if (idx < 0) return null;
+
+    const windowText = text.slice(Math.max(0, idx - 300), idx);
+    const landMatch = windowText.match(/land\s+bearing\s+(S\.?\s*Nos?\.?\s*[\s\S]+?)\s+with\s+(?:an\s+)?area\s+of\s+([\s\S]+?)\s*$/i);
+    if (!landMatch) return null;
+
+    const syno = clean(landMatch[1]);
+    const area = clean(landMatch[2]);
+
+    const locMatch = text.match(/at\s+Village\s+(.+?),\s*Teh\.?\s+(.+?),\s*Dist\.?\s+([A-Za-z]+)\b/i);
+    const addr = locMatch ? `Village ${clean(locMatch[1])}, Teh. ${clean(locMatch[2])}, Dist. ${clean(locMatch[3])}` : "";
+
+    return {
+        syno,
+        area,
+        addr,
+        scheduleText: `${syno} with an area of ${area}${addr ? ` at ${addr}` : ""}`
+    };
+}
+
+/* Original survey numbers of the parent agricultural land, used to prefix the plot no. in colony cases. */
+function extractSourceSurveyNumbers(text) {
+    const match = text.match(/S\.?\s*Nos?\.?\s*([\s\S]+?)\s+with\s+(?:total\s+)?(?:an\s+)?area\s+of/i);
+    return match ? clean(match[1]) : "";
+}
+
+/* Survey/Plot No. column should carry ONLY the bare id — "Plot No. 158" or
+   "S. No. 306/2/2/1/3" — never the colony name or the village/teh/dist address. */
+function extractBarePlotOrSurveyNo(schedule) {
+    let match = schedule.match(/^((?:MPL\s+)?(?:House|Plot|Flat|Shop|Bungalow))\s+No\.?\s*[:.]?\s*([A-Za-z0-9\-\/]+)/i);
+    if (match) return `${/house/i.test(match[1]) ? "House" : clean(match[1])} No. ${match[2]}`;
+    match = schedule.match(/^S\.?\s*Nos?\.?\s*[:.]?\s*([A-Za-z0-9\-\/,\s]+?)(?=\s+(?:at|,|$))/i);
+    if (match) return `S. No. ${clean(match[1])}`;
+    return clean(schedule);
+}
+
+function buildPropertyDescriptionRow(text, schedule, fallback) {
+    if (schedule) {
+        const areaMatch = schedule.match(/with\s+an\s+area\s+of\s+(.+?\b(?:Sq\.\s*Ft\.|Sq\.\s*(?:Mtrs?|Mt)\.|Hectares?|Acres?)\s*(?:Land)?)/i);
+        const area = areaMatch ? clean(areaMatch[1]) : "-";
+        const location = clean(schedule.replace(/\s+with\s+an\s+area\s+of\s+.+$/i, ""));
+        const plotNo = extractBarePlotOrSurveyNo(location);
+
+        return { itemNo: "1.", plotNo, extent: "Freehold", area, location, boundary: buildBoundaryText(text) };
+    }
+
+    if (fallback) {
+        const plotNo = extractBarePlotOrSurveyNo(fallback.syno);
+        const location = fallback.addr ? `${fallback.syno}, at ${fallback.addr}` : fallback.syno;
+        return { itemNo: "1.", plotNo, extent: "Freehold", area: fallback.area, location, boundary: buildBoundaryText(text) };
+    }
+
+    return null;
+}
+
+function buildBoundaryText(text) {
+    function boundary(direction) {
+        const match = text.match(new RegExp(`\\b${direction}\\s*:-?\\s*([\\s\\S]*?)(?=\\s*(?:East|West|North|South)\\s*:-|$)`, "i"));
+        return match ? clean(match[1]) : "";
+    }
+    const boundaries = [["East", boundary("East")], ["West", boundary("West")], ["North", boundary("North")], ["South", boundary("South")]].filter(([, v]) => v);
+    return boundaries.length ? boundaries.map(([d, v]) => `${d}:- ${v}`).join("\n") : "";
+}
+
+const DATE = String.raw`\d{1,2}\s*[-\\/]\s*\d{1,2}\s*[-\\/]\s*\d{4}`;
+
+/* =========================================================
+   POWER OF ATTORNEY
+========================================================= */
+/* Returns an ARRAY of every Power of Attorney found in the flow (a flow can
+   have more than one — e.g. one owner appoints an attorney to sell, and later
+   partners appoint another partner as attorney). Each entry carries its
+   sourceIndex so callers can find the POA nearest to a given sale-deed. */
+function extractPOA(text) {
+    const results = [];
+
+    const groupPOARegex = /owners\s+([\s\S]+?)\s+with\s+an\s+intension[\s\S]{0,500}?appointed\s+((?:Shri|Smt|Mr|Mrs|Ms)\.?\s+.+?)\s+as\s+(?:his|her|their|the)\s+attorney\s+by\s+a\s+registered\s+power\s+of\s+attorney\s+bearing\s+((?:e\s*-\s*)?Reg\.?)\s*No\.?\s*[:.-]?\s*([A-Za-z0-9._/()\[\]-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/ig;
+    for (const m of text.matchAll(groupPOARegex)) {
+        const people = [...m[1].matchAll(/\(\d+\)\s*([\s\S]*?)(?=\s*,\s*\(\d+\)|\s*$)/g)];
+        const owners = people.length >= 2 ? `(1) ${clean(people[0][1])}, & ${people.length - 1} others` : clean(m[1]);
+        const label = /^e\s*-/i.test(m[3]) ? "E-Reg." : "Reg.";
+        results.push({
+            type: "poa", sourceIndex: m.index,
+            output: `Xerox of Power of attorney ${label} No. ${clean(m[4])} dated:- ${clean(m[5])} executed by ${owners} in favor of ${clean(m[2])}`,
+            nature: "Power of Attorney", documentNo: clean(m[4]), documentDate: clean(m[5]),
+            vendor: owners, vendee: clean(m[2]), copyType: "Xerox"
+        });
+    }
+
+    const patterns = [
+        /owner\s+((?:Shri|Smt|Mr|Mrs)\.?\s+[^.]+?)\s+has\s+appointed\s+((?:Shri|Smt|Mr|Mrs)\.?\s+[^.]+?)\s+as\s+(?:his|her|the)\s+attorney[\s\S]{0,400}?registered\s+power\s+of\s+attorney\s+(?:bearing\s+)?Reg\.?\s*No\.?\s*[:.-]?\s*([A-Za-z0-9._/()\[\]-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/ig,
+        /owner\s+((?:Shri|Smt|Mr|Mrs)\.?\s+[^,]+?)\s*,?\s*(?:with\s+an?\s+intension[\s\S]{0,150}?)?has\s+appointed\s+((?:Shri|Smt|Mr|Mrs)\.?\s+[^,]+?)\s+as\s+(?:his|her|the)\s+attorney[\s\S]{0,400}?power\s+of\s+attorney\s+(?:bearing\s+)?Reg\.?\s*No\.?\s*[:.-]?\s*([A-Za-z0-9._/()\[\]-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/ig,
+        /\(1\)\s*((?:Shri|Smt|Mr|Mrs)\.?\s+[^,]+?)\s*&\s*\(2\)\s*((?:Shri|Smt|Mr|Mrs)\.?\s+[^,]+?)\s+has\s+appointed[\s\S]{0,80}?((?:Shri|Smt|Mr|Mrs)\.?\s+[^,]+?)\s+as\s+(?:his|her|their|the)\s+attorney[\s\S]{0,400}?power\s+of\s+attorney\s+(?:bearing\s+)?Reg\.?\s*No\.?\s*[:.-]?\s*([A-Za-z0-9._/()\[\]-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/ig
+    ];
+    for (const pattern of patterns) {
+        for (const m of text.matchAll(pattern)) {
+            const isThirdPattern = m.length > 5;
+            const vendor = isThirdPattern
+                ? [clean(m[1]), m[2] ? `& ${clean(m[2])}` : ""].filter(Boolean).join(" ")
+                : clean(m[1]);
+            const vendee = isThirdPattern ? clean(m[3]) : clean(m[2]);
+            const docNo = isThirdPattern ? clean(m[4]) : clean(m[3]);
+            const docDate = isThirdPattern ? clean(m[5]) : clean(m[4]);
+            results.push({
+                type: "poa", sourceIndex: m.index,
+                output: `Xerox of Power of attorney Reg. No. ${docNo} dated:- ${docDate} executed by ${vendor} in favor of ${vendee}.`,
+                nature: "Power of Attorney", documentNo: docNo, documentDate: docDate,
+                vendor, vendee, copyType: "Xerox"
+            });
+        }
+    }
+
+    /* Generic case: "the owner [of plot/property] ... has appointed X as
+       her/his/their attorney ..." — no name given because it refers back to
+       whoever currently holds title. vendor is left blank here and resolved
+       by the caller (extractData) using the nearest preceding sale-deed. */
+    const genericOwnerPattern = /\bthe\s+owner\b(?:\s+of\s+(?:the\s+)?(?:plot|property|flat|land|house))?[\s\S]{0,90}?has\s+appointed\s+((?:Shri|Smt|Mr|Mrs)\.?\s+[^,]+?)\s+as\s+(?:his|her|their|the)\s+attorney[\s\S]{0,400}?power\s+of\s+attorney\s+(?:bearing\s+)?Reg\.?\s*No\.?\s*[:.-]?\s*([A-Za-z0-9._/()\[\]-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/ig;
+    for (const m of text.matchAll(genericOwnerPattern)) {
+        results.push({
+            type: "poa", sourceIndex: m.index, needsOwnerResolution: true,
+            nature: "Power of Attorney", documentNo: clean(m[2]), documentDate: clean(m[3]),
+            vendor: "", vendee: clean(m[1]), copyType: "Xerox"
+        });
+    }
+
+    const seen = new Set();
+    const unique = [];
+    for (const item of results) {
+        const key = `${item.documentNo}|${item.documentDate}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        unique.push(item);
+    }
+    unique.sort((a, b) => a.sourceIndex - b.sourceIndex);
+    return unique.length ? unique : null;
+}
+
+/* Finds the POA (if any) whose clause appears closest before a given text position. */
+function nearestPoaBefore(poaResults, index) {
+    if (!poaResults) return null;
+    const prior = poaResults.filter((p) => p.sourceIndex < index);
+    return prior.length ? prior[prior.length - 1] : null;
+}
+
+/* =========================================================
+   DIVERSION
+========================================================= */
+function extractDiversion(text) {
+    const section = text;
+    let match = section.match(/order\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})\s+passed\s+in\s+various\s+case\s+Nos?\.?\s*([A-Za-z0-9._/\s,-]+?)(?=\s*(?:\.\s|The\s+lay|The\s+permission|$))/i);
+    if (match) return { type: "diversion", output: `Xerox of Diversion order dated:- ${clean(match[1])} passed in various case Nos. ${clean(match[2])}.` };
+
+    match = section.match(/various\s+order\s+passed\s+in\s+Case\s+Nos?\.?\s*([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})\s*,\s*([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/i);
+    if (match) return { type: "diversion", output: `Xerox of Diversion order passed in Case Nos. ${clean(match[1])} dated:- ${clean(match[2])}, ${clean(match[3])} dated:- ${clean(match[4])}` };
+
+    match = section.match(/(?:vide\s+)?Order\s+No\.?\s*[:.-]?\s*([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})\s+and\s+([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/i);
+    if (match) return { type: "diversion", output: `Xerox of Diversion order No. ${clean(match[1])} dated ${clean(match[2])} and ${clean(match[3])} dated ${clean(match[4])}.` };
+
+    match = section.match(/(?:vide\s+)?Order\s+No\.?\s*[:.-]?\s*([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/i);
+    if (match) return { type: "diversion", output: `Xerox of Diversion order No. ${clean(match[1])} dated ${clean(match[2])}.` };
+
+    match = section.match(/order\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})[\s\S]{0,180}?(?:case\s+no\.?|case\s+number)\s*[:.-]?\s*([A-Za-z0-9._/-]+)/i);
+    if (match) return { type: "diversion", output: `Xerox of Diversion order dated:- ${clean(match[1])} passed in Case No. ${clean(match[2])}` };
+
+    return null;
+}
+
+/* =========================================================
+   COLONIZER LICENSE
+========================================================= */
+function extractColonizer(text) {
+    const match = text.match(/colonizer\s+license[\s\S]{0,450}?(?:license\s+)?(?:registration|reg\.)\s+No\.?\s*[:.-]?\s*([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/i);
+    if (!match) return null;
+    return { type: "colonizer", output: `Xerox of Colonizer License Reg. No. ${clean(match[1])} dated:- ${clean(match[2])}.` };
+}
+
+/* =========================================================
+   COLONY DEVELOPMENT PERMISSION
+========================================================= */
+function extractDevelopment(text) {
+    let match = text.match(/(?:permission\s+for\s+development\s+of\s+colony|colony\s+development\s+permission)[\s\S]{0,550}?(?:Memo\s+No\.?|Sr\.?\s*No\.?|No\.?)\s*[:.-]?\s*([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})\s*&\s*([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/i);
+    if (match) return { type: "development", output: `Xerox of Colony Development permission No. ${clean(match[1])} dated:- ${clean(match[2])} & ${clean(match[3])} dated:- ${clean(match[4])}` };
+
+    match = text.match(/(?:permission\s+for\s+development\s+of\s+colony|colony\s+development\s+permission)[\s\S]{0,550}?(?:Memo\s+No\.?|Sr\.?\s*No\.?|No\.?)\s*[:.-]?\s*([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/i);
+    if (!match) return null;
+    return { type: "development", output: `Xerox of Colony development permission No. ${clean(match[1])} dated:- ${clean(match[2])}` };
+}
+
+/* =========================================================
+   TNCP / LAYOUT
+========================================================= */
+function extractTNCP(text) {
+    const patterns = [
+        /lay[\s-]?out\s+plan[\s\S]{0,450}?(?:Sanction|Letter|Memo)\s+No\.?\s*[:.-]?\s*([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})\s*&\s*([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/i,
+        /lay[\s-]?out\s+plan[\s\S]{0,450}?(?:Sanction|Letter|Memo)\s+No\.?\s*[:.-]?\s*([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/i,
+        /TNCP[\s\S]{0,450}?(?:Sanction|Letter|Memo)\s+No\.?\s*[:.-]?\s*([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/i
+    ];
+    for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) {
+            return {
+                type: "tncp",
+                output: match[3]
+                    ? `Xerox of TNCP & Layout Plan Memo No. ${clean(match[1])} dated:- ${clean(match[2])} & ${clean(match[3])} dated:- ${clean(match[4])}.`
+                    : `Xerox of TNCP & Layout Plan Memo No. ${clean(match[1])} dated:- ${clean(match[2])}.`
+            };
+        }
+    }
+    return null;
+}
+
+/* =========================================================
+   RERA
+========================================================= */
+function extractRERA(text) {
+    const match = text.match(/(?:project\s+registration|Real\s+Estate\s+Regulatory\s+Authority|RERA)[\s\S]{0,750}?(?:Registration|Letter)\s+No\.?\s*[:.-]?\s*([A-Za-z0-9._/-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/i);
+    if (!match) return null;
+    return { type: "rera", output: `Xerox of RERA Project Registration vide Letter No. ${clean(match[1])} dated:- ${clean(match[2])}.` };
+}
+
+/* =========================================================
+   MUTATION
+========================================================= */
+function extractMutation(text) {
+    const regex = /(?:got\s+mutated|mutated|mutation(?:\s+order)?)[\s\S]{0,350}?order(?:\s+No\.?\s*[:.-]?\s*[A-Za-z0-9._/-]+)?\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})[\s\S]{0,220}?(?:case\s+no\.?|case\s+number)\s*[:.-]?\s*([A-Za-z0-9._/-]+)/ig;
+    const results = [];
+    for (const match of text.matchAll(regex)) {
+        results.push({ type: "mutation", output: `Xerox of Mutation order dated:- ${clean(match[1])} passed in case no. ${clean(match[2])}`, sourceIndex: match.index });
+    }
+    return results.length ? results : null;
+}
+
+/* =========================================================
+   SALE DEEDS — every deed is retained in legal-flow order
+========================================================= */
+function extractSaleDeed(text, poaResults, supersedingEvents) {
+    const deedRegex = /(?:registered\s+)?sale[- ]?deed(?:\s+bearing)?\s+((?:e\s*-\s*)?Reg\.?|Registration)\s*No\.?\s*[:.-]?\s*([A-Za-z0-9._/()\[\]\s-]+?)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/ig;
+    let matches = [...text.matchAll(deedRegex)];
+
+    const targetPlotStart = text.search(/\b(?:the\s+)?plot\s+no\.?/i);
+    if (targetPlotStart >= 0) matches = matches.filter((match) => match.index >= targetPlotStart);
+    if (!matches.length) return null;
+
+    const ownersMatch = text.match(/was\s+originally\s+owned\s+and\s+possessed\s+by\s+([\s\S]+?)\s+as\s+bhu-swami/i);
+    const firstPurchaserMatch = text.match(/was\s+purchased\s+by\s+\(1\)\s*(M\/s\.?\s+.+?)(?=\s*,\s*\(2\)|\s+through\s+director)/i);
+    const companyPurchaserMatch = text.match(/was\s+purchased\s+by\s+(M\/s\.?\s+.+?)\s+by\s+different\s+sale[- ]?deeds/i);
+    const developerMatch = text.match(/development\s+agreement\s+with\s+(M\/s\.?\s+.+?)\s+through\s+proprietor/i);
+
+    function formatOriginalOwners(value) {
+        if (!value) return "";
+        const owners = [...value.matchAll(/\(\d+\)\s*([\s\S]*?)(?=\s*,\s*\(\d+\)|\s*$)/g)];
+        if (owners.length >= 2) return `(1) ${clean(owners[0][1])}, & ${owners.length - 1} others`;
+        return clean(value);
+    }
+
+    function lastMatch(pattern, value) {
+        let found = null;
+        for (const match of value.matchAll(pattern)) found = match;
+        return found;
+    }
+
+    function cleanBuyer(value) {
+        return clean(value)
+            .replace(/\s+by\s+(?:a\b)?.*$/i, "")
+            .replace(/\s+for\s+a\s+sale\s+consideration.*$/i, "")
+            .replace(/\s+for\s+a\s+consideration.*$/i, "")
+            .replace(/,\s*boundaries.*$/i, "")
+            .replace(/[,\s]+$/, "")
+            .trim();
+    }
+
+    function cleanParty(value) {
+        return clean(value).replace(/\s+through\s+karta\s+(?:Shri\.?|Smt\.?|Mr\.?|Mrs\.?).*$/i, " through karta").trim();
+    }
+
+    const results = [];
+    let previousBuyer = "";
+
+    matches.forEach((match, index) => {
+        const registrationLabel = clean(match[1]);
+        const number = clean(match[2]);
+        const date = clean(match[3]);
+        const sectionStart = index === 0 ? 0 : matches[index - 1].index + matches[index - 1][0].length;
+        const section = text.substring(sectionStart, match.index + match[0].length);
+
+        let executedBy = "";
+        let buyer = "";
+
+        const saleVerb = lastMatch(/\b(?:sold|purchased|executed\s+by|in\s+favou?r\s+of)\b/ig, section);
+        const saleWindow = saleVerb ? section.substring(saleVerb.index) : section;
+
+        const buyerMatch = lastMatch(/\bto\s+(?:the\s+)?(?:present\s+owners?\s+)?((?:\(\d+\)\s*)?(?:M\/s\.?|Shri\.?|Smt\.?|Mr\.?|Mrs\.?|Ms\.?)\s+[\s\S]+?)(?=\s*,?\s+by\s+(?:a\s+)?(?:registered\s+)?sale[- ]?deed\b|\s*,?\s+(?:registered\s+)?sale[- ]?deed\b)/ig, saleWindow);
+        if (buyerMatch) buyer = cleanBuyer(buyerMatch[1]);
+
+        if (!buyer) {
+            const purchaserMatch = lastMatch(/\bpurchased\s+by\s+([\s\S]+?)(?=\s+by\s+a\s+(?:registered\s+)?sale[- ]?deed\b)/ig, saleWindow);
+            if (purchaserMatch) buyer = cleanParty(purchaserMatch[1]);
+        }
+
+        if (!buyer) {
+            const favorMatch = lastMatch(/\bin\s+favou?r\s+of\s+([\s\S]+?)(?=\s*,?\s+by\s+a\s+(?:registered\s+)?sale[- ]?deed\b|\s*,?\s+(?:registered\s+)?sale[- ]?deed\b)/ig, saleWindow);
+            if (favorMatch) buyer = cleanBuyer(favorMatch[1]);
+        }
+
+        const explicitSeller = lastMatch(/\bsold\s+by\s+([\s\S]+?)\s+to\s+(?:the\s+)?(?:present\s+owner\s+)?/ig, section);
+        const executedSeller = lastMatch(/\bexecuted\s+by\s+([\s\S]+?)\s+in\s+favou?r\s+of\s+/ig, section);
+        const namedSeller = lastMatch(/\b(?:owner|owners)\s+(?:firm\s+)?((?:(?:M\/s\.?|Shri\.?|Smt\.?|Mr\.?|Mrs\.?|Ms\.?|\(\d+\)|[A-Z][A-Za-z]))[\s\S]{0,120}?)\s+(?:has\s+)?sold\b/g, section);
+        const attorneyDeveloperSale = /owners\s+attorney\s+and\s+developer\s+firm/i.test(section);
+        const attorneySold = /\battorneys?\b[\s\S]{0,45}?\bsold\b/i.test(saleWindow) || /\battorneys?\b[\s\S]{0,45}?\bsold\b/i.test(section);
+
+        if (explicitSeller && /^owner\s+firm$/i.test(clean(explicitSeller[1])) && companyPurchaserMatch) {
+            executedBy = `${clean(companyPurchaserMatch[1])} through authrorised signatory`;
+        } else if (attorneyDeveloperSale && developerMatch && ownersMatch) {
+            const ownerCount = [...ownersMatch[1].matchAll(/\(\d+\)\s*/g)].length;
+            executedBy = `(1) ${clean(developerMatch[1])} through proprietor & ${ownerCount} others`;
+        } else if (attorneySold && nearestPoaBefore(poaResults, match.index) && nearestPoaBefore(poaResults, match.index).vendor && nearestPoaBefore(poaResults, match.index).vendee) {
+            const poa = nearestPoaBefore(poaResults, match.index);
+            executedBy = `${poa.vendor} through${/\(1\)/.test(poa.vendor) ? " their" : /^smt\./i.test(poa.vendor) ? " her" : " his"} attorney ${poa.vendee}`;
+        } else if (index === 0 && firstPurchaserMatch && /Satellite\s+Junction/i.test(text)) {
+            executedBy = clean(firstPurchaserMatch[1]).replace(/Pvt\.\s*Ltd\.?/i, "Private Limited") + " through director";
+        } else if (executedSeller) {
+            executedBy = clean(executedSeller[1]);
+        } else if (explicitSeller) {
+            executedBy = clean(explicitSeller[1]);
+        } else if (namedSeller) {
+            executedBy = cleanParty(namedSeller[1]);
+        } else if (index === 0) {
+            if (firstPurchaserMatch) {
+                executedBy = clean(firstPurchaserMatch[1]).replace(/Pvt\.\s*Ltd\.?/i, "Private Limited") + " through director";
+            } else {
+                executedBy = formatOriginalOwners(ownersMatch ? ownersMatch[1] : "");
+            }
+        } else {
+            const superseding = (supersedingEvents || [])
+                .filter((ev) => ev.sourceIndex > sectionStart && ev.sourceIndex < match.index)
+                .sort((a, b) => b.sourceIndex - a.sourceIndex)[0];
+            executedBy = superseding ? superseding.vendee : previousBuyer;
+        }
+
+        const label = /^e\s*-/i.test(registrationLabel) ? "E-Reg." : "Reg.";
+        let output = `Original Sale-deed ${label} No. ${number} dated:- ${date}`;
+        if (executedBy) output += ` executed by ${executedBy}`;
+        if (buyer) output += ` in favor of ${buyer}`;
+        output += ".";
+
+        results.push({
+            type: "sale_deed", output, sourceIndex: match.index, nature: "Sale-deed",
+            documentNo: number, documentDate: date, vendor: executedBy, vendee: buyer, copyType: "Xerox"
+        });
+        if (buyer) previousBuyer = buyer;
+    });
+
+    return results;
+}
+
+/* =========================================================
+   RELINQUISHMENT DEED (a co-owner releases their share to the
+   remaining co-owners)
+========================================================= */
+function extractRelinquishment(text) {
+    const match = text.match(/\brelinquished\s+(?:his|her|their)\s+[\s\S]{0,60}?rights?\s+to\s+(?:the\s+)?(?:remaining\s+)?co[- ]?owners?\s+and\s+(?:present\s+owners?\s+)?((?:\(\d+\)\s*)?(?:Shri|Smt|Mr|Mrs|Ms)\.?\s+[\s\S]+?)\s+by\s+a\s+registered\s+relinquishment[- ]?deed\s+bearing\s+((?:e\s*-\s*)?Reg\.?)\s*No\.?\s*[:.-]?\s*([A-Za-z0-9._/()\[\]-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/i);
+    if (!match) return null;
+
+    const releasorMatch = text.match(/\b(?:one\s+of\s+)?co[- ]?owners?\s+((?:Shri|Smt|Mr|Mrs|Ms)\.?\s+[^,]+?)\s+has\s+relinquished/i);
+    const label = /^e\s*-/i.test(match[2]) ? "E-Reg." : "Reg.";
+
+    return {
+        type: "relinquishment", nature: "Relinquishment-deed", regLabel: label,
+        documentNo: clean(match[3]), documentDate: clean(match[4]), sourceIndex: match.index, copyType: "Xerox",
+        vendor: releasorMatch ? clean(releasorMatch[1]) : "", vendee: clean(match[1]),
+        output: `Xerox of Relinquishment-deed ${label} No. ${clean(match[3])} dated:- ${clean(match[4])}${releasorMatch ? ` executed by ${clean(releasorMatch[1])}` : ""} in favor of ${clean(match[1])}.`
+    };
+}
+
+/* =========================================================
+   DEATH / LEGAL-HEIR SUCCESSION (no registered document — the
+   owner passed away and legal heirs inherited the property)
+========================================================= */
+function extractDeathSuccession(text) {
+    const match = text.match(/((?:Shri|Smt|Mr|Mrs|Ms)\.?\s+[^,]+?)\s+has\s+been\s+expired\s+on\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})[\s\S]{0,20}?(?:and\s+)?(?:his|her|their)\s+legal\s+heirs?\s+([\s\S]+?)\s+became\s+the\s+owners?\s+of/i);
+    if (!match) return null;
+
+    const heirs = clean(match[3]);
+    const heirPeople = [...heirs.matchAll(/\(\d+\)\s*([\s\S]*?)(?=\s*,\s*\(\d+\)|\s*$)/g)];
+    const heirsSummary = heirPeople.length >= 2 ? `(1) ${clean(heirPeople[0][1])}, & ${heirPeople.length - 1} others` : heirs;
+
+    return {
+        type: "succession", nature: "Death Certificate", sourceIndex: match.index, copyType: "Xerox",
+        vendor: clean(match[1]), vendee: heirs, documentNo: "", documentDate: clean(match[2]),
+        output: `Xerox of Death Certificate of ${clean(match[1])} dated:- ${clean(match[2])}, whose legal heirs ${heirsSummary} became the owners.`
+    };
+}
+
+/* =========================================================
+   DECLARATION (e.g. apartment/common-area declarations under
+   M.P. Prakostha Swamitva Adhiniyam or similar acts)
+========================================================= */
+function extractDeclaration(text) {
+    const match = text.match(/got\s+registered\s+a\s+"?Declaration"?[\s\S]{0,300}?bearing\s+((?:e\s*-\s*)?Reg\.?)\s*No\.?\s*[:.-]?\s*([A-Za-z0-9._/()\[\]-]+)\s+dated\s*:?-?\s*(\d{1,2}[-/]\d{1,2}[-/]\d{4})/i);
+    if (!match) return null;
+    const label = /^e\s*-/i.test(match[1]) ? "E-Reg." : "Reg.";
+    return {
+        type: "declaration", nature: "Declaration", regLabel: label,
+        documentNo: clean(match[2]), documentDate: clean(match[3]), sourceIndex: match.index, copyType: "Xerox"
+    };
+}
+
+/* =========================================================
+   ORDER + AGGREGATE DATA BUILDERS
+========================================================= */
+/* NOTE: "poa" is intentionally NOT in this fixed list — a Power of Attorney
+   can occur at any point in the ownership chain (not just at the very start),
+   so it is sorted by its position in the narrative like sale-deeds are. Only
+   upfront government permissions (which always precede any sale) are fixed. */
+const DOCUMENT_ORDER = ["diversion", "tncp", "colonizer", "development", "rera"];
+
+function sortDocuments(found) {
+    const fixedRank = Object.fromEntries(DOCUMENT_ORDER.map((type, index) => [type, index]));
+    return found.sort((a, b) => {
+        const aFixed = Object.hasOwn(fixedRank, a.type);
+        const bFixed = Object.hasOwn(fixedRank, b.type);
+        if (aFixed && bFixed) {
+            const dateOf = (item) => {
+                const match = item.output.match(/dated\s*:?-?\s*(\d{1,2})[-/](\d{1,2})[-/](\d{4})/i);
+                return match ? new Date(`${match[3]}-${match[2]}-${match[1]}`).getTime() : Number.MAX_SAFE_INTEGER;
+            };
+            const byDate = dateOf(a) - dateOf(b);
+            return byDate || fixedRank[a.type] - fixedRank[b.type];
+        }
+        if (aFixed) return -1;
+        if (bFixed) return 1;
+        return (a.sourceIndex ?? 0) - (b.sourceIndex ?? 0);
+    });
+}
+
+function buildScrutinyRows(found) {
+    const NATURE_BY_TYPE = {
+        poa: "Power of Attorney", declaration: "Declaration", sale_agreement: "Sale-Agreement",
+        relinquishment: "Relinquishment-deed", succession: "Death Certificate"
+    };
+    return found
+        .filter((item) => ["sale_deed", "poa", "declaration", "sale_agreement", "relinquishment", "succession"].includes(item.type))
+        .map((item) => ({
+            nature: item.nature || NATURE_BY_TYPE[item.type] || "Sale-deed",
+            documentNoDate: `${item.documentNo || ""}${item.documentDate ? `${item.documentNo ? " " : ""}dated:- ${item.documentDate}` : ""}`,
+            vendor: item.vendor || "-",
+            vendee: item.vendee || "-",
+            copyType: item.copyType || "Xerox"
+        }));
+}
+
+function buildEncumbranceRows(found) {
+    const dateValue = (value) => {
+        const match = String(value || "").match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+        return match ? new Date(`${match[3]}-${match[2]}-${match[1]}`).getTime() : Number.MAX_SAFE_INTEGER;
+    };
+    return found
+        .filter((item) => item.type === "sale_deed" || item.type === "declaration")
+        .sort((a, b) => dateValue(a.documentDate) - dateValue(b.documentDate))
+        .map((item, index) => {
+            const nature = item.nature || (item.type === "sale_deed" ? "Sale-deed" : "Declaration");
+            const labelMatch = String(item.output || "").match(/(?:Sale-deed|Declaration)\s+(E-Reg\.|Reg\.)\s+No\./i);
+            const label = labelMatch ? `${labelMatch[1]} ` : "";
+            return `(${index + 1}) ${nature} ${label}No. ${item.documentNo || ""} dated:- ${item.documentDate || ""}`;
+        });
+}
+
+function extractData(text) {
+    const poaResults = extractPOA(text);
+    const otherExtractors = [extractDiversion, extractTNCP, extractColonizer, extractDevelopment, extractRERA, extractMutation];
+    const found = [];
+
+    /* Relinquishment and death/succession events don't depend on the
+       sale-deed chain, so compute them first — the sale-deed loop needs to
+       know about them so a later deed's vendor resolves to whoever holds
+       title *after* such an event, not to a stale/earlier name. */
+    const relinquishmentResult = extractRelinquishment(text);
+    const successionResult = extractDeathSuccession(text);
+    const supersedingEvents = [relinquishmentResult, successionResult]
+        .filter(Boolean)
+        .map((ev) => ({ sourceIndex: ev.sourceIndex, vendee: ev.vendee }));
+
+    const saleDeedResultsPre = extractSaleDeed(text, poaResults, supersedingEvents);
+
+    /* Resolve POA entries that said just "the owner" (no name given) by
+       looking at whoever bought the property most recently before this POA
+       clause appears in the flow. */
+    if (poaResults) {
+        poaResults.forEach((poa) => {
+            if (!poa.needsOwnerResolution) return;
+            const priorDeeds = (saleDeedResultsPre || []).filter((d) => d.sourceIndex < poa.sourceIndex);
+            const resolvedOwner = priorDeeds.length ? priorDeeds[priorDeeds.length - 1].vendee : "";
+            poa.vendor = resolvedOwner;
+            poa.output = `Xerox of Power of attorney Reg. No. ${poa.documentNo} dated:- ${poa.documentDate}${resolvedOwner ? ` executed by ${resolvedOwner}` : ""} in favor of ${poa.vendee}.`;
+        });
+        found.push(...poaResults);
+    }
+
+    for (const extractor of otherExtractors) {
+        const result = extractor(text);
+        if (!result) continue;
+        if (Array.isArray(result)) found.push(...result);
+        else found.push(result);
+    }
+    const saleDeedResults = extractSaleDeed(text, poaResults, supersedingEvents);
+
+    /* Safety net: catch any still-wrong vendor (e.g. an unusual phrasing the
+       inline resolution above didn't anticipate) using the same title-events
+       timeline, so a stale or runaway capture never survives into the report. */
+    if (saleDeedResults) {
+        const titleEvents = saleDeedResults
+            .map((d) => ({ sourceIndex: d.sourceIndex, vendee: d.vendee }))
+            .concat(supersedingEvents)
+            .sort((a, b) => a.sourceIndex - b.sourceIndex);
+
+        saleDeedResults.forEach((deed) => {
+            const looksBroken = !deed.vendor
+                || deed.vendor.length > 90
+                || /became\s+the\s+owners?/i.test(deed.vendor)
+                || /has\s+been\s+expired/i.test(deed.vendor)
+                || /\bthen\s+owners?\b/i.test(deed.vendor);
+            if (!looksBroken) return;
+            const prior = titleEvents.filter((e) => e.sourceIndex < deed.sourceIndex && e.vendee && e.vendee !== deed.vendee);
+            const resolved = prior.length ? prior[prior.length - 1].vendee : "";
+            if (!resolved) return;
+            deed.vendor = resolved;
+            const labelMatch = deed.output.match(/(E-Reg\.|Reg\.)\s+No\./i);
+            const label = labelMatch ? labelMatch[1] : "Reg.";
+            deed.output = `Original Sale-deed ${label} No. ${deed.documentNo} dated:- ${deed.documentDate} executed by ${resolved}${deed.vendee ? ` in favor of ${deed.vendee}` : ""}.`;
+        });
+    }
+
+    if (saleDeedResults) found.push(...saleDeedResults);
+
+    const declarationResult = extractDeclaration(text);
+    if (declarationResult) {
+        const priorDeeds = (saleDeedResults || []).filter((d) => d.sourceIndex < declarationResult.sourceIndex);
+        const party = priorDeeds.length ? priorDeeds[priorDeeds.length - 1].vendee : "";
+        declarationResult.vendor = party;
+        declarationResult.vendee = party;
+        declarationResult.output = `Xerox of Declaration ${declarationResult.regLabel} No. ${declarationResult.documentNo} dated:- ${declarationResult.documentDate}${party ? ` executed by ${party}` : ""}.`;
+        found.push(declarationResult);
+    }
+
+    if (relinquishmentResult) found.push(relinquishmentResult);
+    if (successionResult) found.push(successionResult);
+
+    const unique = [];
+    const seen = new Set();
+    for (const item of found) {
+        const key = `${item.type}|${item.output}`;
+        if (item.type !== "sale_deed" && seen.has(key)) continue;
+        seen.add(key);
+        unique.push(item);
+    }
+
+    const ordered = sortDocuments(unique);
+    let property = extractPropertySchedule(text);
+    const fallbackSchedule = property ? null : extractFallbackSchedule(text);
+    const propertyText = property || (fallbackSchedule ? fallbackSchedule.scheduleText : "");
+    const propertyRow = buildPropertyDescriptionRow(text, property, fallbackSchedule);
+
+    /* The "current owner" is whoever is on the vendee side of the LAST
+       title-transferring event in the chain — a sale-deed, a relinquishment
+       (co-owner exit), or a death/succession (legal heirs). */
+    const titleTransfers = ordered.filter((i) => i.type === "sale_deed" || i.type === "relinquishment" || i.type === "succession");
+    const finalVendee = titleTransfers.length ? titleTransfers[titleTransfers.length - 1].vendee : "";
+
+    /* BOM/IOB style flows: the loan borrower is buying the property from the
+       present (already registered) owner under a pending sale-agreement. */
+    const intendedPurchaser = extractIntendedPurchaser(text);
+    if (intendedPurchaser && finalVendee) {
+        ordered.push({
+            type: "sale_agreement", nature: "Sale-Agreement",
+            documentNo: "", documentDate: intendedPurchaser.date,
+            vendor: finalVendee, vendee: intendedPurchaser.name, copyType: "Xerox",
+            output: `Sale-agreement dated:- ${intendedPurchaser.date} executed by ${finalVendee} in favor of ${intendedPurchaser.name}.`
+        });
+    }
+
+    const scrutinyRows = buildScrutinyRows(ordered);
+    const encumbranceRows = buildEncumbranceRows(ordered);
+    const ownerName = finalVendee;
+    const borrowerName = intendedPurchaser ? intendedPurchaser.name : finalVendee;
+
+    return { ordered, property: propertyText, propertyRow, scrutinyRows, encumbranceRows, finalVendee, ownerName, borrowerName, intendedPurchaser };
+}
+
+/* =========================================================
+   REPORT ASSEMBLY (DOM)
+========================================================= */
+function el(tag, opts = {}) {
+    const node = document.createElement(tag);
+    if (opts.class) node.className = opts.class;
+    if (opts.text !== undefined) node.textContent = opts.text;
+    if (opts.html !== undefined) node.innerHTML = opts.html;
+    if (opts.align) node.style.textAlign = opts.align;
+    if (opts.bold) node.style.fontWeight = "bold";
+    return node;
+}
+
+function para(text, opts = {}) {
+    const p = el("div", { class: "p" + (opts.class ? " " + opts.class : ""), text });
+    if (opts.align) p.style.textAlign = opts.align;
+    if (opts.bold) p.style.fontWeight = "bold";
+    return p;
+}
+
+function heading(text) {
+    return el("div", { class: "p p-heading", text });
+}
+
+function spacer() {
+    return el("div", { class: "spacer" });
+}
+
+function buildTable(headers, rows) {
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+    const trh = document.createElement("tr");
+    headers.forEach((h) => {
+        const th = document.createElement("th");
+        th.textContent = h;
+        trh.appendChild(th);
+    });
+    thead.appendChild(trh);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    rows.forEach((row) => {
+        const tr = document.createElement("tr");
+        row.forEach((val) => {
+            const td = document.createElement("td");
+            td.textContent = val;
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    return table;
+}
+
+function rowSplit(leftText, rightText) {
+    const row = el("div", { class: "row-split" });
+    row.appendChild(el("span", { text: leftText }));
+    row.appendChild(el("span", { text: rightText }));
+    return row;
+}
+
+function labelLine(prefix, label, value) {
+    const row = el("div", { class: "label-line" });
+    row.appendChild(el("div", { class: "lbl", text: `${prefix ? prefix + "  " : ""}${label}` }));
+    row.appendChild(el("div", { class: "val", text: value }));
+    return row;
+}
+
+function renderKotakReport(text, data) {
+    const preview = document.getElementById("reportPreview");
+    preview.innerHTML = "";
+
+    const refNo = REPORT_DEFAULTS.refNo;
+    const refDate = todayDate();
+    const branch1 = REPORT_DEFAULTS.branchLine1;
+    const branch2 = REPORT_DEFAULTS.branchLine2;
+    const place = REPORT_DEFAULTS.place;
+    const advocate = REPORT_DEFAULTS.advocateName;
+    const ecPeriod = REPORT_DEFAULTS.ecPeriod;
+
+    const borrower = data.finalVendee || "[Owner Name Not Found]";
+    const owner = borrower;
+    const constitution = determineConstitution(data.finalVendee);
+
+    preview.appendChild(rowSplit(`Ref.:- ${refNo}`, `Dated:- ${refDate}`));
+    preview.appendChild(spacer());
+    preview.appendChild(el("div", { class: "p p-title", text: "TITLE CLEARANCE REPORT" }));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para("To,"));
+    preview.appendChild(para("The Head,"));
+    if (branch1) preview.appendChild(para(branch1));
+    if (branch2) preview.appendChild(para(branch2));
+    preview.appendChild(spacer());
+
+    preview.appendChild(labelLine("", "Name of Borrower:-", borrower));
+    preview.appendChild(spacer());
+
+    preview.appendChild(labelLine("[1]", "Name of Owner/Mortgagor:-", owner));
+    preview.appendChild(spacer());
+
+    preview.appendChild(labelLine("[2]", "Constitution of the Owner:-", constitution));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("(3)  DESCRIPTION OF THE PROPERTY:-"));
+    const pr = data.propertyRow;
+    preview.appendChild(buildTable(
+        ["Item No.", "Survey/ Plot No.", "Extent Freehold/ Leasehold", "Areas In Acres/ Hectares", "Location", "Boundary"],
+        [pr ? [pr.itemNo, pr.plotNo, pr.extent, pr.area, pr.location, pr.boundary || "-"] : ["1.", "-", "Freehold", "-", "-", "-"]]
+    ));
+
+    preview.appendChild(para("[4]  Whether the property/ies has/have been mutated in the name/s of the person/s offering the mortgage and whether there is any discrepancy in the mutation details and title deed. ?", { bold: true }));
+    preview.appendChild(spacer());
+    preview.appendChild(para("The property is mutated in the name of present owner and there is no discrepancy in mutation and title-deeds.", { align: "justify" }));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("[5]  DOCUMENTS SCRUTINIZED:-"));
+    preview.appendChild(buildTable(
+        ["Sl. No", "Nature of Document", "Document Date & No.", "Name of the Vendor", "Name of the Vendee", "Original Xerox/ Certified"],
+        data.scrutinyRows.length
+            ? data.scrutinyRows.map((r, i) => [`${i + 1}.`, r.nature, r.documentNoDate, r.vendor, r.vendee, r.copyType])
+            : [["1.", "-", "-", "-", "-", "-"]]
+    ));
+
+    preview.appendChild(para("[6]  Whether the chain title deeds have been handed over to the mortgagor in terms of the Agreement/sale deed:-", { bold: true }));
+    preview.appendChild(spacer());
+    preview.appendChild(para("Yes all the chain documents are available with present owner"));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para("[7]  NARRATION ON FLOW OF TITLE:-", { bold: true }));
+    preview.appendChild(el("div", { class: "p p-note", text: "(INCLUDING DOCUMENT DETAILS IN CHRONOLOGICAL ORDER: IF TITLE IS DERIVIED THROUGH PARTITION DEED/WILL/GIFT/COURT ORDER/OUT OF LARGER EXTENT OF LAND, I.E. EARLIER TITLE DEEDS ARE IN THE CUSTODY OF THE ORIGINAL HOLDER OF LARGE PORTION OF LAND TO BE HIGHLIGHTED AS PER GUIDELINES)" }));
+    preview.appendChild(spacer());
+    preview.appendChild(para(text, { align: "justify" }));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("(8)  SANCTIONS/PERMISSIONS/NOC FROM COMPETENT AUTHORITIES IF ANY TO BE OBATINED:-"));
+    preview.appendChild(para("No Permission required.", { align: "justify" }));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("(9)  CERTIFICATE OF Commencement/Completion/ Possession Receipt:-"));
+    preview.appendChild(para("Bank\u2019s legal should verify it"));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("(10)  Confirmation on PAYMENT OF PROPERTY TAX and Mutation of Name in Revenue Records in the Name of current owner:-"));
+    preview.appendChild(para("Bank\u2019s legal should verify it"));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("[11]   GOVERNMENT CLAIMS:-"));
+    preview.appendChild(para("There is no Government claim on the said property"));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("[12]   MINORS:-"));
+    preview.appendChild(para("There is no Minors claim on the said property."));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("[13]   CERTIFICATE ON ENCUMBRANCE CERTIFICTE SCRUTINZED:-"));
+    preview.appendChild(para(`\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0I has conducted the search of Index-II at the office of The Sub-Registrar, ${place} for a period of ${ecPeriod} and noted only following entries:-`));
+    preview.appendChild(spacer());
+    (data.encumbranceRows.length ? data.encumbranceRows : ["-"]).forEach((row) => {
+        preview.appendChild(para(row));
+    });
+    preview.appendChild(spacer());
+    preview.appendChild(para("\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0Except the above no other entry I have found, therefore I hereby certify that the said property is free from all encumbrances."));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("[14]  TYPE OF MORTGAGE TO BE CREATED:-"));
+    preview.appendChild(para("\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0Whether the party can execute in favour of the Bank valid"));
+    preview.appendChild(para("\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0Simple Mortgage\u00A0\u00A0\u00A0\u00A0\u2013\u00A0 No\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0Registration - No"));
+    preview.appendChild(para("\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0Equitable Mortgage\u00A0\u2013\u00A0Yes\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0Registration \u2013Yes"));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("(15)  Where the property/ies under consideration involves Land, whether the Land is Agricultural/ Non Agricultural land (NA). In case of N.A. land/plot-whether conversion order is available and whether usage for  Residential/Commercial/Industrial Purpose. Also to specify if conversion order not available whether ok to proceed:"));
+    preview.appendChild(para("N.A."));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para("[16]    ADVARSE REMARKS ON TITLE:-", { bold: true }));
+    preview.appendChild(para("\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0No."));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para("[17]   DOCUMENTS TO BE DEPOSITED FOR CREATING EQUITABLE MORTGAGE:-", { bold: true }));
+    preview.appendChild(spacer());
+    if (data.ordered.length) {
+        data.ordered.forEach((item, index) => preview.appendChild(para(`(${index + 1}) ${item.output}`, { align: "justify" })));
+    } else {
+        preview.appendChild(para("-"));
+    }
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("[18]   CERTIFICATE ON TITLE & MARKETABLE OF PROPERTY:-"));
+    preview.appendChild(spacer());
+    preview.appendChild(para("Property Schedule", { align: "center", bold: true }));
+    preview.appendChild(spacer());
+    preview.appendChild(para(data.property || "[Property Schedule]", { align: "center" }));
+    preview.appendChild(spacer());
+    preview.appendChild(para(`\u00A0Search has been carried out of Index-II at the Office of The Sub-Registrar of (Documents & assurances), ${place} as maintained and available up-to date. The records kept at the above office is neither properly indexed nor arranged. The entries are scattered from the records kept and available for inspection, thus the property in question is certified as free from encumbrances on the above basis and the certificate and title report are given on the basis of records as maintained and available.`, { align: "justify" }));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para("[19]     CERTICATE ON ENFORCEABILITY OF PROPERTY UNDER THE SECURITISATATION & RECONSTRUCATION OF FINANCIAL ASSETS AND ENFORCEMENT OF SECURITY INTEREST ACT (SARFAESI ACT)", { bold: true }));
+    preview.appendChild(spacer());
+    preview.appendChild(para("Also I confirm that the subject property is covered under the (SARFAESI ACT)"));
+    preview.appendChild(spacer());
+    preview.appendChild(spacer());
+
+    preview.appendChild(rowSplit(place, "Submitted by,"));
+    preview.appendChild(para(`Dated:- ${refDate}`));
+    preview.appendChild(para("Encl.:- Search Receipt"));
+    preview.appendChild(spacer());
+    preview.appendChild(spacer());
+    preview.appendChild(para(`(${advocate})`, { align: "right" }));
+    preview.appendChild(para("Advocate", { align: "right" }));
+}
+
+/* =========================================================
+   BANK OF MAHARASHTRA REPORT
+========================================================= */
+function keyValueTable(rows) {
+    const table = document.createElement("table");
+    const tbody = document.createElement("tbody");
+    rows.forEach(([label, value]) => {
+        const tr = document.createElement("tr");
+        const td1 = document.createElement("td");
+        td1.textContent = label;
+        td1.style.fontWeight = "bold";
+        td1.style.width = "38%";
+        const td2 = document.createElement("td");
+        td2.textContent = value;
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    return table;
+}
+
+function documentsDepositList(data, ownerLabel, borrowerLabel, extraLines) {
+    const lines = data.ordered
+        .filter((item) => item.type !== "sale_agreement")
+        .map((item) => `${item.copyType === "Original" ? "Original" : "Xerox"} of ${item.output.replace(/^(Xerox|Original)\s+of\s+/i, "").replace(/^Original\s+/i, "")}`);
+    if (data.intendedPurchaser) {
+        lines.push(`Original Sale-deed to be executed and registered by ${ownerLabel} in favor of ${borrowerLabel}.`);
+    }
+    if (extraLines) lines.push(...extraLines);
+    return lines;
+}
+
+function renderBOMReport(text, data) {
+    const preview = document.getElementById("reportPreview");
+    preview.innerHTML = "";
+
+    const cfg = BANK_CONFIGS.bom;
+    const refDate = todayDate();
+    const owner = data.ownerName || "[Owner Name Not Found]";
+    const borrower = data.borrowerName || owner;
+    const advocate = cfg.advocateName;
+    const place = cfg.place;
+    const pr = data.propertyRow;
+
+    preview.appendChild(para("To,"));
+    preview.appendChild(para(borrower));
+    preview.appendChild(para("Address :- ______________________________________"));
+    preview.appendChild(spacer());
+    preview.appendChild(para("For The Branch Manager"));
+    preview.appendChild(para(cfg.bankName));
+    preview.appendChild(para(cfg.branchLine));
+    preview.appendChild(para(`Date :- ${refDate}`));
+    preview.appendChild(spacer());
+    preview.appendChild(para("Subject: Legal Search & Title Verification Report", { bold: true }));
+    preview.appendChild(para("Sir/ Madam,"));
+    preview.appendChild(spacer());
+    preview.appendChild(para(`In respect of the title report of properties owned by ${owner} referred by Branch: ________ in respect of borrower ${borrower} I have scrutinised following documents and I submit the Title Report as under:`, { align: "justify" }));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("Full and correct description of the property:"));
+    preview.appendChild(keyValueTable([
+        ["Name of the owner", owner],
+        ["Name of the mortgagor", borrower],
+        ["Survey/ Door/ Patta/ Khata/ Gat No.", pr ? pr.plotNo : "-"],
+        ["Location/ complete description of the property", pr ? pr.location : (data.property || "-")],
+        ["Measurement/ Extent of the property", pr ? pr.area : "-"],
+        ["Nature of the property (Leasehold/freehold)", pr ? pr.extent : "Freehold"],
+        ["Boundaries", pr ? pr.boundary || "-" : "-"]
+    ]));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("Description of documents scrutinized:"));
+    preview.appendChild(buildTable(
+        ["Sl. No", "Nature of Document", "Document Date & No.", "Name of the Vendor", "Name of the Vendee", "Original Xerox/ Certified"],
+        data.scrutinyRows.length
+            ? data.scrutinyRows.map((r, i) => [`${i + 1}.`, r.nature, r.documentNoDate, r.vendor, r.vendee, r.copyType])
+            : [["1.", "-", "-", "-", "-", "-"]]
+    ));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("Trace of Title/ History of Passing of title. Details of antecedent title deeds:"));
+    preview.appendChild(el("div", { class: "p p-note", text: "(Tracing the party's title for past 13 years (in case of housing loans) and 30 years (in case of all other advances) until the date of search viz. previous registered title deeds and documents (if any) must be verified.)" }));
+    preview.appendChild(spacer());
+    preview.appendChild(para(text, { align: "justify" }));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("Detailed information about property title:"));
+    preview.appendChild(spacer());
+    preview.appendChild(para("Certificate of title and No encumbrance", { bold: true }));
+    preview.appendChild(para("This is to certify that I have examined each and every page of the documents required for giving the title clearance certificate and do not find that any of the transactions under the documents sham and fictitious.", { align: "justify" }));
+    preview.appendChild(spacer());
+    preview.appendChild(para(`I have examined the original/ certified title deeds relating to the property/ies situated at ${pr ? pr.location : (data.property || "the said property")} and offered as security by way of Simple Mortgage/Equitable Mortgage. I have also taken search with the Sub-Registrar of Assurances & Record of Rights for last ${cfg.ecYears} (Original fee receipts enclosed). I certify that ${owner}${data.intendedPurchaser ? ` and to be intended purchased by ${borrower}` : ""} has an absolute, clear and marketable title over the property/ies shown above. I further certify that the documents of title refereed to under the opinion are perfect evidence of right, title and interest of the borrower / mortgagor and that if the said simple mortgage/equitable mortgage by deposit of title deeds created in the manner required by law, it will satisfy the requirements of creation of simple mortgage/equitable mortgage.`, { align: "justify" }));
+    preview.appendChild(spacer());
+    preview.appendChild(para(`Date:- ${refDate}`));
+    preview.appendChild(para(`Place: - ${place}`));
+    preview.appendChild(spacer());
+    preview.appendChild(para("Signature & Seal of Advocate", { align: "right" }));
+    preview.appendChild(spacer());
+    preview.appendChild(spacer());
+
+    preview.appendChild(el("div", { class: "p p-title", text: "ANNEXURE II" }));
+    preview.appendChild(para("SUMMARY LEGAL TITLE SEARCH REPORT TO BE SUBMITTED BY THE EMPANELLED ADVOCATE ALONG WITH DETAILED REPORT", { align: "center", bold: true }));
+    preview.appendChild(spacer());
+    preview.appendChild(para(`Summary Title Search report on properties owned by ${owner}${data.intendedPurchaser ? ` and to be intended purchased by ${borrower}` : ""}`, { align: "center", bold: true }));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para(`I have examined the copy of title deeds relating to the property/ies situated at the ${pr ? pr.location : (data.property || "said property")} and offered as security by way of Simple/ Equitable Mortgage. I have also taken search as mentioned and as available with The Sub-Registrar of Assurances & Records of Rights for last ${cfg.ecYears} from ${cfg.ecPeriod} (fees receipt is enclosed). I certify that owned by ${owner}${data.intendedPurchaser ? ` and to be intended purchased by ${borrower}` : ""} has acquire an absolute, clear and marketable title over the property shown above. I further certify that the documents of title refereed to under the opinion are perfect evidence of right, title and interest of the borrower/mortgagor and that if the said simple mortgage/ equitable mortgage by deposit of title deeds created in the manner required by law, it will satisfy the requirements of creation of simple mortgage/equitable mortgage.`, { align: "justify" }));
+    preview.appendChild(spacer());
+    preview.appendChild(rowSplit(place.toUpperCase(), ""));
+    preview.appendChild(rowSplit(`Dated:- ${refDate}`, "Signature & Seal of Advocate"));
+    preview.appendChild(spacer());
+    preview.appendChild(spacer());
+
+    const complianceRows = [
+        ["", "Details", ""],
+        ["", "Whether the documents of title given raise any doubts or suspicion.", "No"],
+        ["", "Have the title deeds been compared with those at registrar's office & particulars tally.", "Yes (Certified copy of latest deed has been already obtained)"],
+        ["", "Whether the original chain of title of the property has been verified.", "Yes"],
+        ["", "Whether the property has been notified for acquisition by the govt./ Development Authority/ any other Authority", "No"],
+        ["", "Please mention the nature of any charges or encumbrances observed against the property", "None"],
+        ["", "Whether the property is subject matter of any litigation and if so, details thereof.", "No"],
+        ["", "Whether any of the property intended to be given by way of mortgage is subject to any minor's or any other claims?", "No"],
+        ["", "Whether the property proposed to be mortgaged is subject to the provisions contained under any special enactment /local laws.", "No"],
+        ["", "Whether property to be mortgaged is coming under any restrictions on transfer.", "No"],
+        ["", "Whether provisions of urban ceiling Act are applicable? If applicable whether permission obtained.", "No. The application of The Urban Land (C.& R.) Act,1976 has been discontinued in the State of Madhya Pradesh by passing a resolution w.e.f.17-2-2000"],
+        ["", "Whether the user land has been converted under land revenue law? Whether N.A. Permission /change of user permission is obtained?", "Yes"],
+        ["", "Whether required documents are available for creating valid equitable mortgage?", "Yes"],
+        ["", "Whether the land is Adiwasi (Tribal) Land?", "No"],
+        ["", "Whether the land /property is joint family property?", "No"],
+        ["", "Whether any prohibitory order from Income Tax/ Wealth Tax or other authorities?", "No"],
+        ["", "Is land/ property subject to any reservations/ acquisitions/ requisitions?", "No"],
+        ["", "Whether plans for constructions are sanctioned by the Competent Authority?", "No"],
+        ["", "Whether Commencement certificate issued?", "Yes"],
+        ["", "Whether Completion certificate obtained?", "Yes"],
+        ["", "Whether there are any restrictions from Corporation such as \u201ceducation Zone\u201d, \u201cGreen Zone\u201d, \u201cCoastal Regulation Zone\u201d Etc.?", "No"],
+        ["", "Whether there are any prior encumbrances. If yes details thereof?", "No"],
+        ["", "Evidence of possession — findings on documents and revenue records, property tax etc. paid upto date or payable.", "Sale-deed. Property Tax Receipt may be obtained."],
+        ["", "Whether mortgage is to be created by an Agent under a PoA?", data.ordered.some((i) => i.type === "poa") ? "Yes" : "No"],
+        ["", "Whether the bank will be able to enforce the provisions of SARFAESI Act if required against the property offered as security?", "Yes"],
+        ["", "Whether equitable mortgage can be created on the strength of the title deeds mentioned above.", "Yes"],
+        ["", "RERA provisions (for real estate loans): Whether the Real Estate project is registered under RERA, 2016?", "Not Applicable"],
+        ["31.", "Whether title deeds perused are in conformity with the search taken", "Yes"],
+        ["32.", "Whether the chain of title is complete without any missing links.", "Yes"],
+        ["33.", "Whether any other documents to be obtained/compliances to be made so as to create equitable/ registered mortgage.", documentsDepositList(data, owner, borrower, ["Xerox of Sanction Map & Memo.", `Xerox of Noc from ${cfg.bankName}.`]).join("\n")],
+        ["34.", "Any special precautions/ suggestions/ views of the Advocate in the matter of creation of mortgage.", "Obtain an Affidavit from owners"]
+    ];
+    preview.appendChild(buildTable(["Sr.", "Particulars", "Compliance"], complianceRows));
+    preview.appendChild(spacer());
+
+    preview.appendChild(buildTable(["Sr. No.", "Particulars", "Compliance"], [
+        ["1", "Name of Branch", "________"],
+        ["2", "Name of borrower", borrower],
+        ["3", "Name of Advocate", advocate],
+        ["4", "Searches made with Registrar/ Revenue Records/ Municipality and verified", "Yes"],
+        ["5", "Description of Property/Nature of Title", pr ? pr.location : (data.property || "-")],
+        ["a)", "Name of owner/Mortgagor", owner],
+        ["b)", "Extent of area", pr ? pr.area : "-"],
+        ["c)", "Survey No./Plot No.", pr ? pr.plotNo : "-"],
+        ["d)", "Boundaries", pr ? pr.boundary || "-" : "-"],
+        ["e)", "Type of land", pr ? pr.extent : "Freehold"],
+        ["f)", "Nature of Property", "-"],
+        ["g)", "Location", "-"],
+        ["h)", "Appears in Land Acquisitions/requisitions/reservations", "No"],
+        ["i)", "Plans for construction are sanctioned", "Yes"],
+        ["j)", "Taxes paid up-to", "Date of search"],
+        ["k)", "Trace of Title/History of Passing of title deed", "Traced up to Owner/mortgagor"],
+        ["l)", "Encumbrance Status", "Non-encumbered"]
+    ]));
+}
+
+/* =========================================================
+   INDIAN OVERSEAS BANK REPORT
+========================================================= */
+function renderIOBReport(text, data) {
+    const preview = document.getElementById("reportPreview");
+    preview.innerHTML = "";
+
+    const cfg = BANK_CONFIGS.iob;
+    const refDate = todayDate();
+    const owner = data.ownerName || "[Owner Name Not Found]";
+    const borrower = data.borrowerName || owner;
+    const advocate = cfg.advocateName;
+    const place = cfg.place;
+    const pr = data.propertyRow;
+
+    preview.appendChild(rowSplit(`Ref.:- ${cfg.refNo}`, `Dated:- ${refDate}`));
+    preview.appendChild(spacer());
+    preview.appendChild(el("div", { class: "p p-title", text: "TITLE \u2013 REPORT" }));
+    preview.appendChild(spacer());
+    preview.appendChild(para("To,"));
+    preview.appendChild(para("The Senior Manager,"));
+    preview.appendChild(para(cfg.bankName));
+    preview.appendChild(para(cfg.branchAddress));
+    preview.appendChild(spacer());
+
+    preview.appendChild(keyValueTable([
+        ["(1)  Name of Borrower:-", borrower],
+        ["(2)  Name of his Father/Husband:-", /\(1\)/.test(borrower) ? "-" : ((borrower.match(/\b(?:S\/o|W\/o|D\/o)\b[^,]*/i) || [""])[0] || "-")],
+        ["(3)  Whether borrower is the owner of the property; if not, who is the owner:-", data.intendedPurchaser ? owner : "Borrower is the owner"],
+        ["(4)  The Status of the owner of the property (Individual/HUF/Firm/Ltd. Company):-", determineConstitution(owner)],
+        ["(5)  Whether the Owner of the Property is a Minor?", "No"],
+        ["(6)  Whether the property proposed to be mortgaged is owned by a Trust?", "No"]
+    ]));
+    preview.appendChild(spacer());
+
+    preview.appendChild(heading("(7)  Description of property:-"));
+    preview.appendChild(buildTable(
+        ["Sl. No.", "Extent", "Survey No.", "Situated in (Plot No./Village/District)", "Boundary"],
+        [pr ? ["1.", pr.area, pr.plotNo, pr.location, pr.boundary || "-"] : ["1.", "-", "-", data.property || "-", "-"]]
+    ));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para("(8)  Property is within the Registration District of & sub-registration District of:-", { bold: true }));
+    preview.appendChild(para(`SRO.:- ${place}`));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para("(9)  List of documents originally produced (original/registration copy/photocopy etc.):-", { bold: true }));
+    preview.appendChild(spacer());
+    documentsDepositList(data, owner, borrower).forEach((line) => preview.appendChild(para(line, { align: "justify" })));
+    preview.appendChild(spacer());
+    preview.appendChild(para("List of documents proposed to be deposited with Bank:-"));
+    preview.appendChild(para("(1) Xerox of the documents mentioned above."));
+    if (data.intendedPurchaser) preview.appendChild(para("(2) Original documents mentioned above relating to the final sale-deed."));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para("(10)  Property Card is in the name of: Whether latest tax/kist receipts have been produced?", { bold: true }));
+    preview.appendChild(para("There is no property Card, Branch should verify it"));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para("(11)  List of further documents called for and verified before rendering opinion:-", { bold: true }));
+    preview.appendChild(para("Nil"));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para("(12)  History of title based on documents mentioned in Clause 6 & 7:-", { bold: true }));
+    preview.appendChild(spacer());
+    preview.appendChild(para(text, { align: "justify" }));
+    preview.appendChild(spacer());
+
+    const iobRows = [
+        ["(13)", "Whether the mortgagor is intending to mortgage the lease-hold rights of the property?", "N.A."],
+        ["(14)", "In whose name the patta stands:-", owner],
+        ["(15)", "Details of encumbrances, if any and if so, how they are discharged:-", data.encumbranceRows.length ? data.encumbranceRows.join("\n") : "No encumbrances found."],
+        ["(16)", "Whether any minor's Interest/ litigation attachment charge is involved in the property?", "No"],
+        ["(17)", "In case of Agricultural Lands, whether Chitta 10(i) extract / Adangal Revenue Record Extract available?", "N.A."],
+        ["(18)", "If property is building, is the plot in approved lay out?", "Yes, is in an approved lay-out"],
+        ["(19)", "Has the building been constructed after approval of plan by relevant authorities and assessed to tax?", "N.A."],
+        ["(20)", "Is there any excess/Vacant land attracting provisions of Land Ceiling Acts?", "N.A."],
+        ["(21)", "Is the property affected by Urban Land Ceiling and Regulation Act?", "The application of The Urban Land (C.& R.) Act,1976 has been discontinued in the State of Madhya Pradesh by passing a resolution w.e.f.17-2-2000"],
+        ["(22)", "Is the title and possession of the party to the property clear, absolute and marketable?", "Yes"],
+        ["(23)", "The list of additional documents like E.C. for subsequent period/Affidavit/indemnity required to be obtained by the Bank", "No"],
+        ["(24)", "Any other remark which the lawyer rendering title deed opinion wishes to make", "No"],
+        ["(25)", "Whether there is any indication or doubt to show that the land belongs to Govt. or it is under acquisition", "No"],
+        ["(26)", "Is there any bar for mortgaging the lands as per any local law?", "N.A."],
+        ["(27)", "Whether the bank has right to enforce SARFAESI after creation of mortgage by deposit of title deeds?", "It can be enforceable under said Act"],
+        ["(28)", "Whether the immovable property offered as security is properly demarcated", "Yes"],
+        ["(29)", "Whether the property is identifiable", "Yes"],
+        ["(30)", "If accepted as Security, what is the procedure for creation of mortgage?", `Registration of equitable mortgage at SRO, ${place}`]
+    ];
+    preview.appendChild(buildTable(["Clause", "Particulars", "Details"], iobRows));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para("(31)  Certification:-  I personally visited The Registrar Office, searched the records and ensured the correctness of the entries in the register and there is no omission of any encumbrance on the E.C.", { align: "justify" }));
+    preview.appendChild(spacer());
+    preview.appendChild(para(`(32)  I also certify that the said deed has been registered in The Sub-Registrar Office, ${place} in the name of ${owner} and the documents are genuine and can be relied upon.`, { align: "justify" }));
+    preview.appendChild(spacer());
+    preview.appendChild(para("(33)  I certify that the documents listed by me in Column 9 and 23 above are perfect evidence of title to the immovable property proposed to be offered as security.", { align: "justify" }));
+    preview.appendChild(spacer());
+    preview.appendChild(para("(34)  I have carefully gone through the certified copy of latest title deed and Xerox of other documents of the immovable property proposed to be offered as Security before giving my report on the title to the property as mentioned above.", { align: "justify" }));
+    preview.appendChild(spacer());
+    preview.appendChild(spacer());
+
+    preview.appendChild(rowSplit(place, "Submitted by,"));
+    preview.appendChild(para(`Dated:- ${refDate}`));
+    preview.appendChild(para("Encl.:- Search Receipt"));
+    preview.appendChild(spacer());
+    preview.appendChild(spacer());
+    preview.appendChild(para(`(${advocate})`, { align: "right" }));
+    preview.appendChild(para("Advocate", { align: "right" }));
+}
+
+/* =========================================================
+   GENERATE
+========================================================= */
+function generateReport() {
+    const rawText = document.getElementById("inputText").value;
+    if (!rawText.trim()) {
+        alert("Pehle legal flow text paste karein.");
+        return;
+    }
+    const text = normalize(rawText);
+    const data = extractData(text);
+    const bank = document.getElementById("bankSelect").value;
+
+    if (bank === "bom") renderBOMReport(text, data);
+    else if (bank === "iob") renderIOBReport(text, data);
+    else renderKotakReport(text, data);
+
+    document.getElementById("previewCard").hidden = false;
+    document.getElementById("reportPreview").setAttribute("contenteditable", "false");
+    document.getElementById("editBtn").classList.remove("active");
+    document.getElementById("editBtn").textContent = "Edit Report";
+    document.getElementById("previewCard").scrollIntoView({ behavior: "smooth" });
+}
+
+/* =========================================================
+   EDIT TOGGLE + FORMATTING TOOLBAR
+========================================================= */
+function toggleEdit() {
+    const preview = document.getElementById("reportPreview");
+    const btn = document.getElementById("editBtn");
+    const toolbar = document.getElementById("fmtToolbar");
+    const editing = preview.getAttribute("contenteditable") === "true";
+    preview.setAttribute("contenteditable", editing ? "false" : "true");
+    btn.textContent = editing ? "Edit Report" : "Done Editing";
+    btn.classList.toggle("active", !editing);
+    toolbar.classList.toggle("show", !editing);
+    if (!editing) preview.focus();
+}
+
+/* Runs a document.execCommand formatting action on the current selection inside the preview. */
+function fmt(command) {
+    const preview = document.getElementById("reportPreview");
+    if (preview.getAttribute("contenteditable") !== "true") return;
+    preview.focus();
+    document.execCommand(command, false, null);
+}
+
+function fmtFontSize(value) {
+    if (!value) return;
+    const preview = document.getElementById("reportPreview");
+    if (preview.getAttribute("contenteditable") !== "true") return;
+    preview.focus();
+    document.execCommand("fontSize", false, value);
+}
+
+function currentTableRow() {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    let node = sel.getRangeAt(0).startContainer;
+    if (node.nodeType === 3) node = node.parentElement;
+    return node ? node.closest("tr") : null;
+}
+
+function addTableRow() {
+    const preview = document.getElementById("reportPreview");
+    if (preview.getAttribute("contenteditable") !== "true") {
+        alert('Click "Edit Report" first, then place your cursor inside the table row before adding a row.');
+        return;
+    }
+    const row = currentTableRow();
+    if (!row) {
+        alert("Click inside a table cell first, then press + Row.");
+        return;
+    }
+    const newRow = row.cloneNode(true);
+    Array.from(newRow.children).forEach((cell) => { cell.textContent = ""; });
+    row.after(newRow);
+}
+
+function deleteTableRow() {
+    const preview = document.getElementById("reportPreview");
+    if (preview.getAttribute("contenteditable") !== "true") {
+        alert('Click "Edit Report" first, then place your cursor inside the row you want to delete.');
+        return;
+    }
+    const row = currentTableRow();
+    if (!row) {
+        alert("Click inside a table cell first, then press − Row.");
+        return;
+    }
+    const table = row.closest("table");
+    if (table && table.querySelectorAll("tr").length <= 2) {
+        alert("A table needs at least one data row below the header — can't delete the last one.");
+        return;
+    }
+    row.remove();
+}
+
+/* =========================================================
+   COPY
+========================================================= */
+async function copyReportText() {
+    const preview = document.getElementById("reportPreview");
+    const text = preview.innerText;
+    try {
+        await navigator.clipboard.writeText(text);
+        alert("Report text copied.");
+    } catch {
+        const range = document.createRange();
+        range.selectNode(preview);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        document.execCommand("copy");
+    }
+}
+
+/* =========================================================
+   PDF — uses the browser's native print dialog (Save as PDF).
+   No external library, so this always works, even offline.
+========================================================= */
+function downloadPdf() {
+    const preview = document.getElementById("reportPreview");
+    const wasEditing = preview.getAttribute("contenteditable") === "true";
+    if (wasEditing) toggleEdit();
+    window.print();
+}
+
+/* =========================================================
+   WORD DOWNLOAD — builds a Word-compatible HTML document and
+   saves it as .doc. No external library/CDN involved, so this
+   always works (Word/LibreOffice/Google Docs all open it fine).
+========================================================= */
+function downloadDocx() {
+    const preview = document.getElementById("reportPreview");
+    const wasEditing = preview.getAttribute("contenteditable") === "true";
+    if (wasEditing) toggleEdit();
+
+    const bodyHtml = preview.innerHTML;
+    const html = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<title>Title Clearance Report</title>
+<!--[if gte mso 9]>
+<xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>100</w:Zoom>
+<w:DoNotOptimizeForBrowser/>
+</w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+@page { size: 21cm 29.7cm; margin: 2cm; }
+body { font-family: "Times New Roman", Times, serif; font-size: 14px; line-height: 1.5; color: #000; }
+.p { margin: 0 0 6px 0; white-space: pre-wrap; }
+.p-title { text-align: center; font-weight: bold; font-size: 16px; text-decoration: underline; margin: 24px 0; }
+.p-heading { font-weight: bold; margin: 16px 0 6px 0; }
+.p-note { font-size: 12px; font-style: italic; margin: 0 0 10px 0; }
+.spacer { height: 14px; font-size: 1px; line-height: 14px; }
+.row-split { width: 100%; }
+.label-line { width: 100%; }
+.label-line .lbl { font-weight: bold; }
+.label-line .val { font-weight: bold; }
+table { width: 100%; border-collapse: collapse; margin: 8px 0 16px 0; }
+th, td { border: 1px solid #000; padding: 6px 7px; font-size: 12.5px; vertical-align: top; text-align: left; white-space: pre-wrap; }
+th { text-align: center; font-weight: bold; }
+</style>
+</head>
+<body>${bodyHtml}</body>
+</html>`;
+
+    const blob = new Blob(["\ufeff", html], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Title-Clearance-Report.doc";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
+
