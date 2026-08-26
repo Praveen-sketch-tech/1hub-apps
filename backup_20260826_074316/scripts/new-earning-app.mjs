@@ -42,15 +42,8 @@ const route = `/apps/${slug}`
 // Compute next app number the same way install-app.mjs does, just for the header display.
 const registryPath = path.resolve('src/core/apps/appRegistry.ts')
 const registryText = fs.readFileSync(registryPath, 'utf8')
-// Earning apps get their OWN numbering (001, 002, 003...) — completely separate
-// from the 45 personal apps' numbers. We only look at entries already marked
-// visibility: 'public' when computing the next number.
-const publicEntryBlocks = registryText.match(/\{[^{}]*visibility:\s*['"]public['"][^{}]*\}/g) || []
-const existingPublicNumbers = publicEntryBlocks
-  .map((block) => block.match(/number:\s*['"](\d+)['"]/)?.[1])
-  .filter(Boolean)
-  .map((n) => parseInt(n, 10))
-const nextNumber = String((existingPublicNumbers.length ? Math.max(...existingPublicNumbers) : 0) + 1).padStart(3, '0')
+const existingNumbers = [...registryText.matchAll(/number:\s*['"](\d+)['"]/g)].map((m) => parseInt(m[1], 10))
+const nextNumber = String((existingNumbers.length ? Math.max(...existingNumbers) : 0) + 1).padStart(3, '0')
 
 fs.mkdirSync(appDir, { recursive: true })
 
