@@ -413,4 +413,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: "/apps/photo-signature-resizer",
+    name: "Photo & Signature Resizer",
+    component: lazy(() =>
+      import("@apps/photo-signature-resizer").then((module) => ({
+        default: module.PhotoSignatureResizerPage,
+      }))
+    ),
+  },
 ]

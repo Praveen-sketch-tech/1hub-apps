@@ -12,7 +12,9 @@
     "audit:theme": "node scripts/audit-theme-contract.mjs",
     "audit:foundation": "node scripts/audit-app-foundation.mjs",
     "audit": "npm run audit:theme && npm run audit:foundation",
-    "build:termux": "npm run audit:theme && tsc -b && vite build --config vite.termux.config.ts"
+    "build:termux": "npm run audit:theme && tsc -b && vite build --config vite.termux.config.ts",
+    "new:earning-app": "node scripts/new-earning-app.mjs",
+    "verify:earning": "node scripts/verify-earning.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

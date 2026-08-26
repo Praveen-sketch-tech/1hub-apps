@@ -5,8 +5,11 @@ import { Button } from '@shared/components/ui/Button'
 import { useAuth } from '@core/contexts/AuthContext'
 import { ROUTES, APP_NAME } from '@core/config/constants'
 import { APP_REGISTRY } from '@core/apps/appRegistry'
-import { PUBLIC_APP_IDS } from '@core/apps/publicAppIds'
 import { GlobalToolChat } from '@shared/components/chat/GlobalToolChat'
+
+// Public homepage only ever shows apps whose registry entry has visibility: 'public'.
+// This is the ONLY place that decides what's public — no separate id list to keep in sync.
+const PUBLIC_APPS = APP_REGISTRY.filter((app) => app.visibility === 'public')
 
 const FEATURES = [
   {
@@ -61,8 +64,14 @@ export function HomePage() {
       </section>
 
       <section className="mb-12">
+        {PUBLIC_APPS.length === 0 && (
+          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+            New tools launching soon.
+          </p>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-2">
-          {APP_REGISTRY.filter((app) => PUBLIC_APP_IDS.includes(app.id)).map((app) => (
+          {PUBLIC_APPS.map((app) => (
             <Card key={app.id}>
               <div className="flex h-full flex-col gap-5">
                 <div>

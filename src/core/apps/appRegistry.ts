@@ -5,6 +5,14 @@ export interface AppDefinition {
   description: string
   path: string
   tags: string[]
+  // Single source of truth for "is this a public earning app or a personal tool".
+  // Omitted / anything other than 'public' = personal (default, backward compatible).
+  // scripts/new-earning-app.mjs sets this to 'public' automatically for new earning apps.
+  visibility?: 'public' | 'personal'
+  category?: string
+  seoTitle?: string
+  seoDescription?: string
+  keywords?: string[]
 }
 
 export const APP_REGISTRY: AppDefinition[] = [
@@ -375,5 +383,18 @@ export const APP_REGISTRY: AppDefinition[] = [
     description: "Upload filled documents to learn your repeated fields (name, company, address...), then auto-fill new Word/Excel/PDF documents in one click and download them all as a zip.",
     path: "/apps/smart-bulk-document-filler",
     tags: ["Productivity", "Documents", "Automation"],
+  },
+  {
+    id: "photo-signature-resizer",
+    number: "046",
+    name: "Photo & Signature Resizer",
+    description: "Resize passport, PAN, Aadhaar, SSC and UPSC photos and signatures to exact pixel size and KB range, instantly in your browser.",
+    path: "/apps/photo-signature-resizer",
+    tags: ["Photo Resizer", "Signature Resizer", "Passport Photo", "PAN Card", "Govt Forms"],
+    visibility: "public",
+    category: "Photo & Document Tools",
+    seoTitle: "Passport & Signature Photo Resizer (KB + Size) — Free Online Tool",
+    seoDescription: "Resize passport, PAN, Aadhaar, SSC and UPSC photos and signatures to the exact pixel size and KB range required by government forms. 100% free, runs in your browser.",
+    keywords: ["passport photo resizer", "signature resizer", "photo size KB", "PAN card photo size", "SSC form photo size"],
   },
 ]

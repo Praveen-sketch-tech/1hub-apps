@@ -6,7 +6,9 @@ const args = process.argv.slice(2)
 if (args.length < 7) {
   console.log(`
 Usage:
-node scripts/install-app.mjs <folder> <number> <name> <route> <description> <exportName> <tagsCsv>
+node scripts/install-app.mjs <folder> <number> <name> <route> <description> <exportName> <tagsCsv> [visibility]
+
+visibility: "public" (shows on the earning-apps homepage) or "personal" (default, hidden from homepage).
 
 Example:
 node scripts/install-app.mjs \
@@ -16,12 +18,14 @@ smart-example \
 /apps/smart-example \
 "Example app description" \
 SmartExamplePage \
-"Tool One,Tool Two,Tool Three"
+"Tool One,Tool Two,Tool Three" \
+public
 `)
   process.exit(1)
 }
 
-const [folder, number, name, route, description, exportName, tagsCsv] = args
+const [folder, number, name, route, description, exportName, tagsCsv, visibilityArg] = args
+const visibility = visibilityArg === 'public' ? 'public' : 'personal'
 
 const appPath = path.resolve(`src/apps/${folder}`)
 const registryPath = path.resolve('src/core/apps/appRegistry.ts')
@@ -77,7 +81,7 @@ if (registry.includes(`id: '${folder}'`)) {
   process.exit(1)
 }
 
-const existingNumbers = [...registry.matchAll(/number:\s*'(\d+)'/g)].map((m) => parseInt(m[1], 10))
+const existingNumbers = [...registry.matchAll(/number:\s*['"](\d+)['"]/g)].map((m) => parseInt(m[1], 10))
 const highestExisting = existingNumbers.length ? Math.max(...existingNumbers) : 0
 const nextAvailable = String(highestExisting + 1).padStart(3, '0')
 
@@ -96,7 +100,7 @@ const registryEntry = `  {
     name: ${JSON.stringify(name)},
     description: ${JSON.stringify(description)},
     path: '${route}',
-    tags: ${JSON.stringify(tags)},
+    tags: ${JSON.stringify(tags)},${visibility === 'public' ? `\n    visibility: 'public',` : ''}
   },
 `
 
@@ -153,6 +157,7 @@ console.log(`✅ Registered App #${number}: ${name}`)
 console.log(`✅ Added lazy route: ${route}`)
 console.log(`✅ Export: ${exportName}`)
 console.log(`✅ Tags: ${tags.join(', ') || 'None'}`)
+console.log(`✅ Visibility: ${visibility}${visibility === 'public' ? ' (will appear on the public homepage)' : ' (hidden from homepage, reachable via /personal)'}`)
 console.log('')
 console.log('Next:')
 console.log('1. Verify the page root element has className="tool-page ..." and only uses tool-* shared classes/--tool-* tokens')
