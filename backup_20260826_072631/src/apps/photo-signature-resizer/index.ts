@@ -1,1 +1,0 @@
-export { PhotoSignatureResizerPage } from './PhotoSignatureResizerPage'
