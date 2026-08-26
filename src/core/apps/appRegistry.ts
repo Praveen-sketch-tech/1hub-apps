@@ -386,7 +386,7 @@ export const APP_REGISTRY: AppDefinition[] = [
   },
   {
     id: "photo-signature-resizer",
-    number: "046",
+    number: "001",
     name: "Photo & Signature Resizer",
     description: "Resize passport, PAN, Aadhaar, SSC and UPSC photos and signatures to exact pixel size and KB range, instantly in your browser.",
     path: "/apps/photo-signature-resizer",
