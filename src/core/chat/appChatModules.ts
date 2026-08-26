@@ -370,3 +370,11 @@ registerAppChatModule('pdf-compressor', async () => {
   const module = await import('@apps/pdf-compressor/chatActions')
   return module.chatModule
 })
+
+registerAppChatModule(
+  'invoice-maker',
+  async () => {
+    const module = await import('@apps/invoice-maker/chatActions')
+    return module.chatModule
+  },
+)

@@ -410,4 +410,13 @@ export const APP_REGISTRY: AppDefinition[] = [
     seoDescription: "Compress large PDF files to smaller, WhatsApp-friendly sizes like 100KB, 200KB or 500KB directly in your browser.",
     keywords: ["PDF Compressor", "Reduce PDF Size", "WhatsApp PDF"],
   },
+  {
+    id: 'invoice-maker',
+    number: '003',
+    name: "Invoice Maker",
+    description: "Create professional GST-ready invoices with your business logo details, itemized billing, tax and discount — download as PDF in seconds, no login needed.",
+    path: '/apps/invoice-maker',
+    tags: ["Invoice Maker","GST Invoice","Billing","Small Business"],
+    visibility: 'public',
+  },
 ]

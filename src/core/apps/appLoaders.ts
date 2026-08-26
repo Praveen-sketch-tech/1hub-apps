@@ -431,6 +431,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/invoice-maker',
+    name: "Invoice Maker",
+    component: lazy(() =>
+      import('@apps/invoice-maker').then((module) => ({
+        default: module.InvoiceMakerPage,
+      }))
+    ),
+  },
 ]
-	
-
