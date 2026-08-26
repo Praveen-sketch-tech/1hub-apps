@@ -366,3 +366,7 @@ registerAppChatModule('photo-signature-resizer', async () => {
   const module = await import('@apps/photo-signature-resizer/chatActions')
   return module.chatModule
 })
+registerAppChatModule('pdf-compressor', async () => {
+  const module = await import('@apps/pdf-compressor/chatActions')
+  return module.chatModule
+})

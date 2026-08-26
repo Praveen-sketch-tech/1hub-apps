@@ -422,4 +422,15 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+   {
+    path: "/apps/pdf-compressor",
+    name: "PDF Compressor",
+    component: lazy(() =>
+      import("@apps/pdf-compressor").then((module) => ({
+        default: module.PdfCompressorPage,
+      }))
+    ),
+  },
 ]
+	
+

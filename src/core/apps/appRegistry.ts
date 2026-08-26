@@ -397,4 +397,17 @@ export const APP_REGISTRY: AppDefinition[] = [
     seoDescription: "Resize passport, PAN, Aadhaar, SSC and UPSC photos and signatures to the exact pixel size and KB range required by government forms. 100% free, runs in your browser.",
     keywords: ["passport photo resizer", "signature resizer", "photo size KB", "PAN card photo size", "SSC form photo size"],
   },
+   {
+    id: "pdf-compressor",
+    number: "002",
+    name: "PDF Compressor",
+    description: "Compress large PDFs down to WhatsApp-friendly sizes — 100KB, 200KB or 500KB — without losing readability, right in your browser.",
+    path: "/apps/pdf-compressor",
+    tags: ["PDF Compressor", "Reduce PDF Size", "WhatsApp PDF"],
+    visibility: "public",
+    category: "PDF & Document Tools",
+    seoTitle: "PDF Compressor — Reduce PDF Size for WhatsApp",
+    seoDescription: "Compress large PDF files to smaller, WhatsApp-friendly sizes like 100KB, 200KB or 500KB directly in your browser.",
+    keywords: ["PDF Compressor", "Reduce PDF Size", "WhatsApp PDF"],
+  },
 ]
