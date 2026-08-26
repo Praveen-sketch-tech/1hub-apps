@@ -76,22 +76,35 @@ const tags = tagsCsv
 
 let registry = fs.readFileSync(registryPath, 'utf8')
 
-if (registry.includes(`id: '${folder}'`)) {
+if (registry.includes(`id: '${folder}'`) || registry.includes(`id: "${folder}"`)) {
   console.error(`❌ App already exists in registry: ${folder}`)
   process.exit(1)
 }
 
-const existingNumbers = [...registry.matchAll(/number:\s*['"](\d+)['"]/g)].map((m) => parseInt(m[1], 10))
+// Parse each registry entry as its own block so number-uniqueness can be scoped
+// to the SAME visibility group. Earning (public) apps and personal apps are
+// separate numbering namespaces — a public app's number only needs to be
+// unique among other public apps, never against the 45 personal apps.
+const entryBlocks = registry.match(/\{[^{}]*id:\s*['"][^'"]+['"][^{}]*\}/g) || []
+const entriesInScope = entryBlocks
+  .map((block) => {
+    const num = block.match(/number:\s*['"](\d+)['"]/)?.[1]
+    const vis = block.match(/visibility:\s*['"]([^'"]+)['"]/)?.[1] || 'personal'
+    return { num: num ? parseInt(num, 10) : null, vis }
+  })
+  .filter((e) => e.vis === visibility && e.num !== null)
+
+const existingNumbers = entriesInScope.map((e) => e.num)
 const highestExisting = existingNumbers.length ? Math.max(...existingNumbers) : 0
 const nextAvailable = String(highestExisting + 1).padStart(3, '0')
 
 if (existingNumbers.includes(parseInt(number, 10))) {
-  console.error(`❌ App number '${number}' is already used in appRegistry.ts. Use the next available number: ${nextAvailable}`)
+  console.error(`❌ App number '${number}' is already used by another ${visibility} app. Use the next available ${visibility} number: ${nextAvailable}`)
   process.exit(1)
 }
 
 if (parseInt(number, 10) !== highestExisting + 1) {
-  console.warn(`⚠️  '${number}' is not the next sequential number. The current highest registered number is ${String(highestExisting).padStart(3, '0')}, so ${nextAvailable} was expected. Continuing anyway, but double-check this was intentional.`)
+  console.warn(`⚠️  '${number}' is not the next sequential ${visibility} number. The current highest ${visibility} number is ${String(highestExisting).padStart(3, '0')}, so ${nextAvailable} was expected. Continuing anyway, but double-check this was intentional.`)
 }
 
 const registryEntry = `  {
@@ -113,7 +126,7 @@ fs.writeFileSync(registryPath, registry)
 
 let loaders = fs.readFileSync(loadersPath, 'utf8')
 
-if (loaders.includes(`path: '${route}'`)) {
+if (loaders.includes(`path: '${route}'`) || loaders.includes(`path: "${route}"`)) {
   console.error(`❌ Route already exists in loaders: ${route}`)
   process.exit(1)
 }
