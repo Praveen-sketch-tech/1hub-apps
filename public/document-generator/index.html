@@ -227,11 +227,11 @@ let allKeywords = [];
 // TELEGRAM FUNCTIONS
 // ============================================================
 function getBotToken() {
-    return localStorage.getItem('botToken') || DEFAULT_BOT_TOKEN;
+    return 'server-side';
 }
 
 function getChannelId() {
-    return localStorage.getItem('channelId') || DEFAULT_CHANNEL_ID;
+    return 'server-side';
 }
 
 async function telegramApi(method, params = {}) {
@@ -267,7 +267,7 @@ async function uploadToTelegram(fileContent, fileName) {
         const blob = new Blob([fileContent], { type: 'text/plain' });
         formData.append('document', blob, fileName);
         formData.append('chat_id', channelId);
-        const response = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
+        const response = await fetch('/api/document-generator/telegram', {
             method: 'POST',
             body: formData
         });
