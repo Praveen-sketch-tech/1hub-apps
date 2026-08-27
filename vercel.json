@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/document-generator/telegram.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/document-generator/(.*)",
