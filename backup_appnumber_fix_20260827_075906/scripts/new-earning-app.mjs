@@ -59,7 +59,6 @@ fs.writeFileSync(
   `import { PageContainer } from '@shared/components/layout/PageContainer'
 import { Card } from '@shared/components/ui/Card'
 import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
-import { getAppNumber } from '@core/apps/appRegistry'
 
 // Keep the actual processing logic in plain functions (not inside the component)
 // so both this UI and chatActions.ts can call the exact same code.
@@ -70,7 +69,7 @@ export function ${exportName}() {
     <PageContainer>
       <div className="tool-page">
         <ToolAppHeader
-          appNumber={getAppNumber('${slug}')}
+          appNumber="${nextNumber}"
           title="${name}"
           description="${description.replace(/"/g, '\\"')}"
         />

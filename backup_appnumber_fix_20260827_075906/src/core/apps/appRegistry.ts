@@ -420,10 +420,3 @@ export const APP_REGISTRY: AppDefinition[] = [
     visibility: 'public',
   },
 ]
-
-// Look up an app's display number from its id, instead of hardcoding the
-// number inside every page component (which goes stale the moment numbering
-// changes). Every earning-app page's <ToolAppHeader> should use this.
-export function getAppNumber(id: string): string {
-  return APP_REGISTRY.find((app) => app.id === id)?.number ?? '—'
-}

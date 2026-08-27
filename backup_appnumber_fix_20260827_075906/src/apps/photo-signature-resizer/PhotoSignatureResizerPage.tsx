@@ -3,7 +3,6 @@ import { PageContainer } from '@shared/components/layout/PageContainer'
 import { Card } from '@shared/components/ui/Card'
 import { Button } from '@shared/components/ui/Button'
 import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
-import { getAppNumber } from '@core/apps/appRegistry'
 
 type PresetKey = 'passport' | 'pan' | 'aadhaar' | 'ssc' | 'upsc' | 'signature' | 'custom'
 
@@ -177,7 +176,7 @@ export function PhotoSignatureResizerPage() {
     <PageContainer>
       <div className="tool-page">
         <ToolAppHeader
-          appNumber={getAppNumber('photo-signature-resizer')}
+          appNumber="046"
           title="Photo & Signature Resizer"
           description="Passport, PAN, Aadhaar, SSC, UPSC photo aur signature ko exact size aur KB range mein resize karo — sab kuch is browser ke andar hota hai, koi upload kisi server pe nahi jaata."
         />

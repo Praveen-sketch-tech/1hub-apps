@@ -4,7 +4,6 @@ import { PageContainer } from '@shared/components/layout/PageContainer'
 import { Card } from '@shared/components/ui/Card'
 import { Button } from '@shared/components/ui/Button'
 import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
-import { getAppNumber } from '@core/apps/appRegistry'
 
 interface LineItem {
   id: string
@@ -228,7 +227,7 @@ export function InvoiceMakerPage() {
     <PageContainer>
       <div className="tool-page">
         <ToolAppHeader
-          appNumber={getAppNumber('invoice-maker')}
+          appNumber="XX"
           title="Invoice Maker"
           description="Business details bharo, items add karo — GST-ready professional invoice PDF turant download karo. Sab kuch browser mein hota hai, koi login nahi chahiye."
         />

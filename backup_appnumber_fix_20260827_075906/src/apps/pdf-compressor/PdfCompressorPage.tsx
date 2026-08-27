@@ -3,7 +3,6 @@ import { PageContainer } from '@shared/components/layout/PageContainer'
 import { Card } from '@shared/components/ui/Card'
 import { Button } from '@shared/components/ui/Button'
 import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
-import { getAppNumber } from '@core/apps/appRegistry'
 // Reuse the tested compression engine from Smart PDF Tools (App #002) instead
 // of re-implementing PDF compression — same logic that already renders each
 // page to a canvas and re-encodes it as a size/quality-tuned JPEG.
@@ -119,7 +118,7 @@ export function PdfCompressorPage() {
     <PageContainer>
       <div className="tool-page">
         <ToolAppHeader
-          appNumber={getAppNumber('pdf-compressor')}
+          appNumber="002"
           title="PDF Compressor"
           description="PDF 2MB ki hai? WhatsApp-friendly size mein compress karo — 100KB, 200KB ya 500KB — sab kuch is browser ke andar hota hai, koi upload kisi server pe nahi jaata."
         />
