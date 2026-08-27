@@ -38,7 +38,6 @@ function adminLogin() {
     }
 }
 
-// Enter key support
 document.getElementById('adminPassword').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') adminLogin();
 });
@@ -233,6 +232,7 @@ async function uploadDocument() {
         let content = '';
         const file = fileInput.files[0];
         
+        // Preserve original file content for Telegram
         if (file.name.endsWith('.docx')) {
             const arrayBuffer = await file.arrayBuffer();
             const result = await mammoth.extractRawText({ arrayBuffer });
@@ -257,12 +257,12 @@ async function uploadDocument() {
         }));
         
         const docId = 'doc_' + Date.now();
-        const filename = name + '_' + Date.now() + '.txt';
+        const filename = file.name; // Preserve original filename
         
         await apiCall('/documents/upload', {
             method: 'POST',
             body: JSON.stringify({
-                content,
+                content, // This will be sent to Telegram
                 filename,
                 metadata: {
                     id: docId,
@@ -272,7 +272,9 @@ async function uploadDocument() {
                     description,
                     status,
                     fields,
-                    placeholders: uniquePlaceholders
+                    placeholders: uniquePlaceholders,
+                    original_filename: file.name,
+                    file_size: file.size
                 }
             })
         });
@@ -513,9 +515,3 @@ async function init() {
     await loadKeywords();
     await loadDocuments();
 }
-
-// ============================================================
-// LOAD SETTINGS FROM ENV (No frontend tokens!)
-// ============================================================
-// TG_TOKEN and TG_CHAT_ID are ONLY used server-side via Vercel env vars.
-// Frontend never sees them.

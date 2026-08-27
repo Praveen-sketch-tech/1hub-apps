@@ -253,12 +253,11 @@ function updatePreview() {
         const el = document.getElementById(`field_${field.key}`);
         const value = el?.value || '';
         if (value) {
-            // Simple placeholder replacement (preserves formatting)
             filledContent = filledContent.replace(new RegExp(`\\{${field.key}\\}`, 'g'), value);
         }
     });
 
-    // Display with formatting preserved
+    // Format content with proper styling
     const previewEl = document.getElementById('previewContent');
     previewEl.innerHTML = formatDocumentContent(filledContent);
     document.getElementById('previewArea').style.display = 'block';
@@ -269,9 +268,8 @@ function updatePreview() {
 // FORMAT DOCUMENT CONTENT - Preserve formatting
 // ============================================================
 function formatDocumentContent(text) {
-    // Convert plain text to HTML with formatting
     let html = text
-        // Headers (lines with multiple caps or underlines)
+        // Headers
         .replace(/^([A-Z][A-Z\s]{4,})$/gm, '<h2>$1</h2>')
         .replace(/^([A-Z][A-Z\s]{2,}):/gm, '<h3>$1:</h3>')
         // Bold: **text** or __text__
@@ -280,32 +278,25 @@ function formatDocumentContent(text) {
         // Italic: *text* or _text_
         .replace(/\*(.+?)\*/g, '<i>$1</i>')
         .replace(/_(.+?)_/g, '<i>$1</i>')
-        // Underline: __text__ (but not bold)
-        .replace(/__(.+?)__/g, '<u>$1</u>')
-        // Numbered lists: 1. text
+        // Underline: ++text++ (new syntax to avoid conflicts)
+        .replace(/\+\+(.+?)\+\+/g, '<u>$1</u>')
+        // Numbered lists
         .replace(/^(\d+\.)\s(.+)$/gm, '<li>$1 $2</li>')
-        // Bullet lists: - text or * text
+        // Bullet lists
         .replace(/^[-*]\s(.+)$/gm, '<li>• $1</li>')
-        // Lines with multiple dashes as separators
+        // Separators
         .replace(/^[-]{3,}$/gm, '<hr>')
-        // Paragraphs: double newline
+        // Paragraphs
         .split('\n\n')
         .map(p => p.trim())
         .filter(p => p)
         .map(p => {
-            // If it looks like a list, wrap in ul
-            if (p.includes('<li>')) {
-                return `<ul>${p}</ul>`;
-            }
-            // If it's a heading, don't wrap in p
-            if (p.startsWith('<h')) {
-                return p;
-            }
+            if (p.includes('<li>')) return `<ul>${p}</ul>`;
+            if (p.startsWith('<h')) return p;
             return `<p>${p}</p>`;
         })
         .join('\n');
     
-    // Fix list items inside paragraphs
     html = html.replace(/<p>(<li>.*?<\/li>)/g, '<ul>$1');
     html = html.replace(/(<\/li>)<\/p>/g, '$1</ul>');
     
@@ -313,7 +304,7 @@ function formatDocumentContent(text) {
 }
 
 // ============================================================
-// GENERATE & DOWNLOAD PDF
+// GENERATE ACTUAL PDF - Using jsPDF
 // ============================================================
 function generatePDF() {
     updatePreview();
@@ -328,40 +319,29 @@ function downloadPDF() {
     }
 
     try {
-        // For now, create printable version
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>${currentDocument?.name || 'Document'}</title>
-                <style>
-                    body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: auto; line-height: 1.8; }
-                    h1, h2, h3 { margin: 10px 0; }
-                    p { margin: 8px 0; }
-                    ul, ol { padding-left: 25px; margin: 8px 0; }
-                    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-                    th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
-                    b, strong { font-weight: 700; }
-                    i, em { font-style: italic; }
-                    u { text-decoration: underline; }
-                    hr { border: 1px solid #ddd; margin: 20px 0; }
-                    @media print { body { padding: 20px; } }
-                </style>
-            </head>
-            <body>
-                ${content}
-                <script>
-                    window.onload = function() { window.print(); }
-                <\/script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
+        // Use jsPDF for actual PDF generation
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
         
-        showStatus('✅ Document ready for print/PDF!', 'success');
+        // Get clean text from preview
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = content;
+        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+        
+        // Add to PDF with proper formatting
+        const lines = doc.splitTextToSize(textContent, 180);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.text(lines, 15, 20);
+        
+        const filename = currentDocument ? 
+            `${currentDocument.name}_${new Date().toISOString().split('T')[0]}.pdf` : 
+            'document.pdf';
+        
+        doc.save(filename);
+        showStatus('✅ PDF downloaded successfully!', 'success');
     } catch (error) {
-        showStatus('❌ Error: ' + error.message, 'error');
+        showStatus('❌ Error generating PDF: ' + error.message, 'error');
     }
 }
 
@@ -402,7 +382,6 @@ function setLanguage(lang) {
 async function init() {
     await loadCategories();
     await loadDocuments();
-    // Load search handler
     document.getElementById('searchInput').addEventListener('input', searchDocuments);
 }
 
@@ -414,5 +393,4 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Start app
 document.addEventListener('DOMContentLoaded', init);
