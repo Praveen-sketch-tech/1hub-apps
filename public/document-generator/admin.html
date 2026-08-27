@@ -7,7 +7,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Admin specific overrides */
         .admin-panel { background: var(--light); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
         .admin-panel h3 { margin-bottom: 15px; color: var(--dark); }
         .admin-panel .form-row { display: flex; gap: 15px; flex-wrap: wrap; }
@@ -39,7 +38,6 @@
     </style>
 </head>
 <body>
-    <!-- Login Screen -->
     <div class="login-screen" id="loginScreen">
         <div class="logo">🔐</div>
         <h2>Admin Login</h2>
@@ -49,7 +47,6 @@
         <div class="error-msg" id="loginError">❌ Invalid password</div>
     </div>
 
-    <!-- Main Admin Panel -->
     <div class="app-container" id="mainContainer" style="display:none;">
         <header class="app-header">
             <div class="brand">
@@ -65,7 +62,6 @@
 
         <div class="status-bar" id="statusBar"></div>
 
-        <!-- Dashboard Stats -->
         <div class="dashboard-stats">
             <div class="stat-card"><div class="number" id="statTotal">0</div><div class="label">Total Documents</div></div>
             <div class="stat-card"><div class="number" id="statActive">0</div><div class="label">Active</div></div>
@@ -73,7 +69,6 @@
             <div class="stat-card"><div class="number" id="statFields">0</div><div class="label">Total Fields</div></div>
         </div>
 
-        <!-- Tabs -->
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('documents')">📄 Documents</button>
             <button class="tab-btn" onclick="switchTab('upload')">📤 Upload</button>
@@ -81,7 +76,6 @@
             <button class="tab-btn" onclick="switchTab('keywords')">🔑 Keywords</button>
         </div>
 
-        <!-- Tab: Documents -->
         <div class="tab-content active" id="tab-documents">
             <div class="admin-panel">
                 <h3>📄 Manage Documents</h3>
@@ -89,13 +83,12 @@
             </div>
         </div>
 
-        <!-- Tab: Upload -->
         <div class="tab-content" id="tab-upload">
             <div class="admin-panel">
                 <h3>📤 Upload New Document</h3>
                 <div class="form-group">
                     <label>Document Name *</label>
-                    <input type="text" id="docName" placeholder="e.g., Rent Agreement">
+                    <input type="text" id="docName" placeholder="e.g., Rent Agreement" required>
                 </div>
                 <div class="form-group">
                     <label>Hindi Name</label>
@@ -103,15 +96,15 @@
                 </div>
                 <div class="form-group">
                     <label>Category *</label>
-                    <select id="docCategory"></select>
+                    <select id="docCategory" required></select>
                 </div>
                 <div class="form-group">
                     <label>Description</label>
                     <input type="text" id="docDescription" placeholder="Brief description">
                 </div>
                 <div class="form-group">
-                    <label>Upload File (.docx or .txt) *</label>
-                    <input type="file" id="fileUpload" accept=".docx,.txt">
+                    <label>Upload Template (.docx or .txt) *</label>
+                    <input type="file" id="fileUpload" accept=".docx,.txt" required>
                 </div>
                 <div class="form-group">
                     <label>Status</label>
@@ -124,7 +117,6 @@
             </div>
         </div>
 
-        <!-- Tab: Categories -->
         <div class="tab-content" id="tab-categories">
             <div class="admin-panel">
                 <h3>📂 Manage Categories</h3>
@@ -139,7 +131,6 @@
             </div>
         </div>
 
-        <!-- Tab: Keywords -->
         <div class="tab-content" id="tab-keywords">
             <div class="admin-panel">
                 <h3>🔑 Manage Keywords</h3>
@@ -158,13 +149,11 @@
             </div>
         </div>
 
-        <!-- Footer -->
         <footer style="margin-top:30px;padding:15px 0;border-top:1px solid var(--border);text-align:center;color:var(--gray);font-size:0.85rem;">
             Document Generator Admin • v2.0
         </footer>
     </div>
 
-    <!-- Edit Modal -->
     <div class="modal-overlay" id="editModal">
         <div class="modal">
             <div class="modal-header">
