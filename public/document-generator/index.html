@@ -241,11 +241,10 @@ async function telegramApi(method, params = {}) {
         return null;
     }
     try {
-        const url = `https://api.telegram.org/bot${token}/${method}`;
-        const response = await fetch(url, {
+        const response = await fetch('/api/document-generator/telegram', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(params)
+            body: JSON.stringify({ method, ...params })
         });
         const data = await response.json();
         if (!data.ok) throw new Error(data.description || 'Telegram API error');
@@ -282,16 +281,24 @@ async function uploadToTelegram(fileContent, fileName) {
 }
 
 async function getFileFromTelegram(fileId) {
-    const token = getBotToken();
-    if (!token) return null;
+    if (!fileId) return null;
     try {
-        const fileInfo = await telegramApi('getFile', { file_id: fileId });
-        if (!fileInfo) return null;
-        const filePath = fileInfo.result.file_path;
-        const fileUrl = `https://api.telegram.org/file/bot${token}/${filePath}`;
-        const response = await fetch(fileUrl);
-        if (!response.ok) throw new Error('Failed to fetch file');
-        return await response.text();
+        const response = await fetch('/api/document-generator/telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                method: 'downloadFile',
+                file_id: fileId
+            })
+        });
+
+        const data = await response.json();
+
+        if (!data.ok) {
+            throw new Error(data.error || data.description || 'Failed to fetch file');
+        }
+
+        return data.content;
     } catch (error) {
         showStatus('❌ Failed to load document: ' + error.message, 'error');
         return null;
