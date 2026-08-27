@@ -16,3 +16,5 @@ coverage
 app*-temp/
 *.bak
 test-pdf-parser.ts
+.vercel
+.env*

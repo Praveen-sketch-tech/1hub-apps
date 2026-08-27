@@ -2,11 +2,23 @@
   "rewrites": [
     {
       "source": "/api/document-generator/(.*)",
-      "destination": "/api/document-generator/telegram.js"
+      "destination": "/api/document-generator/telegram.cjs"
     },
     {
       "source": "/document-generator/admin.html",
       "destination": "/document-generator/admin.html"
+    },
+    {
+      "source": "/document-generator/style.css",
+      "destination": "/document-generator/style.css"
+    },
+    {
+      "source": "/document-generator/user.js",
+      "destination": "/document-generator/user.js"
+    },
+    {
+      "source": "/document-generator/admin.js",
+      "destination": "/document-generator/admin.js"
     },
     {
       "source": "/document-generator/(.*)",
