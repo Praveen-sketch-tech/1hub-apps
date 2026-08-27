@@ -103,10 +103,10 @@ export function PhotoSignatureResizerPage() {
   const [freeCrop, setFreeCrop] = useState(false)
   const [enhanceOn, setEnhanceOn] = useState(true)
 
-  // Compression control: single percentage of the ORIGINAL uploaded file's size.
-  // Auto = locked at 50%. Unchecking Auto lets the user type any percentage.
-  const [isAutoCompression, setIsAutoCompression] = useState(true)
-  const [compressionPercent, setCompressionPercent] = useState('50')
+  // Compression control: Auto = 50% of the ORIGINAL uploaded file's size.
+  // Manual = user types the exact final KB they want.
+  const [compressionMode, setCompressionMode] = useState<'auto' | 'manual'>('auto')
+  const [manualKB, setManualKB] = useState('')
   const [originalFileKB, setOriginalFileKB] = useState<number | null>(null)
 
   const [originalUrl, setOriginalUrl] = useState<string | null>(null)
@@ -123,10 +123,11 @@ export function PhotoSignatureResizerPage() {
 
   const active: Preset = preset === 'custom' ? { label: 'Custom', width: customW, height: customH, suggestedKB: 'aapki marzi' } : PRESETS[preset]
 
-  // Auto = locked at 50%. Otherwise use whatever percentage the user typed.
-  const effectivePercent = isAutoCompression ? 50 : Number(compressionPercent) || 0
+  // Auto = 50% of original file size (floor of 8KB so it never targets near-zero).
+  const autoTargetKB = originalFileKB ? Math.max(8, Math.round(originalFileKB * 0.5)) : null
+  const manualKBNumber = manualKB.trim() ? Number(manualKB) : null
   const effectiveTargetKB =
-    originalFileKB && effectivePercent > 0 ? Math.max(8, Math.round((originalFileKB * effectivePercent) / 100)) : null
+    compressionMode === 'auto' ? autoTargetKB : manualKBNumber && manualKBNumber > 0 ? manualKBNumber : null
 
   const lockedAspect = freeCrop ? null : active.width / active.height
 
@@ -155,7 +156,7 @@ export function PhotoSignatureResizerPage() {
       return
     }
     if (!effectiveTargetKB) {
-      setError('Target size set nahi ho payi — valid percentage (1-100) daalo.')
+      setError('Target size set nahi ho payi — manual KB daala hai to ek valid number daalo.')
       return
     }
     setProcessing(true)
@@ -197,8 +198,8 @@ export function PhotoSignatureResizerPage() {
     setResultUrl(null)
     setResultKB(null)
     setOriginalFileKB(null)
-    setCompressionPercent('50')
-    setIsAutoCompression(true)
+    setManualKB('')
+    setCompressionMode('auto')
     setError(null)
     setWarning(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -281,42 +282,46 @@ export function PhotoSignatureResizerPage() {
                 <div className="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                   <p className="mb-3 text-sm font-semibold">Compression</p>
 
-                  <label className="mb-3 flex items-center gap-2 text-sm">
+                  <label className="mb-2 flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
-                      checked={isAutoCompression}
-                      onChange={(e) => {
-                        setIsAutoCompression(e.target.checked)
-                        if (e.target.checked) setCompressionPercent('50')
-                      }}
+                      checked={compressionMode === 'auto'}
+                      onChange={(e) => setCompressionMode(e.target.checked ? 'auto' : 'manual')}
                     />
                     Auto — 50% of original size
+                    {compressionMode === 'auto' && autoTargetKB && (
+                      <span className="text-slate-500">
+                        (original {originalFileKB}KB → target ~{autoTargetKB}KB)
+                      </span>
+                    )}
                   </label>
 
-                  {!isAutoCompression && (
+                  {compressionMode === 'manual' && (
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
                         min={1}
-                        max={100}
                         className="psr-select"
-                        style={{ maxWidth: 100 }}
-                        placeholder="e.g. 60"
-                        value={compressionPercent}
-                        onChange={(e) => setCompressionPercent(e.target.value)}
+                        style={{ maxWidth: 140 }}
+                        placeholder="e.g. 10"
+                        value={manualKB}
+                        onChange={(e) => setManualKB(e.target.value)}
                       />
-                      <span className="text-sm text-slate-500">%</span>
+                      <span className="text-sm text-slate-500">KB</span>
+                      {manualKBNumber && manualKBNumber > 0 && (
+                        <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                          → isse ~{manualKBNumber}KB ki file banegi
+                        </span>
+                      )}
                     </div>
                   )}
 
-                  {originalFileKB && effectiveTargetKB && (
-                    <p className="mt-2 text-sm font-medium text-blue-600 dark:text-blue-400">
-                      Original {originalFileKB}KB × {effectivePercent}% → isse ~{effectiveTargetKB}KB ki file banegi
-                    </p>
+                  {compressionMode === 'manual' && !manualKBNumber && (
+                    <p className="mt-1 text-xs text-slate-500">KB daalo (jaise 10, 15, 50).</p>
                   )}
 
                   <p className="mt-2 text-xs text-slate-500">
-                    Chhoti % (jaise 10-20%) pe detailed photos (QR code, chhota text) ka quality thoda kam dikh sakta hai — yeh compression ka natural trade-off hai.
+                    Chhoti KB (jaise 10-15KB) pe detailed photos (QR code, chhota text) ka quality thoda kam dikh sakta hai — yeh compression ka natural trade-off hai.
                   </p>
                 </div>
 
