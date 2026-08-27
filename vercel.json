@@ -1,32 +1,26 @@
 {
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/document-generator/(.*)",
-      "destination": "/api/document-generator/telegram.cjs"
+      "src": "api/document-generator/telegram.cjs",
+      "use": "@vercel/node"
     },
     {
-      "source": "/document-generator/admin.html",
-      "destination": "/document-generator/admin.html"
+      "src": "package.json",
+      "use": "@vercel/static-build"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/document-generator/(.*)",
+      "dest": "/api/document-generator/telegram.cjs"
     },
     {
-      "source": "/document-generator/style.css",
-      "destination": "/document-generator/style.css"
+      "handle": "filesystem"
     },
     {
-      "source": "/document-generator/user.js",
-      "destination": "/document-generator/user.js"
-    },
-    {
-      "source": "/document-generator/admin.js",
-      "destination": "/document-generator/admin.js"
-    },
-    {
-      "source": "/document-generator/(.*)",
-      "destination": "/document-generator/index.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
