@@ -1,106 +1,250 @@
-export default async function handler(req, res) {
-  const token = process.env.TG_TOKEN;
-  const chatId = process.env.TG_CHAT_ID;
+// ============================================================
+// TELEGRAM API - Server-side Vercel Function
+// ============================================================
 
-  if (!token || !chatId) {
-    return res.status(500).json({
-      ok: false,
-      error: "Telegram configuration is missing on Vercel"
-    });
-  }
+const TelegramBot = require('node-telegram-bot-api');
 
-  try {
-    const contentType = req.headers["content-type"] || "";
+// Environment variables (Vercel)
+const BOT_TOKEN = process.env.TG_TOKEN;
+const CHAT_ID = process.env.TG_CHAT_ID;
 
-    // ---------- FILE UPLOAD ----------
-    if (contentType.includes("multipart/form-data")) {
-      const chunks = [];
-      for await (const chunk of req) chunks.push(chunk);
-      const body = Buffer.concat(chunks);
-
-      const telegramResponse = await fetch(
-        `https://api.telegram.org/bot${token}/sendDocument`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": contentType,
-            "Content-Length": String(body.length)
-          },
-          body
-        }
-      );
-
-      const data = await telegramResponse.json();
-      return res.status(telegramResponse.status).json(data);
-    }
-
-    const { method, file_id } = req.body || {};
-
-    // ---------- DOWNLOAD FILE ----------
-    if (method === "downloadFile") {
-      const infoResponse = await fetch(
-        `https://api.telegram.org/bot${token}/getFile`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ file_id })
-        }
-      );
-
-      const info = await infoResponse.json();
-
-      if (!info.ok) {
-        return res.status(400).json(info);
-      }
-
-      const fileResponse = await fetch(
-        `https://api.telegram.org/file/bot${token}/${info.result.file_path}`
-      );
-
-      if (!fileResponse.ok) {
-        return res.status(500).json({
-          ok: false,
-          error: "Telegram file download failed"
-        });
-      }
-
-      return res.status(200).json({
-        ok: true,
-        content: await fileResponse.text()
-      });
-    }
-
-    // ---------- OTHER TELEGRAM API CALLS ----------
-    if (!method) {
-      return res.status(400).json({
-        ok: false,
-        error: "Telegram method required"
-      });
-    }
-
-    const params = { ...(req.body || {}) };
-    delete params.method;
-
-    // Always use server-side channel ID for document uploads.
-    if (method === "sendDocument") {
-      params.chat_id = chatId;
-    }
-
-    const response = await fetch(
-      `https://api.telegram.org/bot${token}/${method}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(params)
-      }
-    );
-
-    return res.status(response.status).json(await response.json());
-
-  } catch (error) {
-    return res.status(500).json({
-      ok: false,
-      error: error.message
-    });
-  }
+if (!BOT_TOKEN || !CHAT_ID) {
+    console.error('❌ Missing TG_TOKEN or TG_CHAT_ID in environment variables');
 }
+
+// Initialize bot
+const bot = new TelegramBot(BOT_TOKEN, { polling: false });
+
+// In-memory store (for demo - use database in production)
+let documents = [];
+let categories = [];
+let keywords = [];
+
+// Default categories
+if (categories.length === 0) {
+    categories = [
+        { id: 'cat_1', name: 'Agreement', name_hi: 'समझौता', icon: '📄', color: '#667eea' },
+        { id: 'cat_2', name: 'Affidavit', name_hi: 'शपथ पत्र', icon: '📜', color: '#48bb78' },
+        { id: 'cat_3', name: 'Legal', name_hi: 'कानूनी', icon: '⚖️', color: '#ed8936' },
+        { id: 'cat_4', name: 'Property', name_hi: 'संपत्ति', icon: '🏠', color: '#4299e1' }
+    ];
+}
+
+// ============================================================
+// HELPER: API Response
+// ============================================================
+function jsonResponse(data, status = 200) {
+    return {
+        statusCode: status,
+        headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        },
+        body: JSON.stringify(data)
+    };
+}
+
+// ============================================================
+// MAIN HANDLER
+// ============================================================
+module.exports = async (req, res) => {
+    // CORS preflight
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    const path = req.url.replace(/^\/api\/document-generator/, '');
+
+    try {
+        // ============================================================
+        // DOCUMENTS
+        // ============================================================
+        if (path === '/documents' && req.method === 'GET') {
+            return res.json({ documents });
+        }
+
+        if (path === '/documents/upload' && req.method === 'POST') {
+            const { content, filename, metadata } = req.body;
+            
+            if (!content || !filename || !metadata) {
+                return res.status(400).json({ error: 'Missing required fields' });
+            }
+
+            // Upload to Telegram
+            const buffer = Buffer.from(content, 'utf-8');
+            const result = await bot.sendDocument(CHAT_ID, buffer, {
+                filename: filename,
+                caption: JSON.stringify({
+                    id: metadata.id,
+                    name: metadata.name,
+                    category: metadata.category
+                })
+            });
+
+            const doc = {
+                id: metadata.id || `doc_${Date.now()}`,
+                name: metadata.name,
+                name_hi: metadata.name_hi || metadata.name,
+                category: metadata.category,
+                description: metadata.description || '',
+                status: metadata.status || 'active',
+                file_id: result.document.file_id,
+                message_id: result.message_id,
+                filename: filename,
+                fields: metadata.fields || [],
+                placeholders: metadata.placeholders || [],
+                createdAt: new Date().toISOString()
+            };
+
+            documents.push(doc);
+            return res.json({ success: true, document: doc });
+        }
+
+        if (path.startsWith('/documents/') && req.method === 'GET') {
+            const docId = path.split('/')[2];
+            const doc = documents.find(d => d.id === docId);
+            if (!doc) {
+                return res.status(404).json({ error: 'Document not found' });
+            }
+
+            // Fetch from Telegram
+            try {
+                const fileLink = await bot.getFileLink(doc.file_id);
+                const response = await fetch(fileLink);
+                const content = await response.text();
+                return res.json({ document: { ...doc, content } });
+            } catch (error) {
+                return res.status(500).json({ error: 'Failed to fetch document: ' + error.message });
+            }
+        }
+
+        if (path.startsWith('/documents/') && req.method === 'PUT') {
+            const docId = path.split('/')[2];
+            const index = documents.findIndex(d => d.id === docId);
+            if (index === -1) {
+                return res.status(404).json({ error: 'Document not found' });
+            }
+
+            const updates = req.body;
+            documents[index] = { ...documents[index], ...updates, updatedAt: new Date().toISOString() };
+            return res.json({ success: true, document: documents[index] });
+        }
+
+        if (path.startsWith('/documents/') && req.method === 'DELETE') {
+            const docId = path.split('/')[2];
+            const index = documents.findIndex(d => d.id === docId);
+            if (index === -1) {
+                return res.status(404).json({ error: 'Document not found' });
+            }
+
+            const doc = documents[index];
+            try {
+                await bot.deleteMessage(CHAT_ID, doc.message_id);
+            } catch (e) {
+                console.warn('Could not delete from Telegram:', e.message);
+            }
+
+            documents.splice(index, 1);
+            return res.json({ success: true });
+        }
+
+        // ============================================================
+        // CATEGORIES
+        // ============================================================
+        if (path === '/categories' && req.method === 'GET') {
+            return res.json({ categories });
+        }
+
+        if (path === '/categories' && req.method === 'POST') {
+            const { name, name_hi, icon, color } = req.body;
+            if (!name) {
+                return res.status(400).json({ error: 'Category name required' });
+            }
+            const cat = {
+                id: `cat_${Date.now()}`,
+                name,
+                name_hi: name_hi || name,
+                icon: icon || '📂',
+                color: color || '#667eea',
+                createdAt: new Date().toISOString()
+            };
+            categories.push(cat);
+            return res.json({ success: true, category: cat });
+        }
+
+        if (path.startsWith('/categories/') && req.method === 'DELETE') {
+            const catId = path.split('/')[2];
+            const index = categories.findIndex(c => c.id === catId);
+            if (index === -1) {
+                return res.status(404).json({ error: 'Category not found' });
+            }
+
+            const docsInCategory = documents.filter(d => d.category === catId);
+            if (docsInCategory.length > 0) {
+                return res.status(400).json({
+                    error: `Cannot delete: ${docsInCategory.length} documents use this category`
+                });
+            }
+
+            categories.splice(index, 1);
+            return res.json({ success: true });
+        }
+
+        // ============================================================
+        // KEYWORDS
+        // ============================================================
+        if (path === '/keywords' && req.method === 'GET') {
+            return res.json({ keywords });
+        }
+
+        if (path === '/keywords' && req.method === 'POST') {
+            const { name, type } = req.body;
+            if (!name) {
+                return res.status(400).json({ error: 'Keyword name required' });
+            }
+            if (keywords.some(k => k.name === name)) {
+                return res.status(400).json({ error: 'Keyword already exists' });
+            }
+            const kw = {
+                id: `kw_${Date.now()}`,
+                name,
+                type: type || 'text',
+                createdAt: new Date().toISOString()
+            };
+            keywords.push(kw);
+            return res.json({ success: true, keyword: kw });
+        }
+
+        if (path.startsWith('/keywords/') && req.method === 'DELETE') {
+            const kwId = path.split('/')[2];
+            const index = keywords.findIndex(k => k.id === kwId);
+            if (index === -1) {
+                return res.status(404).json({ error: 'Keyword not found' });
+            }
+            keywords.splice(index, 1);
+            return res.json({ success: true });
+        }
+
+        // ============================================================
+        // HEALTH
+        // ============================================================
+        if (path === '/health') {
+            return res.json({
+                status: 'healthy',
+                timestamp: new Date().toISOString(),
+                documents: documents.length,
+                categories: categories.length,
+                keywords: keywords.length
+            });
+        }
+
+        // 404
+        return res.status(404).json({ error: 'Not found' });
+
+    } catch (error) {
+        console.error('API Error:', error);
+        return res.status(500).json({ error: error.message });
+    }
+};
