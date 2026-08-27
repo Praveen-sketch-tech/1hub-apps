@@ -1,10 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/api/document-generator/(.*)",
-      "destination": "/api/document-generator/telegram.cjs"
-    },
-    {
       "source": "/document-generator/admin.html",
       "destination": "/document-generator/admin.html"
     },
