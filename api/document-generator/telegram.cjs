@@ -291,12 +291,14 @@ module.exports = async (req, res) => {
             try {
                 const buffer = Buffer.from(fileBase64, 'base64');
                 const result = await bot.sendDocument(CHAT_ID, buffer, {
-                    filename: filename,
                     caption: JSON.stringify({
                         id: metadata.id,
                         name: metadata.name,
                         type: 'document'
                     })
+                }, {
+                    filename: filename,
+                    contentType: metadata.mimeType || 'application/octet-stream'
                 });
                 const doc = {
                     id: metadata.id || `doc_${Date.now()}`,
