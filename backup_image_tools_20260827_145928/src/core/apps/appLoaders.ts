@@ -414,11 +414,11 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
     ),
   },
   {
-    path: "/apps/image-tools",
-    name: "Image Tools",
+    path: "/apps/photo-signature-resizer",
+    name: "Photo & Signature Resizer",
     component: lazy(() =>
-      import("@apps/image-tools").then((module) => ({
-        default: module.ImageToolsPage,
+      import("@apps/photo-signature-resizer").then((module) => ({
+        default: module.PhotoSignatureResizerPage,
       }))
     ),
   },

@@ -362,8 +362,8 @@ registerAppChatModule('smart-bulk-document-filler', async () => {
   return module.chatModule
 })
 
-registerAppChatModule('image-tools', async () => {
-  const module = await import('@apps/image-tools/chatActions')
+registerAppChatModule('photo-signature-resizer', async () => {
+  const module = await import('@apps/photo-signature-resizer/chatActions')
   return module.chatModule
 })
 registerAppChatModule('pdf-compressor', async () => {
