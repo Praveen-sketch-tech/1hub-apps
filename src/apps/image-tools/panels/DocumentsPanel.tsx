@@ -1,11 +1,11 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Card } from '@shared/components/ui/Card'
 import { Button } from '@shared/components/ui/Button'
 import { PresetCropEditor, type CropExporter } from '../PresetCropEditor'
 import { autoEnhanceCanvas } from '../lib/autoEnhance'
 
 type PresetKey = 'passport' | 'pan' | 'aadhaar' | 'ssc' | 'upsc' | 'signature' | 'custom'
-type Stage = 'upload' | 'crop' | 'result'
+type Stage = 'upload' | 'crop' | 'adjust'
 
 interface Preset {
   label: string
@@ -24,73 +24,6 @@ const PRESETS: Record<PresetKey, Preset> = {
   custom: { label: 'Custom', width: 300, height: 300, suggestedKB: 'aapki marzi' },
 }
 
-/**
- * Reusable resize-to-KB-target function (binary search quality + scale-down
- * fallback) — used for government-spec documents where a specific KB range
- * genuinely matters (unlike the Compress tab, which is direct-quality driven).
- */
-async function resizeToTarget(
-  sourceCanvas: HTMLCanvasElement,
-  target: { width: number; height: number; minKB: number; maxKB: number },
-): Promise<{ blob: Blob; achievedKB: number; withinRange: boolean }> {
-  const scales = [1, 0.85, 0.7, 0.55, 0.4]
-  let best: { blob: Blob; achievedKB: number } | null = null
-
-  for (const scale of scales) {
-    const w = Math.max(1, Math.round(target.width * scale))
-    const h = Math.max(1, Math.round(target.height * scale))
-    const canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
-    const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('Canvas not supported in this browser')
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, w, h)
-    ctx.drawImage(sourceCanvas, 0, 0, w, h)
-
-    let lo = 0.05
-    let hi = 0.95
-    let bestBlobAtScale: Blob | null = null
-
-    for (let i = 0; i < 8; i++) {
-      const mid = (lo + hi) / 2
-      const blob: Blob | null = await new Promise((resolve) => canvas.toBlob((b) => resolve(b), 'image/jpeg', mid))
-      if (!blob) break
-      const kb = blob.size / 1024
-      if (kb > target.maxKB) {
-        hi = mid
-      } else {
-        bestBlobAtScale = blob
-        if (kb >= target.minKB) break
-        lo = mid
-      }
-    }
-
-    if (bestBlobAtScale) {
-      const kb = bestBlobAtScale.size / 1024
-      best = { blob: bestBlobAtScale, achievedKB: kb }
-      if (kb <= target.maxKB) break
-    }
-  }
-
-  if (!best) {
-    const w = Math.max(1, Math.round(target.width * 0.4))
-    const h = Math.max(1, Math.round(target.height * 0.4))
-    const canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
-    const ctx = canvas.getContext('2d')!
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, w, h)
-    ctx.drawImage(sourceCanvas, 0, 0, w, h)
-    const blob: Blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b as Blob), 'image/jpeg', 0.4))
-    best = { blob, achievedKB: blob.size / 1024 }
-  }
-
-  const withinRange = best.achievedKB >= target.minKB && best.achievedKB <= target.maxKB
-  return { ...best, withinRange }
-}
-
 export function DocumentsPanel() {
   const [stage, setStage] = useState<Stage>('upload')
   const [preset, setPreset] = useState<PresetKey>('passport')
@@ -99,28 +32,24 @@ export function DocumentsPanel() {
   const [freeCrop, setFreeCrop] = useState(false)
   const [enhanceOn, setEnhanceOn] = useState(true)
 
-  const [isAutoCompression, setIsAutoCompression] = useState(true)
-  const [compressionPercent, setCompressionPercent] = useState('50')
-  const [originalFileKB, setOriginalFileKB] = useState<number | null>(null)
-
   const [originalUrl, setOriginalUrl] = useState<string | null>(null)
-  const [resultUrl, setResultUrl] = useState<string | null>(null)
-  const [resultKB, setResultKB] = useState<number | null>(null)
-  const [resultFileName, setResultFileName] = useState('resized-photo.jpg')
+  const [croppedCanvas, setCroppedCanvas] = useState<HTMLCanvasElement | null>(null)
+
+  // Direct quality control — same model as the Compress tab. 100% = best
+  // natural quality at this pixel size, no artificial KB-target throttling.
+  const [quality, setQuality] = useState(0.9)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewKB, setPreviewKB] = useState<number | null>(null)
+  const [encoding, setEncoding] = useState(false)
 
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [warning, setWarning] = useState<string | null>(null)
 
   const exporterRef = useRef<CropExporter | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const active: Preset = preset === 'custom' ? { label: 'Custom', width: customW, height: customH, suggestedKB: 'aapki marzi' } : PRESETS[preset]
-
-  const effectivePercent = isAutoCompression ? 50 : Number(compressionPercent) || 0
-  const effectiveTargetKB =
-    originalFileKB && effectivePercent > 0 ? Math.max(8, Math.round((originalFileKB * effectivePercent) / 100)) : null
-
   const lockedAspect = freeCrop ? null : active.width / active.height
 
   const handleExporterReady = useCallback((exporter: CropExporter | null) => {
@@ -131,8 +60,6 @@ export function DocumentsPanel() {
     const file = e.target.files?.[0]
     if (!file) return
     setError(null)
-    setWarning(null)
-    setOriginalFileKB(Math.round((file.size / 1024) * 10) / 10)
     const reader = new FileReader()
     reader.onload = () => {
       setOriginalUrl(reader.result as string)
@@ -147,36 +74,14 @@ export function DocumentsPanel() {
       setError('Crop area ready nahi hai, ek second ruk ke dobara try karo.')
       return
     }
-    if (!effectiveTargetKB) {
-      setError('Target size set nahi ho payi — valid percentage (1-100) daalo.')
-      return
-    }
     setProcessing(true)
     setError(null)
-    setWarning(null)
     try {
       const { canvas } = await exporterRef.current()
       const finalCanvas = enhanceOn ? autoEnhanceCanvas(canvas) : canvas
-      const target = {
-        width: active.width,
-        height: active.height,
-        maxKB: effectiveTargetKB,
-        minKB: Math.max(4, Math.round(effectiveTargetKB * 0.8)),
-      }
-      const result = await resizeToTarget(finalCanvas, target)
-
-      setResultKB(Math.round(result.achievedKB * 10) / 10)
-      setResultUrl(URL.createObjectURL(result.blob))
-      setResultFileName(preset === 'signature' ? 'signature.jpg' : 'resized-photo.jpg')
-      setStage('result')
-
-      if (!result.withinRange) {
-        if (result.achievedKB > target.maxKB) {
-          setWarning(`Exact ${target.maxKB}KB tak nahi pahuncha (final: ${Math.round(result.achievedKB)}KB) — is photo mein detail zyada hai. Target % thoda badha ke dekho.`)
-        } else {
-          setWarning(`File target se chhoti ban gayi (${Math.round(result.achievedKB)}KB).`)
-        }
-      }
+      setCroppedCanvas(finalCanvas)
+      setQuality(0.9)
+      setStage('adjust')
     } catch {
       setError('Kuch galat ho gaya, dobara try karo.')
     } finally {
@@ -184,16 +89,43 @@ export function DocumentsPanel() {
     }
   }
 
+  const runEncode = useCallback((canvas: HTMLCanvasElement, q: number) => {
+    setEncoding(true)
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          setEncoding(false)
+          return
+        }
+        setPreviewUrl((old) => {
+          if (old) URL.revokeObjectURL(old)
+          return URL.createObjectURL(blob)
+        })
+        setPreviewKB(Math.round((blob.size / 1024) * 10) / 10)
+        setEncoding(false)
+      },
+      'image/jpeg',
+      q,
+    )
+  }, [])
+
+  useEffect(() => {
+    if (!croppedCanvas) return
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => runEncode(croppedCanvas, quality), 120)
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [croppedCanvas, quality, runEncode])
+
   function startOver() {
     setStage('upload')
     setOriginalUrl(null)
-    setResultUrl(null)
-    setResultKB(null)
-    setOriginalFileKB(null)
-    setCompressionPercent('50')
-    setIsAutoCompression(true)
+    setCroppedCanvas(null)
+    setPreviewUrl(null)
+    setPreviewKB(null)
+    setQuality(0.9)
     setError(null)
-    setWarning(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -225,8 +157,8 @@ export function DocumentsPanel() {
             )}
 
             <p className="psr-hint">
-              Target size: {active.width}×{active.height}px. (Typical govt spec: {active.suggestedKB} — final KB
-              aage compression step mein tum khud set karoge.)
+              Target size: {active.width}×{active.height}px. (Typical govt spec: {active.suggestedKB} —
+              agle step mein quality slider se apni marzi ka size set karoge.)
             </p>
 
             <div className="psr-field">
@@ -253,81 +185,60 @@ export function DocumentsPanel() {
               </label>
             </div>
 
-            <div className="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-              <p className="mb-3 text-sm font-semibold">Compression</p>
-
-              <label className="mb-3 flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={isAutoCompression}
-                  onChange={(e) => {
-                    setIsAutoCompression(e.target.checked)
-                    if (e.target.checked) setCompressionPercent('50')
-                  }}
-                />
-                Auto — 50% of original size
-              </label>
-
-              {!isAutoCompression && (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    className="psr-select"
-                    style={{ maxWidth: 100 }}
-                    placeholder="e.g. 60"
-                    value={compressionPercent}
-                    onChange={(e) => setCompressionPercent(e.target.value)}
-                  />
-                  <span className="text-sm text-slate-500">%</span>
-                </div>
-              )}
-
-              {originalFileKB && effectiveTargetKB && (
-                <p className="mt-2 text-sm font-medium text-blue-600 dark:text-blue-400">
-                  Original {originalFileKB}KB × {effectivePercent}% → isse ~{effectiveTargetKB}KB ki file banegi
-                </p>
-              )}
-
-              <p className="mt-2 text-xs text-slate-500">
-                Chhoti % (jaise 10-20%) pe detailed photos (QR code, chhota text) ka quality thoda kam dikh sakta hai — yeh compression ka natural trade-off hai.
-              </p>
-            </div>
-
             {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
             <div className="flex w-full gap-3">
               <Button variant="secondary" onClick={startOver} className="flex-1">Cancel</Button>
               <Button onClick={handleConfirmCrop} disabled={processing} className="psr-primary-button flex-[2]">
-                {processing ? 'Processing…' : 'Crop confirm karo & resize karo'}
+                {processing ? 'Processing…' : 'Crop confirm karo'}
               </Button>
             </div>
           </>
         )}
 
-        {stage === 'result' && resultUrl && resultKB !== null && (
+        {stage === 'adjust' && croppedCanvas && (
           <>
-            {warning && <p className="text-sm text-amber-600 dark:text-amber-400 text-center">{warning}</p>}
-
             <div className="psr-compare-grid">
               <div className="psr-compare-item">
                 <span className="psr-compare-label">Before</span>
                 {originalUrl && <img src={originalUrl} alt="Original" className="psr-compare-image" />}
               </div>
               <div className="psr-compare-item">
-                <span className="psr-compare-label">After — {resultKB}KB</span>
-                <img src={resultUrl} alt="Result" className="psr-compare-image" />
+                <span className="psr-compare-label">
+                  Live preview {previewKB !== null && `— ${previewKB}KB`} {encoding && '…'}
+                </span>
+                {previewUrl && <img src={previewUrl} alt="Result preview" className="psr-compare-image" />}
               </div>
             </div>
 
-            <p className="psr-hint">Final size: {active.width}×{active.height}px, {resultKB}KB</p>
+            <div className="psr-field">
+              <label>
+                Quality: {Math.round(quality * 100)}%
+                {quality >= 0.95 && <span className="text-slate-500 font-normal"> (best natural quality)</span>}
+              </label>
+              <input
+                type="range"
+                min={0.1}
+                max={1}
+                step={0.05}
+                value={quality}
+                onChange={(e) => setQuality(Number(e.target.value))}
+                className="w-full"
+              />
+              <p className="psr-hint">
+                Slider drag karte hi preview + size turant update hoti hai. {active.width}×{active.height}px pe fixed hai (govt spec).
+              </p>
+            </div>
+
+            {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
             <div className="flex w-full gap-3">
               <Button variant="secondary" onClick={startOver} className="flex-1">Naya photo</Button>
-              <a href={resultUrl} download={resultFileName} className="flex-[2]">
-                <Button className="psr-primary-button w-full">Download</Button>
-              </a>
+              {previewUrl && (
+                <a href={previewUrl} download={preset === 'signature' ? 'signature.jpg' : 'resized-photo.jpg'} className="flex-[2]">
+                  <Button className="psr-primary-button w-full">Download</Button>
+                </a>
+              )}
             </div>
           </>
         )}
