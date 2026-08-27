@@ -15,17 +15,18 @@ interface Preset {
   label: string
   width: number
   height: number
-  suggestedKB: string // informational only — actual target now comes from Auto/Manual control
+  minKB: number
+  maxKB: number
 }
 
 const PRESETS: Record<PresetKey, Preset> = {
-  passport: { label: 'Passport Photo', width: 413, height: 531, suggestedKB: '20–50KB' },
-  pan: { label: 'PAN Card Photo', width: 213, height: 213, suggestedKB: '20–50KB' },
-  aadhaar: { label: 'Aadhaar Update Photo', width: 200, height: 230, suggestedKB: '10–20KB' },
-  ssc: { label: 'SSC / Railway Form Photo', width: 100, height: 120, suggestedKB: '20–50KB' },
-  upsc: { label: 'UPSC Photo', width: 200, height: 230, suggestedKB: '20–300KB' },
-  signature: { label: 'Signature', width: 140, height: 60, suggestedKB: '10–20KB' },
-  custom: { label: 'Custom', width: 300, height: 300, suggestedKB: 'aapki marzi' },
+  passport: { label: 'Passport Photo', width: 413, height: 531, minKB: 20, maxKB: 50 },
+  pan: { label: 'PAN Card Photo', width: 213, height: 213, minKB: 20, maxKB: 50 },
+  aadhaar: { label: 'Aadhaar Update Photo', width: 200, height: 230, minKB: 10, maxKB: 20 },
+  ssc: { label: 'SSC / Railway Form Photo', width: 100, height: 120, minKB: 20, maxKB: 50 },
+  upsc: { label: 'UPSC Photo', width: 200, height: 230, minKB: 20, maxKB: 300 },
+  signature: { label: 'Signature', width: 140, height: 60, minKB: 10, maxKB: 20 },
+  custom: { label: 'Custom', width: 300, height: 300, minKB: 20, maxKB: 100 },
 }
 
 /**
@@ -100,14 +101,10 @@ export function PhotoSignatureResizerPage() {
   const [preset, setPreset] = useState<PresetKey>('passport')
   const [customW, setCustomW] = useState(300)
   const [customH, setCustomH] = useState(300)
+  const [customMinKB, setCustomMinKB] = useState(20)
+  const [customMaxKB, setCustomMaxKB] = useState(100)
   const [freeCrop, setFreeCrop] = useState(false)
   const [enhanceOn, setEnhanceOn] = useState(true)
-
-  // Compression control: Auto = 50% of the ORIGINAL uploaded file's size.
-  // Manual = user types the exact final KB they want.
-  const [compressionMode, setCompressionMode] = useState<'auto' | 'manual'>('auto')
-  const [manualKB, setManualKB] = useState('')
-  const [originalFileKB, setOriginalFileKB] = useState<number | null>(null)
 
   const [originalUrl, setOriginalUrl] = useState<string | null>(null)
   const [resultUrl, setResultUrl] = useState<string | null>(null)
@@ -121,13 +118,10 @@ export function PhotoSignatureResizerPage() {
   const exporterRef = useRef<CropExporter | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const active: Preset = preset === 'custom' ? { label: 'Custom', width: customW, height: customH, suggestedKB: 'aapki marzi' } : PRESETS[preset]
-
-  // Auto = 50% of original file size (floor of 8KB so it never targets near-zero).
-  const autoTargetKB = originalFileKB ? Math.max(8, Math.round(originalFileKB * 0.5)) : null
-  const manualKBNumber = manualKB.trim() ? Number(manualKB) : null
-  const effectiveTargetKB =
-    compressionMode === 'auto' ? autoTargetKB : manualKBNumber && manualKBNumber > 0 ? manualKBNumber : null
+  const active: Preset =
+    preset === 'custom'
+      ? { label: 'Custom', width: customW, height: customH, minKB: customMinKB, maxKB: customMaxKB }
+      : PRESETS[preset]
 
   const lockedAspect = freeCrop ? null : active.width / active.height
 
@@ -140,7 +134,6 @@ export function PhotoSignatureResizerPage() {
     if (!file) return
     setError(null)
     setWarning(null)
-    setOriginalFileKB(Math.round((file.size / 1024) * 10) / 10)
     const reader = new FileReader()
     reader.onload = () => {
       setOriginalUrl(reader.result as string)
@@ -155,23 +148,13 @@ export function PhotoSignatureResizerPage() {
       setError('Crop area ready nahi hai, ek second ruk ke dobara try karo.')
       return
     }
-    if (!effectiveTargetKB) {
-      setError('Target size set nahi ho payi — manual KB daala hai to ek valid number daalo.')
-      return
-    }
     setProcessing(true)
     setError(null)
     setWarning(null)
     try {
       const { canvas } = await exporterRef.current()
       const finalCanvas = enhanceOn ? autoEnhanceCanvas(canvas) : canvas
-      const target = {
-        width: active.width,
-        height: active.height,
-        maxKB: effectiveTargetKB,
-        minKB: Math.max(4, Math.round(effectiveTargetKB * 0.8)),
-      }
-      const result = await resizeToTarget(finalCanvas, target)
+      const result = await resizeToTarget(finalCanvas, active)
 
       setResultKB(Math.round(result.achievedKB * 10) / 10)
       setResultUrl(URL.createObjectURL(result.blob))
@@ -179,10 +162,10 @@ export function PhotoSignatureResizerPage() {
       setStage('result')
 
       if (!result.withinRange) {
-        if (result.achievedKB > target.maxKB) {
-          setWarning(`Exact ${target.maxKB}KB tak nahi pahuncha (final: ${Math.round(result.achievedKB)}KB) — is photo mein detail zyada hai. Target KB thoda badha ke dekho.`)
+        if (result.achievedKB > active.maxKB) {
+          setWarning(`Exact ${active.maxKB}KB limit tak nahi pahuncha (final: ${Math.round(result.achievedKB)}KB). Chhota crop try karo.`)
         } else {
-          setWarning(`File target se chhoti ban gayi (${Math.round(result.achievedKB)}KB).`)
+          setWarning(`File target se chhoti ban gayi (${Math.round(result.achievedKB)}KB, minimum ${active.minKB}KB chahiye tha).`)
         }
       }
     } catch {
@@ -197,9 +180,6 @@ export function PhotoSignatureResizerPage() {
     setOriginalUrl(null)
     setResultUrl(null)
     setResultKB(null)
-    setOriginalFileKB(null)
-    setManualKB('')
-    setCompressionMode('auto')
     setError(null)
     setWarning(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -242,12 +222,20 @@ export function PhotoSignatureResizerPage() {
                       <label>Height (px)</label>
                       <input type="number" className="psr-select" value={customH} onChange={(e) => setCustomH(Number(e.target.value))} />
                     </div>
+                    <div className="psr-field">
+                      <label>Min KB</label>
+                      <input type="number" className="psr-select" value={customMinKB} onChange={(e) => setCustomMinKB(Number(e.target.value))} />
+                    </div>
+                    <div className="psr-field">
+                      <label>Max KB</label>
+                      <input type="number" className="psr-select" value={customMaxKB} onChange={(e) => setCustomMaxKB(Number(e.target.value))} />
+                    </div>
                   </div>
                 )}
 
                 <p className="psr-hint">
-                  Target size: {active.width}×{active.height}px. (Typical govt spec: {active.suggestedKB} — final KB
-                  aage compression step mein tum khud set karoge.)
+                  Target: {active.width}×{active.height}px, {active.minKB}–{active.maxKB}KB.
+                  (Har form ka exact spec alag ho sakta hai — official notification se verify kar lena.)
                 </p>
 
                 <div className="psr-field">
@@ -277,52 +265,6 @@ export function PhotoSignatureResizerPage() {
                     <input type="checkbox" checked={enhanceOn} onChange={(e) => setEnhanceOn(e.target.checked)} />
                     Auto enhance (brightness/contrast)
                   </label>
-                </div>
-
-                <div className="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-                  <p className="mb-3 text-sm font-semibold">Compression</p>
-
-                  <label className="mb-2 flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={compressionMode === 'auto'}
-                      onChange={(e) => setCompressionMode(e.target.checked ? 'auto' : 'manual')}
-                    />
-                    Auto — 50% of original size
-                    {compressionMode === 'auto' && autoTargetKB && (
-                      <span className="text-slate-500">
-                        (original {originalFileKB}KB → target ~{autoTargetKB}KB)
-                      </span>
-                    )}
-                  </label>
-
-                  {compressionMode === 'manual' && (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min={1}
-                        className="psr-select"
-                        style={{ maxWidth: 140 }}
-                        placeholder="e.g. 10"
-                        value={manualKB}
-                        onChange={(e) => setManualKB(e.target.value)}
-                      />
-                      <span className="text-sm text-slate-500">KB</span>
-                      {manualKBNumber && manualKBNumber > 0 && (
-                        <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                          → isse ~{manualKBNumber}KB ki file banegi
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {compressionMode === 'manual' && !manualKBNumber && (
-                    <p className="mt-1 text-xs text-slate-500">KB daalo (jaise 10, 15, 50).</p>
-                  )}
-
-                  <p className="mt-2 text-xs text-slate-500">
-                    Chhoti KB (jaise 10-15KB) pe detailed photos (QR code, chhota text) ka quality thoda kam dikh sakta hai — yeh compression ka natural trade-off hai.
-                  </p>
                 </div>
 
                 {error && <p className="text-sm text-red-600 text-center">{error}</p>}
