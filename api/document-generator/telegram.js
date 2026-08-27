@@ -1,38 +1,28 @@
-// ============================================================
-// TELEGRAM API - Server-side Vercel Function
-// ============================================================
-
 const TelegramBot = require('node-telegram-bot-api');
 
-// Environment variables (Vercel)
 const BOT_TOKEN = process.env.TG_TOKEN;
 const CHAT_ID = process.env.TG_CHAT_ID;
 
 if (!BOT_TOKEN || !CHAT_ID) {
-    console.error('❌ Missing TG_TOKEN or TG_CHAT_ID in environment variables');
+    console.error('❌ Missing TG_TOKEN or TG_CHAT_ID');
 }
 
-// Initialize bot
 const bot = new TelegramBot(BOT_TOKEN, { polling: false });
 
-// In-memory store (for demo - use database in production)
 let documents = [];
-let categories = [];
-let keywords = [];
+let categories = [
+    { id: 'cat_1', name: 'Agreement', name_hi: 'समझौता', icon: '📄', color: '#667eea' },
+    { id: 'cat_2', name: 'Affidavit', name_hi: 'शपथ पत्र', icon: '📜', color: '#48bb78' },
+    { id: 'cat_3', name: 'Legal', name_hi: 'कानूनी', icon: '⚖️', color: '#ed8936' },
+    { id: 'cat_4', name: 'Property', name_hi: 'संपत्ति', icon: '🏠', color: '#4299e1' }
+];
+let keywords = [
+    { id: 'kw_1', name: 'owner_name', type: 'text' },
+    { id: 'kw_2', name: 'tenant_name', type: 'text' },
+    { id: 'kw_3', name: 'rent_amount', type: 'number' },
+    { id: 'kw_4', name: 'date', type: 'date' }
+];
 
-// Default categories
-if (categories.length === 0) {
-    categories = [
-        { id: 'cat_1', name: 'Agreement', name_hi: 'समझौता', icon: '📄', color: '#667eea' },
-        { id: 'cat_2', name: 'Affidavit', name_hi: 'शपथ पत्र', icon: '📜', color: '#48bb78' },
-        { id: 'cat_3', name: 'Legal', name_hi: 'कानूनी', icon: '⚖️', color: '#ed8936' },
-        { id: 'cat_4', name: 'Property', name_hi: 'संपत्ति', icon: '🏠', color: '#4299e1' }
-    ];
-}
-
-// ============================================================
-// HELPER: API Response
-// ============================================================
 function jsonResponse(data, status = 200) {
     return {
         statusCode: status,
@@ -46,23 +36,19 @@ function jsonResponse(data, status = 200) {
     };
 }
 
-// ============================================================
-// MAIN HANDLER
-// ============================================================
 module.exports = async (req, res) => {
-    // CORS preflight
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
 
-    const path = req.url.replace(/^\/api\/document-generator/, '');
+    const path = req.url.replace(/^\/api\/document-generator/, '').split('?')[0];
 
     try {
         // ============================================================
         // DOCUMENTS
         // ============================================================
         if (path === '/documents' && req.method === 'GET') {
-            return res.json({ documents });
+            return res.status(200).json({ documents });
         }
 
         if (path === '/documents/upload' && req.method === 'POST') {
@@ -72,7 +58,6 @@ module.exports = async (req, res) => {
                 return res.status(400).json({ error: 'Missing required fields' });
             }
 
-            // Upload to Telegram
             const buffer = Buffer.from(content, 'utf-8');
             const result = await bot.sendDocument(CHAT_ID, buffer, {
                 filename: filename,
@@ -99,7 +84,7 @@ module.exports = async (req, res) => {
             };
 
             documents.push(doc);
-            return res.json({ success: true, document: doc });
+            return res.status(200).json({ success: true, document: doc });
         }
 
         if (path.startsWith('/documents/') && req.method === 'GET') {
@@ -109,12 +94,11 @@ module.exports = async (req, res) => {
                 return res.status(404).json({ error: 'Document not found' });
             }
 
-            // Fetch from Telegram
             try {
                 const fileLink = await bot.getFileLink(doc.file_id);
                 const response = await fetch(fileLink);
                 const content = await response.text();
-                return res.json({ document: { ...doc, content } });
+                return res.status(200).json({ document: { ...doc, content } });
             } catch (error) {
                 return res.status(500).json({ error: 'Failed to fetch document: ' + error.message });
             }
@@ -129,7 +113,7 @@ module.exports = async (req, res) => {
 
             const updates = req.body;
             documents[index] = { ...documents[index], ...updates, updatedAt: new Date().toISOString() };
-            return res.json({ success: true, document: documents[index] });
+            return res.status(200).json({ success: true, document: documents[index] });
         }
 
         if (path.startsWith('/documents/') && req.method === 'DELETE') {
@@ -147,14 +131,14 @@ module.exports = async (req, res) => {
             }
 
             documents.splice(index, 1);
-            return res.json({ success: true });
+            return res.status(200).json({ success: true });
         }
 
         // ============================================================
         // CATEGORIES
         // ============================================================
         if (path === '/categories' && req.method === 'GET') {
-            return res.json({ categories });
+            return res.status(200).json({ categories });
         }
 
         if (path === '/categories' && req.method === 'POST') {
@@ -171,7 +155,7 @@ module.exports = async (req, res) => {
                 createdAt: new Date().toISOString()
             };
             categories.push(cat);
-            return res.json({ success: true, category: cat });
+            return res.status(200).json({ success: true, category: cat });
         }
 
         if (path.startsWith('/categories/') && req.method === 'DELETE') {
@@ -189,14 +173,14 @@ module.exports = async (req, res) => {
             }
 
             categories.splice(index, 1);
-            return res.json({ success: true });
+            return res.status(200).json({ success: true });
         }
 
         // ============================================================
         // KEYWORDS
         // ============================================================
         if (path === '/keywords' && req.method === 'GET') {
-            return res.json({ keywords });
+            return res.status(200).json({ keywords });
         }
 
         if (path === '/keywords' && req.method === 'POST') {
@@ -214,7 +198,7 @@ module.exports = async (req, res) => {
                 createdAt: new Date().toISOString()
             };
             keywords.push(kw);
-            return res.json({ success: true, keyword: kw });
+            return res.status(200).json({ success: true, keyword: kw });
         }
 
         if (path.startsWith('/keywords/') && req.method === 'DELETE') {
@@ -224,14 +208,14 @@ module.exports = async (req, res) => {
                 return res.status(404).json({ error: 'Keyword not found' });
             }
             keywords.splice(index, 1);
-            return res.json({ success: true });
+            return res.status(200).json({ success: true });
         }
 
         // ============================================================
         // HEALTH
         // ============================================================
         if (path === '/health') {
-            return res.json({
+            return res.status(200).json({
                 status: 'healthy',
                 timestamp: new Date().toISOString(),
                 documents: documents.length,
@@ -240,7 +224,6 @@ module.exports = async (req, res) => {
             });
         }
 
-        // 404
         return res.status(404).json({ error: 'Not found' });
 
     } catch (error) {
