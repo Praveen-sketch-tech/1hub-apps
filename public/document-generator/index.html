@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📄 Smart Document Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:10px}
+        .login-screen{max-width:400px;margin:100px auto;background:#fff;padding:40px;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center}
+        .login-screen h2{color:#333;margin-bottom:20px}
+        .login-screen input{width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:10px;margin-bottom:15px;font-size:1rem}
+        .login-screen button{width:100%;padding:12px;background:#667eea;color:#fff;border:none;border-radius:10px;font-size:1.1rem;cursor:pointer}
+        .login-screen button:hover{background:#5a67d8}
+        .container{max-width:1400px;margin:0 auto;background:#fff;border-radius:20px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,0.3);display:none}
+        .header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;padding-bottom:20px;border-bottom:2px solid #e2e8f0;margin-bottom:20px}
+        .header h1{color:#333;font-size:1.8rem;display:flex;align-items:center;gap:10px}
+        .header-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+        .tabs{display:flex;gap:5px;margin-bottom:20px;background:#f7fafc;padding:5px;border-radius:12px;flex-wrap:wrap}
+        .tab-btn{padding:10px 25px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-weight:600;transition:all 0.3s;color:#718096}
+        .tab-btn.active{background:#667eea;color:#fff}
+        .tab-btn:hover:not(.active){background:#e2e8f0}
+        .tab-content{display:none}
+        .tab-content.active{display:block}
+        .upload-section{background:#f7fafc;padding:25px;border-radius:15px;margin-bottom:20px}
+        .form-group{margin-bottom:15px}
+        .form-group label{display:block;font-weight:600;margin-bottom:5px;color:#333}
+        .form-group input,.form-group select,.form-group textarea{width:100%;padding:10px;border:2px solid #e2e8f0;border-radius:8px;font-size:1rem}
+        .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:#667eea}
+        .btn{padding:10px 20px;border:none;border-radius:8px;font-weight:600;cursor:pointer;transition:all 0.3s;display:inline-flex;align-items:center;gap:5px}
+        .btn-primary{background:#667eea;color:#fff}
+        .btn-primary:hover{background:#5a67d8;transform:translateY(-2px)}
+        .btn-success{background:#48bb78;color:#fff}
+        .btn-success:hover{background:#38a169;transform:translateY(-2px)}
+        .btn-danger{background:#f56565;color:#fff}
+        .btn-danger:hover{background:#e53e3e;transform:translateY(-2px)}
+        .btn-warning{background:#ed8936;color:#fff}
+        .btn-warning:hover{background:#dd6b20;transform:translateY(-2px)}
+        .btn-outline{background:transparent;border:2px solid #667eea;color:#667eea}
+        .btn-outline:hover{background:#667eea;color:#fff}
+        .documents-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;margin:20px 0}
+        .doc-card{background:#fff;border:2px solid #e2e8f0;border-radius:15px;padding:20px;transition:all 0.3s;cursor:pointer}
+        .doc-card:hover{transform:translateY(-5px);box-shadow:0 10px 30px rgba(0,0,0,0.1);border-color:#667eea}
+        .doc-card .category-tag{display:inline-block;padding:3px 12px;border-radius:12px;font-size:0.8rem;color:#fff;margin-bottom:10px}
+        .doc-card .doc-name{font-size:1.1rem;font-weight:600;color:#333}
+        .doc-card .doc-preview{font-size:0.9rem;color:#666;line-height:1.5;max-height:80px;overflow:hidden}
+        .doc-actions{margin-top:15px;display:flex;gap:10px}
+        .doc-actions button{flex:1;padding:8px;font-size:0.9rem}
+        .fill-area{background:#f7fafc;padding:25px;border-radius:15px;margin-top:20px}
+        .fill-area .fill-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+        .preview-box{background:#fff;padding:20px;border-radius:10px;border:2px solid #e2e8f0;margin-top:20px;white-space:pre-wrap;line-height:2;max-height:400px;overflow-y:auto}
+        .categories-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;margin:20px 0}
+        .category-card{background:#fff;border:2px solid #e2e8f0;border-radius:12px;padding:15px;text-align:center;transition:all 0.3s}
+        .category-card:hover{border-color:#667eea;transform:translateY(-3px)}
+        .category-card .icon{font-size:2.5rem}
+        .category-card .name{font-weight:600;color:#333}
+        .category-card .count{font-size:0.8rem;color:#718096}
+        .keywords-container{display:flex;flex-wrap:wrap;gap:10px;margin:15px 0}
+        .keyword-tag{background:#e2e8f0;padding:5px 15px;border-radius:20px;display:inline-flex;align-items:center;gap:8px;font-size:0.9rem}
+        .keyword-tag .remove{cursor:pointer;color:#f56565;font-weight:bold}
+        .lang-toggle{display:flex;gap:5px;background:#f7fafc;padding:3px;border-radius:8px}
+        .lang-btn{padding:5px 15px;border:none;background:transparent;border-radius:6px;cursor:pointer;font-weight:500}
+        .lang-btn.active{background:#667eea;color:#fff}
+        .admin-toggle{display:flex;align-items:center;gap:10px}
+        .toggle-switch{width:50px;height:26px;background:#ccc;border-radius:13px;cursor:pointer;position:relative;transition:0.3s}
+        .toggle-switch.active{background:#48bb78}
+        .toggle-switch::after{content:'';width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:0.3s}
+        .toggle-switch.active::after{left:27px}
+        .status-bar{padding:10px 15px;border-radius:8px;margin:10px 0;display:none}
+        .status-bar.success{background:#c6f6d5;color:#22543d;display:block}
+        .status-bar.error{background:#fed7d7;color:#742a2a;display:block}
+        .status-bar.info{background:#bee3f8;color:#2a4365;display:block}
+        .status-bar.loading{background:#e2e8f0;color:#2d3748;display:block}
+        .spinner{display:inline-block;width:20px;height:20px;border:3px solid #f3f3f3;border-top:3px solid #667eea;border-radius:50%;animation:spin 1s linear infinite}
+        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        @media(max-width:768px){.container{padding:10px}.header{flex-direction:column;align-items:stretch}.documents-grid{grid-template-columns:1fr}.tabs{overflow-x:auto;flex-wrap:nowrap}.tab-btn{padding:8px 15px;font-size:0.9rem;white-space:nowrap}}
+    </style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+    <h2>🔐 Admin Login</h2>
+    <p style="color:#666;margin-bottom:20px;">Enter admin password to manage documents</p>
+    <input type="password" id="adminPassword" placeholder="Enter Password" onkeypress="if(event.key==='Enter')adminLogin()">
+    <button onclick="adminLogin()">Login</button>
+    <br><br>
+    <small style="color:#999;">Default: admin123</small>
+</div>
+
+<div class="container" id="mainContainer">
+    <div class="header">
+        <h1>📄 Smart Document Generator</h1>
+        <div class="header-actions">
+            <div class="lang-toggle">
+                <button class="lang-btn active" onclick="setLanguage('en')">🇬🇧 EN</button>
+                <button class="lang-btn" onclick="setLanguage('hi')">🇮🇳 HI</button>
+            </div>
+            <div class="admin-toggle">
+                <span style="font-weight:500;">Admin</span>
+                <div class="toggle-switch" id="adminToggle" onclick="toggleAdminMode()"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar" id="statusBar"></div>
+
+    <div class="tabs" id="tabsContainer">
+        <button class="tab-btn active" onclick="switchTab('user')">📄 Documents</button>
+        <button class="tab-btn" onclick="switchTab('fill')">✏️ Fill Form</button>
+        <button class="tab-btn admin-only" onclick="switchTab('upload')" style="display:none;">📤 Upload</button>
+        <button class="tab-btn admin-only" onclick="switchTab('categories')" style="display:none;">📂 Categories</button>
+        <button class="tab-btn admin-only" onclick="switchTab('keywords')" style="display:none;">🔑 Keywords</button>
+        <button class="tab-btn admin-only" onclick="switchTab('settings')" style="display:none;">⚙️ Settings</button>
+    </div>
+
+    <div class="tab-content active" id="tab-user">
+        <div class="categories-grid" id="categoryFilters">
+            <div class="category-card" onclick="filterByCategory('All')" style="cursor:pointer;">
+                <div class="icon">📚</div>
+                <div class="name">All</div>
+                <div class="count" id="totalDocs">0 documents</div>
+            </div>
+        </div>
+        <div class="documents-grid" id="documentsGrid">
+            <div style="text-align:center;padding:50px;color:#999;grid-column:1/-1;">
+                Loading documents...
+                <div class="spinner" style="margin-top:10px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="tab-fill">
+        <div class="fill-area" id="fillArea">
+            <div class="fill-header">
+                <h3 id="fillingDocTitle">📝 Select a document to fill</h3>
+                <div>
+                    <button class="btn btn-success" onclick="generatePDF()">📄 Generate PDF</button>
+                </div>
+            </div>
+            <div id="formFields"></div>
+            <div id="previewArea" style="display:none;margin-top:20px;">
+                <h4>📄 Preview</h4>
+                <div id="previewContent" class="preview-box"></div>
+                <button class="btn btn-success" onclick="downloadPDF()">⬇️ Download PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="tab-upload">
+        <h3>📤 Upload Document</h3>
+        <div class="upload-section">
+            <div class="form-group"><label>Document Name *</label><input type="text" id="docName" placeholder="e.g., Rent Agreement"></div>
+            <div class="form-group"><label>Hindi Name</label><input type="text" id="docNameHi" placeholder="e.g., किराया समझौता"></div>
+            <div class="form-group"><label>Category *</label><select id="docCategory"></select></div>
+            <div class="form-group"><label>Description</label><input type="text" id="docDescription" placeholder="Brief description"></div>
+            <div class="form-group"><label>Upload File (.docx or .txt) *</label><input type="file" id="fileUpload" accept=".docx,.txt"></div>
+            <div class="form-group"><label>Status</label><select id="docStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+            <button class="btn btn-primary" onclick="uploadDocument()">📤 Upload</button>
+        </div>
+        <h4 style="margin-top:20px;">📄 Uploaded Documents</h4>
+        <div id="uploadedDocsList"></div>
+    </div>
+
+    <div class="tab-content" id="tab-categories">
+        <h3>📂 Manage Categories</h3>
+        <div style="margin-bottom:20px;">
+            <div class="form-group" style="display:flex;gap:10px;flex-wrap:wrap;">
+                <input type="text" id="newCategoryName" placeholder="Category Name" style="flex:1;min-width:150px;">
+                <input type="text" id="newCategoryNameHi" placeholder="Hindi Name" style="flex:1;min-width:150px;">
+                <input type="text" id="newCategoryIcon" placeholder="Icon" style="flex:0.5;min-width:60px;">
+                <input type="color" id="newCategoryColor" value="#667eea" style="flex:0.3;min-width:50px;">
+                <button class="btn btn-success" onclick="addCategory()">+ Add</button>
+            </div>
+        </div>
+        <div class="categories-grid" id="categoriesGrid"></div>
+    </div>
+
+    <div class="tab-content" id="tab-keywords">
+        <h3>🔑 Manage Keywords</h3>
+        <div style="margin-bottom:20px;">
+            <div class="form-group" style="display:flex;gap:10px;flex-wrap:wrap;">
+                <input type="text" id="newKeyword" placeholder="Keyword" style="flex:1;min-width:150px;">
+                <select id="newKeywordType" style="flex:0.5;min-width:100px;"><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="email">Email</option><option value="phone">Phone</option></select>
+                <button class="btn btn-success" onclick="addKeyword()">+ Add</button>
+            </div>
+        </div>
+        <div class="keywords-container" id="keywordsContainer"></div>
+    </div>
+
+    <div class="tab-content" id="tab-settings">
+        <h3>⚙️ Settings</h3>
+        <div class="upload-section">
+            <div class="form-group"><label>Bot Token</label><input type="password" id="botToken" placeholder="Enter Bot Token"></div>
+            <div class="form-group"><label>Channel ID</label><input type="text" id="channelId" placeholder="Enter Channel ID"></div>
+            <div class="form-group"><label>Admin Password</label><input type="password" id="adminPass" placeholder="Change admin password"></div>
+            <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+            <hr style="margin:20px 0;">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button class="btn btn-warning" onclick="exportData()">📤 Export Data</button>
+                <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">📥 Import Data</button>
+                <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importData(event)">
+                <button class="btn btn-danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURATION - PUT YOUR TELEGRAM BOT TOKEN HERE
+// ============================================================
+const DEFAULT_BOT_TOKEN = ''; // ← Paste your bot token here
+const DEFAULT_CHANNEL_ID = ''; // ← Paste your channel ID here
+const ADMIN_PASSWORD = 'admin123';
+
+let currentLang = 'en';
+let isAdmin = false;
+let currentDocId = null;
+let currentDocument = null;
+let allDocuments = [];
+let allCategories = [];
+let allKeywords = [];
+
+// ============================================================
+// TELEGRAM FUNCTIONS
+// ============================================================
+function getBotToken() {
+    return localStorage.getItem('botToken') || DEFAULT_BOT_TOKEN;
+}
+
+function getChannelId() {
+    return localStorage.getItem('channelId') || DEFAULT_CHANNEL_ID;
+}
+
+async function telegramApi(method, params = {}) {
+    const token = getBotToken();
+    if (!token) {
+        showStatus('⚠️ Bot Token not configured! Go to Settings.', 'error');
+        return null;
+    }
+    try {
+        const url = `https://api.telegram.org/bot${token}/${method}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params)
+        });
+        const data = await response.json();
+        if (!data.ok) throw new Error(data.description || 'Telegram API error');
+        return data;
+    } catch (error) {
+        showStatus('❌ Telegram Error: ' + error.message, 'error');
+        return null;
+    }
+}
+
+async function uploadToTelegram(fileContent, fileName) {
+    const token = getBotToken();
+    const channelId = getChannelId();
+    if (!token || !channelId) {
+        showStatus('⚠️ Please configure Bot Token and Channel ID in Settings', 'error');
+        return null;
+    }
+    try {
+        const formData = new FormData();
+        const blob = new Blob([fileContent], { type: 'text/plain' });
+        formData.append('document', blob, fileName);
+        formData.append('chat_id', channelId);
+        const response = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (!data.ok) throw new Error(data.description || 'Upload failed');
+        return data.result.document.file_id;
+    } catch (error) {
+        showStatus('❌ Upload failed: ' + error.message, 'error');
+        return null;
+    }
+}
+
+async function getFileFromTelegram(fileId) {
+    const token = getBotToken();
+    if (!token) return null;
+    try {
+        const fileInfo = await telegramApi('getFile', { file_id: fileId });
+        if (!fileInfo) return null;
+        const filePath = fileInfo.result.file_path;
+        const fileUrl = `https://api.telegram.org/file/bot${token}/${filePath}`;
+        const response = await fetch(fileUrl);
+        if (!response.ok) throw new Error('Failed to fetch file');
+        return await response.text();
+    } catch (error) {
+        showStatus('❌ Failed to load document: ' + error.message, 'error');
+        return null;
+    }
+}
+
+// ============================================================
+// DATA MANAGEMENT
+// ============================================================
+function loadData() {
+    const docs = localStorage.getItem('documents');
+    const cats = localStorage.getItem('categories');
+    const keys = localStorage.getItem('keywords');
+    allDocuments = docs ? JSON.parse(docs) : [];
+    allCategories = cats ? JSON.parse(cats) : [];
+    allKeywords = keys ? JSON.parse(keys) : [];
+    if (allCategories.length === 0) {
+        allCategories = [
+            { id: 'cat_1', name: 'Agreement', name_hi: 'समझौता', icon: '📄', color: '#667eea' },
+            { id: 'cat_2', name: 'Affidavit', name_hi: 'शपथ पत्र', icon: '📜', color: '#48bb78' },
+            { id: 'cat_3', name: 'Legal', name_hi: 'कानूनी', icon: '⚖️', color: '#ed8936' },
+            { id: 'cat_4', name: 'Property', name_hi: 'संपत्ति', icon: '🏠', color: '#4299e1' }
+        ];
+        saveCategories();
+    }
+    if (allKeywords.length === 0) {
+        allKeywords = [
+            { id: 'kw_1', name: 'owner_name', type: 'text' },
+            { id: 'kw_2', name: 'tenant_name', type: 'text' },
+            { id: 'kw_3', name: 'rent_amount', type: 'number' },
+            { id: 'kw_4', name: 'date', type: 'date' }
+        ];
+        saveKeywords();
+    }
+}
+
+function saveDocuments() { localStorage.setItem('documents', JSON.stringify(allDocuments)); }
+function saveCategories() { localStorage.setItem('categories', JSON.stringify(allCategories)); }
+function saveKeywords() { localStorage.setItem('keywords', JSON.stringify(allKeywords)); }
+
+// ============================================================
+// ADMIN LOGIN
+// ============================================================
+function adminLogin() {
+    const password = document.getElementById('adminPassword').value;
+    if (password === ADMIN_PASSWORD || password === localStorage.getItem('adminPassword')) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainContainer').style.display = 'block';
+        isAdmin = true;
+        document.getElementById('adminToggle').classList.add('active');
+        showAdminElements();
+        initializeApp();
+    } else {
+        alert('❌ Wrong password!');
+    }
+}
+
+function toggleAdminMode() {
+    isAdmin = !isAdmin;
+    document.getElementById('adminToggle').classList.toggle('active');
+    showAdminElements();
+    renderCategories();
+    renderKeywords();
+}
+
+function showAdminElements() {
+    document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.display = isAdmin ? '' : 'none';
+    });
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+function showStatus(message, type = 'info') {
+    const bar = document.getElementById('statusBar');
+    bar.textContent = message;
+    bar.className = 'status-bar ' + type;
+    bar.style.display = 'block';
+    if (type !== 'loading') {
+        setTimeout(() => { bar.style.display = 'none'; }, 5000);
+    }
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`).classList.add('active');
+    if (tab === 'upload') renderUploadedDocs();
+    if (tab === 'categories') renderCategories();
+    if (tab === 'keywords') renderKeywords();
+}
+
+function setLanguage(lang) {
+    currentLang = lang;
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.textContent.includes(lang.toUpperCase())) btn.classList.add('active');
+    });
+    renderDocuments();
+    if (currentDocId) selectDocument(currentDocId);
+}
+
+// ============================================================
+// DOCUMENT FUNCTIONS
+// ============================================================
+async function uploadDocument() {
+    const name = document.getElementById('docName').value.trim();
+    const nameHi = document.getElementById('docNameHi').value.trim();
+    const category = document.getElementById('docCategory').value;
+    const description = document.getElementById('docDescription').value.trim();
+    const status = document.getElementById('docStatus').value;
+    const fileInput = document.getElementById('fileUpload');
+    if (!name || !category || !fileInput.files[0]) {
+        showStatus('⚠️ Please fill all required fields and select a file', 'error');
+        return;
+    }
+    showStatus('⏳ Processing document...', 'loading');
+    try {
+        let content = '';
+        const file = fileInput.files[0];
+        if (file.name.endsWith('.docx')) {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            content = result.value;
+        } else {
+            content = await file.text();
+        }
+        const placeholders = content.match(/\{([^}]+)\}/g) || [];
+        const uniquePlaceholders = [...new Set(placeholders.map(p => p.replace(/[{}]/g, '')))];
+        const fields = uniquePlaceholders.map(ph => ({
+            id: 'f_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            key: ph,
+            type: detectFieldType(ph),
+            label: ph.replace(/_/g, ' ').toUpperCase(),
+            label_hi: ph.replace(/_/g, ' '),
+            required: true,
+            placeholder: 'Enter ' + ph.replace(/_/g, ' '),
+            placeholder_hi: ph.replace(/_/g, ' ') + ' दर्ज करें',
+            order: uniquePlaceholders.indexOf(ph)
+        }));
+        const fileName = name + '_' + Date.now() + '.txt';
+        showStatus('⏳ Uploading to Telegram...', 'loading');
+        const fileId = await uploadToTelegram(content, fileName);
+        if (!fileId) {
+            showStatus('❌ Failed to upload to Telegram', 'error');
+            return;
+        }
+        const doc = {
+            id: 'doc_' + Date.now(),
+            name: name,
+            name_hi: nameHi || name,
+            category: category,
+            description: description,
+            status: status,
+            fileId: fileId,
+            fileName: fileName,
+            fields: fields,
+            placeholders: uniquePlaceholders,
+            createdAt: new Date().toISOString()
+        };
+        allDocuments.push(doc);
+        saveDocuments();
+        document.getElementById('docName').value = '';
+        document.getElementById('docNameHi').value = '';
+        document.getElementById('docDescription').value = '';
+        document.getElementById('fileUpload').value = '';
+        showStatus('✅ Document uploaded successfully!', 'success');
+        renderUploadedDocs();
+        renderDocuments();
+    } catch (error) {
+        showStatus('❌ Error: ' + error.message, 'error');
+    }
+}
+
+function detectFieldType(key) {
+    const types = {
+        'date': ['date', 'dob', 'birthdate'],
+        'number': ['amount', 'rent', 'price', 'number', 'age'],
+        'email': ['email', 'mail'],
+        'textarea': ['address', 'description', 'notes']
+    };
+    for (const [type, keywords] of Object.entries(types)) {
+        if (keywords.some(k => key.toLowerCase().includes(k))) return type;
+    }
+    return 'text';
+}
+
+function renderDocuments() {
+    const grid = document.getElementById('documentsGrid');
+    const filtered = allDocuments.filter(d => d.status !== 'inactive');
+    if (filtered.length === 0) {
+        grid.innerHTML = `<div style="text-align:center;padding:50px;color:#999;grid-column:1/-1;">📭 No documents available. Upload from Admin panel.</div>`;
+        return;
+    }
+    document.getElementById('totalDocs').textContent = filtered.length + ' documents';
+    grid.innerHTML = filtered.map((doc) => {
+        const category = allCategories.find(c => c.id === doc.category);
+        return `
+            <div class="doc-card" onclick="selectDocument('${doc.id}')">
+                <span class="category-tag" style="background:${category?.color || '#667eea'}">
+                    ${category?.icon || '📄'} ${currentLang === 'hi' ? (category?.name_hi || category?.name || 'General') : category?.name || 'General'}
+                </span>
+                <div class="doc-name">${currentLang === 'hi' ? (doc.name_hi || doc.name) : doc.name}</div>
+                <div class="doc-preview">${doc.description || doc.placeholders?.join(', ') || ''}</div>
+                <div class="doc-actions">
+                    <button class="btn btn-primary" onclick="event.stopPropagation(); selectDocument('${doc.id}')">✏️ Fill</button>
+                    ${isAdmin ? `<button class="btn btn-danger" onclick="event.stopPropagation(); deleteDocument('${doc.id}')">🗑️</button>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function selectDocument(docId) {
+    currentDocId = docId;
+    const doc = allDocuments.find(d => d.id === docId);
+    if (!doc) return;
+    currentDocument = doc;
+    switchTab('fill');
+    document.getElementById('fillingDocTitle').textContent = `📝 ${currentLang === 'hi' ? (doc.name_hi || doc.name) : doc.name}`;
+    document.getElementById('previewArea').style.display = 'none';
+    showStatus('⏳ Loading document from Telegram...', 'loading');
+    const content = await getFileFromTelegram(doc.fileId);
+    if (!content) {
+        showStatus('❌ Failed to load document. Make sure bot token is correct.', 'error');
+        return;
+    }
+    doc._content = content;
+    generateForm(doc, content);
+    showStatus('✅ Document loaded successfully!', 'success');
+}
+
+function generateForm(doc, content) {
+    const container = document.getElementById('formFields');
+    if (!doc.fields || doc.fields.length === 0) {
+        container.innerHTML = '<p>No fields found in this document.</p>';
+        return;
+    }
+    const sortedFields = [...doc.fields].sort((a, b) => (a.order || 0) - (b.order || 0));
+    container.innerHTML = sortedFields.map(field => {
+        const label = currentLang === 'hi' ? (field.label_hi || field.label) : field.label;
+        const placeholder = currentLang === 'hi' ? (field.placeholder_hi || field.placeholder) : field.placeholder;
+        let input = '';
+        switch(field.type) {
+            case 'date': input = `<input type="date" id="field_${field.key}" oninput="updatePreview()">`; break;
+            case 'number': input = `<input type="number" id="field_${field.key}" placeholder="${placeholder}" oninput="updatePreview()">`; break;
+            case 'textarea': input = `<textarea id="field_${field.key}" placeholder="${placeholder}" oninput="updatePreview()" rows="3"></textarea>`; break;
+            default: input = `<input type="text" id="field_${field.key}" placeholder="${placeholder}" oninput="updatePreview()">`;
+        }
+        return `<div class="form-group"><label>${label} ${field.required ? '*' : ''}</label>${input}</div>`;
+    }).join('') + `<button class="btn btn-primary" onclick="updatePreview()">👁️ Preview</button>`;
+}
+
+function updatePreview() {
+    const doc = currentDocument;
+    if (!doc || !doc._content) return;
+    let filledContent = doc._content;
+    doc.fields.forEach(field => {
+        const value = document.getElementById(`field_${field.key}`)?.value || '';
+        if (value) {
+            filledContent = filledContent.replace(new RegExp(`\\{${field.key}\\}`, 'g'), value);
+        }
+    });
+    document.getElementById('previewContent').textContent = filledContent;
+    document.getElementById('previewArea').style.display = 'block';
+    window.currentPreviewContent = filledContent;
+}
+
+function generatePDF() { updatePreview(); downloadPDF(); }
+
+function downloadPDF() {
+    const content = document.getElementById('previewContent').textContent;
+    if (!content || content.trim() === '') {
+        showStatus('⚠️ Please fill the form and generate preview first!', 'error');
+        return;
+    }
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const lines = doc.splitTextToSize(content, 180);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.text(lines, 15, 20);
+        const filename = currentDocument ? `${currentDocument.name}_${new Date().toISOString().split('T')[0]}.pdf` : 'document.pdf';
+        doc.save(filename);
+        showStatus('✅ PDF downloaded successfully!', 'success');
+    } catch (error) {
+        showStatus('❌ Error generating PDF: ' + error.message, 'error');
+    }
+}
+
+// ============================================================
+// CATEGORY FUNCTIONS
+// ============================================================
+function renderCategories() {
+    const grid = document.getElementById('categoriesGrid');
+    const container = document.getElementById('categoryFilters');
+    const filterHtml = allCategories.map(cat => `
+        <div class="category-card" onclick="filterByCategory('${cat.id}')" style="cursor:pointer;">
+            <div class="icon">${cat.icon || '📂'}</div>
+            <div class="name">${currentLang === 'hi' ? (cat.name_hi || cat.name) : cat.name}</div>
+            <div class="count">${allDocuments.filter(d => d.category === cat.id).length} docs</div>
+        </div>
+    `).join('');
+    container.innerHTML = `
+        <div class="category-card" onclick="filterByCategory('All')" style="cursor:pointer;">
+            <div class="icon">📚</div>
+            <div class="name">All</div>
+            <div class="count" id="totalDocs">${allDocuments.length} documents</div>
+        </div>
+        ${filterHtml}
+    `;
+    if (!isAdmin) return;
+    grid.innerHTML = allCategories.map(cat => `
+        <div class="category-card">
+            <div class="icon">${cat.icon || '📂'}</div>
+            <div class="name">${cat.name}</div>
+            <div class="name" style="font-size:0.8rem;color:#999;">${cat.name_hi || ''}</div>
+            <div class="count">${allDocuments.filter(d => d.category === cat.id).length} docs</div>
+            <div style="margin-top:10px;display:flex;gap:5px;">
+                <button class="btn btn-danger btn-sm" onclick="deleteCategory('${cat.id}')" style="flex:1;padding:5px;font-size:0.8rem;">Delete</button>
+            </div>
+        </div>
+    `).join('') || '<p style="color:#999;grid-column:1/-1;text-align:center;">No categories. Add one!</p>';
+    const select = document.getElementById('docCategory');
+    select.innerHTML = allCategories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
+}
+
+function addCategory() {
+    const name = document.getElementById('newCategoryName').value.trim();
+    const nameHi = document.getElementById('newCategoryNameHi').value.trim();
+    const icon = document.getElementById('newCategoryIcon').value.trim() || '📂';
+    const color = document.getElementById('newCategoryColor').value;
+    if (!name) { showStatus('⚠️ Please enter category name', 'error'); return; }
+    allCategories.push({ id: 'cat_' + Date.now(), name, name_hi: nameHi || name, icon, color });
+    saveCategories();
+    renderCategories();
+    document.getElementById('newCategoryName').value = '';
+    document.getElementById('newCategoryNameHi').value = '';
+    document.getElementById('newCategoryIcon').value = '';
+    showStatus('✅ Category added successfully!', 'success');
+}
+
+function deleteCategory(catId) {
+    if (!confirm('Delete this category?')) return;
+    allCategories = allCategories.filter(c => c.id !== catId);
+    saveCategories();
+    renderCategories();
+    showStatus('Category deleted', 'info');
+}
+
+// ============================================================
+// KEYWORD FUNCTIONS
+// ============================================================
+function renderKeywords() {
+    const container = document.getElementById('keywordsContainer');
+    container.innerHTML = allKeywords.map(kw => `
+        <span class="keyword-tag">
+            ${kw.name}
+            <span style="font-size:0.7rem;color:#999;">(${kw.type})</span>
+            ${isAdmin ? `<span class="remove" onclick="deleteKeyword('${kw.id}')">×</span>` : ''}
+        </span>
+    `).join('') || (isAdmin ? '<p style="color:#999;">No keywords. Add one!</p>' : '');
+}
+
+function addKeyword() {
+    const name = document.getElementById('newKeyword').value.trim();
+    const type = document.getElementById('newKeywordType').value;
+    if (!name) { showStatus('⚠️ Please enter keyword', 'error'); return; }
+    if (allKeywords.some(k => k.name === name)) { showStatus('⚠️ Keyword already exists!', 'error'); return; }
+    allKeywords.push({ id: 'kw_' + Date.now(), name, type });
+    saveKeywords();
+    renderKeywords();
+    document.getElementById('newKeyword').value = '';
+    showStatus('✅ Keyword added!', 'success');
+}
+
+function deleteKeyword(kwId) {
+    if (!confirm('Delete this keyword?')) return;
+    allKeywords = allKeywords.filter(k => k.id !== kwId);
+    saveKeywords();
+    renderKeywords();
+}
+
+// ============================================================
+// OTHER FUNCTIONS
+// ============================================================
+function renderUploadedDocs() {
+    const container = document.getElementById('uploadedDocsList');
+    if (!isAdmin) return;
+    if (allDocuments.length === 0) {
+        container.innerHTML = '<p style="color:#999;">No documents uploaded yet.</p>';
+        return;
+    }
+    container.innerHTML = allDocuments.map(doc => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid #e2e8f0;">
+            <div>
+                <strong>${doc.name}</strong>
+                <span style="font-size:0.8rem;color:#999;margin-left:10px;">${doc.fileName}</span>
+                <span style="font-size:0.8rem;color:#999;margin-left:10px;">${doc.fields?.length || 0} fields</span>
+            </div>
+            <div>
+                <span style="font-size:0.8rem;padding:2px 10px;border-radius:12px;background:${doc.status === 'active' ? '#c6f6d5' : '#fed7d7'};color:${doc.status === 'active' ? '#22543d' : '#742a2a'};">
+                    ${doc.status}
+                </span>
+                <button class="btn btn-danger" onclick="deleteDocument('${doc.id}')" style="padding:5px 10px;font-size:0.8rem;margin-left:10px;">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function deleteDocument(docId) {
+    if (!confirm('Delete this document?')) return;
+    allDocuments = allDocuments.filter(d => d.id !== docId);
+    saveDocuments();
+    renderDocuments();
+    renderUploadedDocs();
+    showStatus('Document deleted', 'info');
+}
+
+function filterByCategory(category) { renderDocuments(); }
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function saveSettings() {
+    const token = document.getElementById('botToken').value.trim();
+    const channel = document.getElementById('channelId').value.trim();
+    const password = document.getElementById('adminPass').value.trim();
+    if (token) localStorage.setItem('botToken', token);
+    if (channel) localStorage.setItem('channelId', channel);
+    if (password) localStorage.setItem('adminPassword', password);
+    showStatus('✅ Settings saved successfully!', 'success');
+}
+
+// ============================================================
+// EXPORT/IMPORT
+// ============================================================
+function exportData() {
+    const data = {
+        documents: allDocuments,
+        categories: allCategories,
+        keywords: allKeywords,
+        exportDate: new Date().toISOString(),
+        version: '1.0'
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `document_backup_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    showStatus('✅ Data exported!', 'success');
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (data.documents) allDocuments = data.documents;
+            if (data.categories) allCategories = data.categories;
+            if (data.keywords) allKeywords = data.keywords;
+            saveDocuments(); saveCategories(); saveKeywords();
+            initializeApp();
+            showStatus('✅ Data imported successfully!', 'success');
+        } catch (error) {
+            showStatus('Import failed: ' + error.message, 'error');
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+function clearAllData() {
+    if (!confirm('⚠️ This will delete ALL data! Are you sure?')) return;
+    if (!confirm('Final confirmation: Delete everything?')) return;
+    localStorage.clear();
+    allDocuments = []; allCategories = []; allKeywords = [];
+    initializeApp();
+    showStatus('All data cleared', 'info');
+}
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+function initializeApp() {
+    loadData();
+    renderDocuments();
+    renderCategories();
+    renderKeywords();
+    renderUploadedDocs();
+    document.getElementById('totalDocs').textContent = allDocuments.length + ' documents';
+    document.getElementById('botToken').value = localStorage.getItem('botToken') || '';
+    document.getElementById('channelId').value = localStorage.getItem('channelId') || '';
+}
+
+// ============================================================
+// START APP
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    if (localStorage.getItem('adminPassword')) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainContainer').style.display = 'block';
+        isAdmin = true;
+        document.getElementById('adminToggle').classList.add('active');
+        showAdminElements();
+        initializeApp();
+    }
+});
+
+// Keyboard shortcut: Ctrl+Enter to preview
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'Enter') {
+        updatePreview();
+    }
+});
+</script>
+</body>
+</html>
