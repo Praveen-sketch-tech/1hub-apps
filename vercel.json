@@ -1,6 +1,22 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/document-generator/telegram.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "rewrites": [
+    {
+      "source": "/api/document-generator/(.*)",
+      "destination": "/api/document-generator/telegram.js"
+    },
+    {
+      "source": "/document-generator/admin.html",
+      "destination": "/document-generator/admin.html"
+    },
+    {
+      "source": "/document-generator/(.*)",
+      "destination": "/document-generator/index.html"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
