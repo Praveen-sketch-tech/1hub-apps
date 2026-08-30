@@ -366,8 +366,8 @@ registerAppChatModule('image-tools', async () => {
   const module = await import('@apps/image-tools/chatActions')
   return module.chatModule
 })
-registerAppChatModule('pdf-tools', async () => {
-  const module = await import('@apps/pdf-tools/chatActions')
+registerAppChatModule('pdf-compressor', async () => {
+  const module = await import('@apps/pdf-compressor/chatActions')
   return module.chatModule
 })
 

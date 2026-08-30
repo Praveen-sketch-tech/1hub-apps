@@ -423,11 +423,11 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
     ),
   },
    {
-    path: "/apps/pdf-tools",
-    name: "PDF Tools",
+    path: "/apps/pdf-compressor",
+    name: "PDF Compressor",
     component: lazy(() =>
-      import("@apps/pdf-tools").then((module) => ({
-        default: module.PdfToolsPage,
+      import("@apps/pdf-compressor").then((module) => ({
+        default: module.PdfCompressorPage,
       }))
     ),
   },
