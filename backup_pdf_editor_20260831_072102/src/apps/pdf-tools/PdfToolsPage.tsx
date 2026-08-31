@@ -2,23 +2,23 @@ import { useState } from 'react'
 import { PageContainer } from '@shared/components/layout/PageContainer'
 import { ToolAppHeader } from '@shared/components/tools/ToolAppHeader'
 import { getAppNumber } from '@core/apps/appRegistry'
-import { PdfEditorPanel } from './panels/PdfEditorPanel'
+import { CompressPanel } from './panels/CompressPanel'
 import { UnlockPanel } from './panels/UnlockPanel'
 import { ProtectPanel } from './panels/ProtectPanel'
 import { CreatePanel } from './panels/CreatePanel'
 import './pdf-tools.css'
 
-type Tab = 'editor' | 'unlock' | 'protect' | 'create'
+type Tab = 'compress' | 'unlock' | 'protect' | 'create'
 
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'editor', label: 'PDF Editor' },
+  { key: 'compress', label: 'Compress' },
   { key: 'unlock', label: 'Unlock' },
   { key: 'protect', label: 'Protect' },
   { key: 'create', label: 'Create PDF' },
 ]
 
 export function PdfToolsPage() {
-  const [tab, setTab] = useState<Tab>('editor')
+  const [tab, setTab] = useState<Tab>('compress')
 
   return (
     <PageContainer>
@@ -26,7 +26,7 @@ export function PdfToolsPage() {
         <ToolAppHeader
           appNumber={getAppNumber('pdf-tools')}
           title="PDF Tools"
-          description="Merge, split, extract, images-to-PDF, unlock, protect aur create karo PDFs — sab kuch is browser ke andar hota hai. No upload, no server, free."
+          description="Compress, unlock, protect aur create karo PDFs — sab kuch is browser ke andar hota hai. No upload, no server, free."
         />
 
         <div className="pdft-tabs" role="tablist">
@@ -44,7 +44,7 @@ export function PdfToolsPage() {
           ))}
         </div>
 
-        {tab === 'editor' && <PdfEditorPanel />}
+        {tab === 'compress' && <CompressPanel />}
         {tab === 'unlock' && <UnlockPanel />}
         {tab === 'protect' && <ProtectPanel />}
         {tab === 'create' && <CreatePanel />}
