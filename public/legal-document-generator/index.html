@@ -55,7 +55,19 @@ button { border: 0; border-radius: 9px; padding: 12px 18px; font-size: 15px; fon
 #reportPreview .p-center { text-align: center; }
 #reportPreview .p-justify { text-align: justify; }
 #reportPreview table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; }
-#reportPreview th, #reportPreview td { border: 1px solid #000; padding: 6px 7px; font-size: 12.5px; vertical-align: top; text-align: left; white-space: pre-wrap; }
+#reportPreview .bom-detail-table { table-layout: fixed; margin-top: 4px; margin-bottom: 16px; }
+#reportPreview .bom-detail-table th, #reportPreview .bom-detail-table td { font-size: 12px; padding: 6px 7px; line-height: 1.35; }
+#reportPreview .bom-detail-table th:nth-child(1), #reportPreview .bom-detail-table td:nth-child(1) { width: 7%; }
+#reportPreview .bom-detail-table th:nth-child(2), #reportPreview .bom-detail-table td:nth-child(2) { width: 46%; }
+#reportPreview .bom-detail-table th:nth-child(3), #reportPreview .bom-detail-table td:nth-child(3) { width: 47%; }
+#reportPreview .bom-property-table { table-layout: fixed; }
+#reportPreview .bom-property-table td:first-child { width: 55%; }
+#reportPreview .bom-property-table td:last-child { width: 45%; }
+#reportPreview .bom-boundary-header td { text-align: center; font-weight: 700; padding: 4px 7px; }
+#reportPreview .bom-boundary-table { margin-top: -16px; table-layout: fixed; }
+#reportPreview .bom-boundary-table td:first-child { width: 55%; }
+#reportPreview .bom-boundary-table td:last-child { width: 45%; }
+#reportPreview th, #reportPreview td { border: 1px solid #000; padding: 3px 5px; font-size: 12.5px; vertical-align: top; text-align: left; white-space: pre-wrap; }
 #reportPreview th { text-align: center; font-weight: 700; white-space: normal; }
 #reportPreview .spacer { height: 14px; }
 #reportPreview .row-split { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; margin: 0 0 6px; }
@@ -70,7 +82,7 @@ button { border: 0; border-radius: 9px; padding: 12px 18px; font-size: 15px; fon
     body * { visibility: hidden; }
     #reportPreview, #reportPreview * { visibility: visible; }
     #reportPreview { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; padding: 10mm 14mm; }
-    @page { size: A4; margin: 12mm; }
+    @page { size: A4; margin: 12mm 14mm 14mm 14mm; }
 }
 </style>
 </head>
@@ -301,32 +313,85 @@ function extractBarePlotOrSurveyNo(schedule) {
     return clean(schedule);
 }
 
+/* Splits "Plot No. 185 of Amm Greens at Village Badabangarda, Teh. & Dist.
+   Indore" into { areaName: "Amm Greens", villageDistrict: "at Village
+   Badabangarda, Teh. & Dist. Indore" } so the property table can carry these
+   as their own separate rows instead of one merged location string. */
+function splitLocationParts(location) {
+    const match = location.match(/^(.*?)\s+at\s+(Village\s[\s\S]+|Teh\.[\s\S]+|Dist\.[\s\S]+)$/i);
+    if (!match) return { areaName: "", villageDistrict: "" };
+    const head = clean(match[1]);
+    const villageDistrict = `at ${clean(match[2])}`;
+    const areaMatch = head.match(/^.*?\bNo\.?\s*[A-Za-z0-9\-\/]+\s+of\s+(.+)$/i);
+    return { areaName: areaMatch ? clean(areaMatch[1]) : "", villageDistrict };
+}
+
+/* Finds the colony/scheme name as the drafter originally defined it, e.g.
+   `...named by the owner concern as "AMM GREENS"` and returns a normalized
+   casing (short all-caps tokens like "AMM" kept as acronyms, other words
+   title-cased) so the same name is never shown as "AMM Greens" in one place
+   and "Amm Greens" in another purely because of how it was typed later on. */
+function extractCanonicalAreaName(text) {
+    const match = text.match(/named\s+(?:by\s+the\s+owner\s+concern\s+)?as\s+[\u201c"]([^\u201d"]+)[\u201d"]/i);
+    if (!match) return null;
+    return clean(match[1]).split(/\s+/).map((word) => (/^[A-Z]{2,4}$/.test(word) ? word : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())).join(" ");
+}
+
+function normalizeAreaNameCasing(str, canonical) {
+    if (!str || !canonical) return str;
+    const escaped = canonical.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+    return str.replace(new RegExp(escaped, "ig"), canonical);
+}
+
 function buildPropertyDescriptionRow(text, schedule, fallback) {
+    const boundaryRows = buildBoundaryRows(text);
+    const boundaryText = boundaryRows.length ? boundaryRows.map(([d, v]) => `${d}:- ${v}`).join("\n") : "";
+    const canonicalArea = extractCanonicalAreaName(text);
+
     if (schedule) {
         const areaMatch = schedule.match(/with\s+an\s+area\s+of\s+(.+?\b(?:Sq\.\s*Ft\.|Sq\.\s*(?:Mtrs?|Mt)\.|Hectares?|Acres?)\s*(?:Land)?)/i);
         const area = areaMatch ? clean(areaMatch[1]) : "-";
-        const location = clean(schedule.replace(/\s+with\s+an\s+area\s+of\s+.+$/i, ""));
+        let location = clean(schedule.replace(/\s+with\s+an\s+area\s+of\s+.+$/i, ""));
+        location = normalizeAreaNameCasing(location, canonicalArea);
         const plotNo = extractBarePlotOrSurveyNo(location);
+        const isPlotStyle = /^(?:House|Plot|Flat|Shop|Bungalow)\s+No\./i.test(plotNo);
+        const parts = splitLocationParts(location);
+        const areaName = normalizeAreaNameCasing(parts.areaName, canonicalArea) || "-";
 
-        return { itemNo: "1.", plotNo, extent: "Freehold", area, location, boundary: buildBoundaryText(text) };
+        return {
+            itemNo: "1.", plotNo, extent: "Freehold", area, location,
+            surveyNo: isPlotStyle ? "N.A." : plotNo,
+            plotFlatNo: isPlotStyle ? plotNo : "N.A.",
+            areaName, villageDistrict: parts.villageDistrict || "-",
+            boundary: boundaryText, boundaryRows
+        };
     }
 
     if (fallback) {
         const plotNo = extractBarePlotOrSurveyNo(fallback.syno);
         const location = fallback.addr ? `${fallback.syno}, at ${fallback.addr}` : fallback.syno;
-        return { itemNo: "1.", plotNo, extent: "Freehold", area: fallback.area, location, boundary: buildBoundaryText(text) };
+        return {
+            itemNo: "1.", plotNo, extent: "Freehold", area: fallback.area, location,
+            surveyNo: plotNo, plotFlatNo: "N.A.", areaName: "-",
+            villageDistrict: fallback.addr ? `at ${fallback.addr}` : "-",
+            boundary: boundaryText, boundaryRows
+        };
     }
 
     return null;
 }
 
-function buildBoundaryText(text) {
+function buildBoundaryRows(text) {
     function boundary(direction) {
         const match = text.match(new RegExp(`\\b${direction}\\s*:-?\\s*([\\s\\S]*?)(?=\\s*(?:East|West|North|South)\\s*:-|$)`, "i"));
         return match ? clean(match[1]) : "";
     }
-    const boundaries = [["East", boundary("East")], ["West", boundary("West")], ["North", boundary("North")], ["South", boundary("South")]].filter(([, v]) => v);
-    return boundaries.length ? boundaries.map(([d, v]) => `${d}:- ${v}`).join("\n") : "";
+    return [["East", boundary("East")], ["West", boundary("West")], ["North", boundary("North")], ["South", boundary("South")]].filter(([, v]) => v);
+}
+
+function buildBoundaryText(text) {
+    const rows = buildBoundaryRows(text);
+    return rows.length ? rows.map(([d, v]) => `${d}:- ${v}`).join("\n") : "";
 }
 
 const DATE = String.raw`\d{1,2}\s*[-\\/]\s*\d{1,2}\s*[-\\/]\s*\d{4}`;
@@ -537,7 +602,10 @@ function extractSaleDeed(text, poaResults, supersedingEvents) {
     }
 
     function cleanParty(value) {
-        return clean(value).replace(/\s+through\s+karta\s+(?:Shri\.?|Smt\.?|Mr\.?|Mrs\.?).*$/i, " through karta").trim();
+        return clean(value)
+            .replace(/\s+through\s+karta\s+(?:Shri\.?|Smt\.?|Mr\.?|Mrs\.?).*$/i, " through karta")
+            .replace(/\s+through\s+((?:authorized|authorised)\s+partners?)\s*[\s\S]*$/i, " through $1")
+            .trim();
     }
 
     const results = [];
@@ -571,7 +639,7 @@ function extractSaleDeed(text, poaResults, supersedingEvents) {
 
         const explicitSeller = lastMatch(/\bsold\s+by\s+([\s\S]+?)\s+to\s+(?:the\s+)?(?:present\s+owner\s+)?/ig, section);
         const executedSeller = lastMatch(/\bexecuted\s+by\s+([\s\S]+?)\s+in\s+favou?r\s+of\s+/ig, section);
-        const namedSeller = lastMatch(/\b(?:owner|owners)\s+(?:firm\s+)?((?:(?:M\/s\.?|Shri\.?|Smt\.?|Mr\.?|Mrs\.?|Ms\.?|\(\d+\)|[A-Z][A-Za-z]))[\s\S]{0,120}?)\s+(?:has\s+)?sold\b/g, section);
+        const namedSeller = lastMatch(/\b(?:owner|owners)\s+(?:firm\s+)?((?:(?:M\/s\.?|Shri\.?|Smt\.?|Mr\.?|Mrs\.?|Ms\.?|\(\d+\)|[A-Z][A-Za-z]))[\s\S]{0,300}?)\s+(?:has\s+)?sold\b/g, section);
         const attorneyDeveloperSale = /owners\s+attorney\s+and\s+developer\s+firm/i.test(section);
         const attorneySold = /\battorneys?\b[\s\S]{0,45}?\bsold\b/i.test(saleWindow) || /\battorneys?\b[\s\S]{0,45}?\bsold\b/i.test(section);
 
@@ -824,7 +892,8 @@ function extractData(text) {
     const ordered = sortDocuments(unique);
     let property = extractPropertySchedule(text);
     const fallbackSchedule = property ? null : extractFallbackSchedule(text);
-    const propertyText = property || (fallbackSchedule ? fallbackSchedule.scheduleText : "");
+    const canonicalArea = extractCanonicalAreaName(text);
+    const propertyText = normalizeAreaNameCasing(property || (fallbackSchedule ? fallbackSchedule.scheduleText : ""), canonicalArea);
     const propertyRow = buildPropertyDescriptionRow(text, property, fallbackSchedule);
 
     /* The "current owner" is whoever is on the vendee side of the LAST
@@ -881,8 +950,9 @@ function spacer() {
     return el("div", { class: "spacer" });
 }
 
-function buildTable(headers, rows) {
+function buildTable(headers, rows, className = "") {
     const table = document.createElement("table");
+    if (className) table.className = className;
     const thead = document.createElement("thead");
     const trh = document.createElement("tr");
     headers.forEach((h) => {
@@ -901,6 +971,36 @@ function buildTable(headers, rows) {
             td.textContent = val;
             tr.appendChild(td);
         });
+        tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    return table;
+}
+
+function keyValueTableWithClass(rows, className = "") {
+    const table = keyValueTable(rows);
+    if (className) table.className = className;
+    return table;
+}
+
+function boundaryTable(boundaryRows) {
+    const table = document.createElement("table");
+    table.className = "bom-boundary-table";
+    const tbody = document.createElement("tbody");
+    const header = document.createElement("tr");
+    header.className = "bom-boundary-header";
+    const h = document.createElement("td");
+    h.colSpan = 2;
+    h.textContent = "Boundaries";
+    header.appendChild(h);
+    tbody.appendChild(header);
+    boundaryRows.forEach(([d, v]) => {
+        const tr = document.createElement("tr");
+        const a = document.createElement("td");
+        const b = document.createElement("td");
+        a.textContent = `${d} by`;
+        b.textContent = v;
+        tr.appendChild(a); tr.appendChild(b);
         tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -1098,9 +1198,118 @@ function documentsDepositList(data, ownerLabel, borrowerLabel, extraLines) {
     return lines;
 }
 
+/* "INDORE" -> "Indore". Used because the fixed place name is stored in caps
+   (for the Annexure signature block) but the main certificate paragraph
+   uses ordinary title case, e.g. "Place: - Indore". */
+function titleCase(word) {
+    return word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : word;
+}
+
+/* Best-effort, non-fabricated read on whether the flow describes the land
+   as residential/urban. Returns "" (leave blank for the advocate to fill)
+   when the flow gives no signal, rather than guessing. */
+function detectNatureOfProperty(text) {
+    if (/residential\s+use|residential\s+colony|residential\s+purpose/i.test(text)) return "Residential";
+    if (/commercial\s+use|commercial\s+purpose/i.test(text)) return "Commercial";
+    if (/industrial\s+use|industrial\s+purpose/i.test(text)) return "Industrial";
+    return "";
+}
+function detectLocationType(text) {
+    if (/Municipal\s+Corporation|Nagar\s+Nigam|Nagar\s+Palika/i.test(text)) return "Urban";
+    if (/Gram\s+Panchayat|Village\s+Panchayat/i.test(text)) return "Rural";
+    return "";
+}
+
+/* Boundaries as separate lines within one cell, each with a trailing comma
+   except the last -- matches the master report's "East:- ..., West:- ...,
+   North:- ..., South:- ..." style used inside the summary table. */
+function boundaryCommaList(boundaryRows) {
+    if (!boundaryRows || !boundaryRows.length) return "-";
+    return boundaryRows.map(([d, v], i) => `${d}:- ${v}${i < boundaryRows.length - 1 ? "," : ""}`).join("\n");
+}
+
+/* The full 1-30 (+ 31-34) legal-checklist table that belongs under "Detailed
+   information about property title:", BEFORE the certificate -- not squeezed
+   in after the Annexure. Every question from the master template is kept
+   even where there is no data to answer it: blank stays blank instead of
+   being silently dropped or guessed at. */
+function buildDetailedChecklistRows(data, owner, borrower, cfg) {
+    const isCompanyLike = /\bM\/s\.?/i.test(data.finalVendee || "");
+    const naIfIndividual = isCompanyLike ? "" : "Not Applicable";
+    const rows = [
+        ["", "Details", ""],
+        ["", "Whether the documents of title given raise any doubts or suspicion.", "No"],
+        ["", "Have the title deeds has been compared with those at registrar\u2019s office & particulars tally.", "Yes (Certified copy of latest deed has been already obtained)"],
+        ["", "Whether the original chain of title of the property has been verified. (any specific remarks may be mentioned)", ""],
+        ["", "Whether searches have been taken physically at the office of-", ""],
+        ["i.", "Sub registrar office/ Municipal Collector/ Taluk or such other revenue office", ""],
+        ["ii.", "Registrar of company", ""],
+        ["iii.", "Local Development Authority such as Delhi/ Lucknow/ Bangalore Development Authority", ""],
+        ["iv.", "Village accountant- in the disputes register in case of agricultural property", ""],
+        ["v.", "Whether the property has been notified for acquisition by the govt. / Development Authority/ any other Authority", ""],
+        ["vi.", "Please mention the nature of any charges or encumbrances observed against the property", ""],
+        ["vii", "Whether the property is subject matter of any litigation and if so, details thereof.", ""],
+        ["", "Whether any of the property intended to be given by way of mortgage is subject to any minor\u2019s or any other claims? If yes, state whether requisite permission from the concerned court has been obtained and produced?", "No"],
+        ["", "Whether the property proposed to be mortgaged is subject to the provisions contained under any special enactment /local laws. State implications of such enactment on the charge proposed to be created?", "No"],
+        ["", "Whether property to be mortgaged is coming under any restrictions on transfer & whether required permission/ consent as per the terms of grant/allotment etc. obtained.", "No"],
+        ["", "Whether property to be mortgaged is a subject matter of \u2018conditional sale?\u2019 Please mention the present status.", ""],
+        ["", "Whether provisions of urban ceiling Act are applicable? If applicable whether permission obtained.", "No. The application of The Urban Land (C.& R.) Act,1976 has been discontinued in the State of Madhya Pradesh by passing a resolution w.e.f.17-2-2000"],
+        ["", "Whether the user land has been converted under land revenue law? Whether N.A. Permission /change of user permission is obtained?", "Yes"],
+        ["", "Whether required documents are available for creating valid equitable mortgage?", "Yes"],
+        ["", "What is the tenure of land? (In case of Lease Property) and whether necessary consent permission of lessor obtained.", "Not Applicable"],
+        ["", "Whether the land is Adiwasi (Tribal) Land?", "No"],
+        ["", "Whether the land /property is joint family property? If yes are other joint owners ready to mortgage their share or give consent for mortgage by borrower.", "No"],
+        ["", "Whether any prohibitory order from Income Tax/ Wealth Tax or other authorities?", "No"],
+        ["", "Is land/ property subject to any reservations/ acquisitions/ requisitions?", "No"],
+        ["", "Whether plans for constructions are sanctioned by the Competent Authority?", "No"],
+        ["", "Whether Commencement certificate issued?", "Yes"],
+        ["", "Whether Completion certificate obtained?", "Yes"],
+        ["", "Whether there are any restriction from Corporation such as \u201ceducation Zone\u201d, \u201cGreen Zone\u201d, \u201cCoastal Regulation Zone\u201d Etc.?", "No"],
+        ["", "Is the land taken on lease from State Industrial Development Corporation? If yes whether tripartite agreement executed?", "Not Applicable"],
+        ["", "Whether there are any prior encumbrances. If yes details thereof?", "No"],
+        ["", "Evidence of possession \u2013\u2013 Findings on documents and revenue records, details of property tax, land revenue, society maintenance charges or any other statutory dues paid upto date or payable.)", "Sale-deed. Property Tax Receipt may be obtained."],
+        ["", "Whether mortgage is to be created by an Agent under a PoA?", ""],
+        ["a.", "Please state whether the PoA is valid and subsisting and continues to be in force?", ""],
+        ["b.", "Name of place where executed", ""],
+        ["c.", "If executed in a foreign country, whether the same is stamped after it has been brought to India", ""],
+        ["d.", "Whether PoA is properly registered?", ""],
+        ["e.", "Whether PoA gives specific authority for the acts performed/ professed to be performed by the attorney holder?", ""],
+        ["", "Whether the proposed development site/ land / project lies in prohibited/ regulated area(s) under the provisions of Ancient Monuments and Archaeological Sites and Remains Act, 2010\u2019?", ""],
+        ["a.", "If yes, whether prior permission from National Monuments Authority (NMA) is taken on record? (Yes/ No)", ""],
+        ["b.", "Whether the bank will be able to enforce the provisions of SARFAESI Act if required against the property offered as the security?", ""],
+        ["1.", "Whether equitable mortgage can be created on the strength of the title deeds mentioned above.", ""],
+        ["2.", "RERA provisions (for real estate loans): Whether the Real Estate project is registered under Real Estate (Regulation and Development) Act, 2016?", ""],
+        ["3.", "In case of companies /societies /association /trust Whether :", ""],
+        ["a)", "Memorandum/ byelaws of the company/society/association authorize to offer its property (ies) as security.", naIfIndividual],
+        ["b)", "Requisite resolutions have been duly passed by the Company/ Society/ Association permitting mortgage of the properties in favour of the Bank.", naIfIndividual],
+        ["c)", "Such resolution sets out the names of the persons who are authorized to create charge over the properties.", naIfIndividual],
+        ["d)", "Resolution U/s 293 (i) (a) and 293 (i) (d) of Companies Act passed?", naIfIndividual],
+        ["e)", "Details of the properties together with the documents are mentioned under such resolutions.", naIfIndividual],
+        ["f)", "In case of Companies, Certificate of Commencement of Business has been obtained.", naIfIndividual],
+        ["g)", "In case of public charitable trust whether permission of Charity Commissioner for borrowing & mortgaging trust property is obtained and conditions stipulated if any.", naIfIndividual],
+        ["4.", "In case of devolution of property by a will/ succession,", ""],
+        ["A)", "Whether probate of will/ succession certificate/Letters of Administration obtained? Details thereof", data.ordered.some((i) => i.type === "succession") ? "" : "Not Applicable"],
+        ["B)", "If probate/ succession certificate/ Letters of Administration not obtained, then how the mortgagor proposes to prove the title?", data.ordered.some((i) => i.type === "succession") ? "" : "Not Applicable"],
+        ["C)", "The safeguards suggested to ensure title to the property offered as security.", "Verification of property"],
+        ["31.", "Whether title deeds perused are in conformity with the search taken", "Yes"],
+        ["32.", "Whether the chain of title is complete without any missing links.", "Yes"],
+        ["33.", "Whether any other documents to be obtained/compliances to be made so as to create equitable/ registered mortgage.", documentsDepositList(data, owner, borrower, []).join("\n")],
+        ["34.", "Any special precautions/ suggestions/ views of the Advocate in the matter of creation of mortgage.", "Obtain an Affidavit from owners"]
+    ];
+    let questionNo = 1;
+    for (let i = 1; i < rows.length - 4; i++) {
+        if (rows[i][0] === "") {
+            rows[i][0] = `${questionNo}.`;
+            questionNo++;
+        }
+    }
+    return rows;
+}
+
 function renderBOMReport(text, data) {
     const preview = document.getElementById("reportPreview");
     preview.innerHTML = "";
+    preview.classList.add("bom-report");
 
     const cfg = BANK_CONFIGS.bom;
     const refDate = todayDate();
@@ -1108,7 +1317,14 @@ function renderBOMReport(text, data) {
     const borrower = data.borrowerName || owner;
     const advocate = cfg.advocateName;
     const place = cfg.place;
+    const placeTitleCase = titleCase(cfg.place);
     const pr = data.propertyRow;
+    const fullLocation = pr ? [pr.plotFlatNo !== "N.A." ? pr.plotFlatNo : pr.surveyNo, pr.areaName, pr.villageDistrict]
+        .filter(v => v && v !== "N.A." && v !== "-")
+        .join(" of ")
+        .replace(/ of at /i, " at ") : (data.property || "-");
+    const natureOfProperty = detectNatureOfProperty(text);
+    const locationType = detectLocationType(text);
 
     preview.appendChild(para("To,"));
     preview.appendChild(para(borrower));
@@ -1119,25 +1335,31 @@ function renderBOMReport(text, data) {
     preview.appendChild(para(cfg.branchLine));
     preview.appendChild(para(`Date :- ${refDate}`));
     preview.appendChild(spacer());
-    preview.appendChild(para("Subject: Legal Search & Title Verification Report", { bold: true }));
+    preview.appendChild(para("Subject: Legal Search & Title Verification Report", { bold: true, underline: true, align: "center" }));
     preview.appendChild(para("Sir/ Madam,"));
     preview.appendChild(spacer());
     preview.appendChild(para(`In respect of the title report of properties owned by ${owner} referred by Branch: ________ in respect of borrower ${borrower} I have scrutinised following documents and I submit the Title Report as under:`, { align: "justify" }));
     preview.appendChild(spacer());
 
-    preview.appendChild(heading("Full and correct description of the property:"));
-    preview.appendChild(keyValueTable([
+    preview.appendChild(heading("1) Full and correct description of the property:"));
+    preview.appendChild(keyValueTableWithClass([
         ["Name of the owner", owner],
         ["Name of the mortgagor", borrower],
-        ["Survey/ Door/ Patta/ Khata/ Gat No.", pr ? pr.plotNo : "-"],
-        ["Location/ complete description of the property", pr ? pr.location : (data.property || "-")],
+        ["Survey/ Door/ Patta/ Khata/ Gat No.", pr ? pr.surveyNo : "-"],
+        ["Plot No./ Flat No.", pr ? pr.plotFlatNo : "-"],
+        ["Location/ land mark/ name of the area/ mohalla etc. and complete description of the property", pr ? pr.areaName : "-"],
+        ["City/ Village/ Tal./ District with pin code", pr ? pr.villageDistrict : "-"],
         ["Measurement/ Extent of the property", pr ? pr.area : "-"],
-        ["Nature of the property (Leasehold/freehold)", pr ? pr.extent : "Freehold"],
-        ["Boundaries", pr ? pr.boundary || "-" : "-"]
-    ]));
+        ["Nature of the property\nLeasehold/ freehold/ govt. grant/ prohibited", pr ? pr.extent : "Freehold"]
+    ], "bom-property-table"));
+    if (pr && pr.boundaryRows && pr.boundaryRows.length) {
+        preview.appendChild(boundaryTable(pr.boundaryRows));
+    } else {
+        preview.appendChild(boundaryTable([["East", "-" ]]));
+    }
     preview.appendChild(spacer());
 
-    preview.appendChild(heading("Description of documents scrutinized:"));
+    preview.appendChild(heading("2) Description of documents scrutinized:"));
     preview.appendChild(buildTable(
         ["Sl. No", "Nature of Document", "Document Date & No.", "Name of the Vendor", "Name of the Vendee", "Original Xerox/ Certified"],
         data.scrutinyRows.length
@@ -1146,21 +1368,30 @@ function renderBOMReport(text, data) {
     ));
     preview.appendChild(spacer());
 
-    preview.appendChild(heading("Trace of Title/ History of Passing of title. Details of antecedent title deeds:"));
+    preview.appendChild(heading("3) Trace of Title/ History of Passing of title. Details of antecedent title deeds:"));
     preview.appendChild(el("div", { class: "p p-note", text: "(Tracing the party's title for past 13 years (in case of housing loans) and 30 years (in case of all other advances) until the date of search viz. previous registered title deeds and documents (if any) must be verified.)" }));
+    preview.appendChild(el("div", { class: "p p-note", text: "(* - Number of years may be modified for a specific scheme. Please refer the scheme document.)" }));
     preview.appendChild(spacer());
     preview.appendChild(para(text, { align: "justify" }));
     preview.appendChild(spacer());
 
-    preview.appendChild(heading("Detailed information about property title:"));
+    preview.appendChild(Object.assign(heading("Detailed information about property title:"), {
+    style: "text-align:center; text-decoration:underline;"
+    }));
     preview.appendChild(spacer());
-    preview.appendChild(para("Certificate of title and No encumbrance", { bold: true }));
+    const detailRows = buildDetailedChecklistRows(data, owner, borrower, cfg);
+    /* The master has one header row: blank | Details | blank. Do not add a second
+       "Sr./Particulars/Compliance" header or the table starts one row too low. */
+    preview.appendChild(buildTable(["", "Details", ""], detailRows.slice(1), "bom-detail-table"));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para("Certificate of title and No encumbrance", { bold: true, underline: true, align: "center" }));
     preview.appendChild(para("This is to certify that I have examined each and every page of the documents required for giving the title clearance certificate and do not find that any of the transactions under the documents sham and fictitious.", { align: "justify" }));
     preview.appendChild(spacer());
-    preview.appendChild(para(`I have examined the original/ certified title deeds relating to the property/ies situated at ${pr ? pr.location : (data.property || "the said property")} and offered as security by way of Simple Mortgage/Equitable Mortgage. I have also taken search with the Sub-Registrar of Assurances & Record of Rights for last ${cfg.ecYears} (Original fee receipts enclosed). I certify that ${owner}${data.intendedPurchaser ? ` and to be intended purchased by ${borrower}` : ""} has an absolute, clear and marketable title over the property/ies shown above. I further certify that the documents of title refereed to under the opinion are perfect evidence of right, title and interest of the borrower / mortgagor and that if the said simple mortgage/equitable mortgage by deposit of title deeds created in the manner required by law, it will satisfy the requirements of creation of simple mortgage/equitable mortgage.`, { align: "justify" }));
+    preview.appendChild(para(`I have examined the original/ certified title deeds relating to the property/ies situated at ${fullLocation} and offered as security by way of Simple Mortgage/Equitable Mortgage. I have also taken search with the Sub-Registrar of Assurances & Record of Rights for last ____ years (Original fee receipts enclosed). I certify that ${owner}${data.intendedPurchaser ? ` and to be intended purchased by ${borrower}` : ""} has an absolute, clear and marketable title over the property/ies shown above. I further certify that the documents of title refereed to under the opinion are perfect evidence of right, title and interest of the borrower / mortgagor and that if the said simple mortgage/equitable mortgage by deposit of title deeds created in the manner required by law, it will satisfy the requirements of creation of simple mortgage/equitable mortgage.`, { align: "justify" }));
     preview.appendChild(spacer());
     preview.appendChild(para(`Date:- ${refDate}`));
-    preview.appendChild(para(`Place: - ${place}`));
+    preview.appendChild(para(`Place: - ${placeTitleCase}`));
     preview.appendChild(spacer());
     preview.appendChild(para("Signature & Seal of Advocate", { align: "right" }));
     preview.appendChild(spacer());
@@ -1169,71 +1400,36 @@ function renderBOMReport(text, data) {
     preview.appendChild(el("div", { class: "p p-title", text: "ANNEXURE II" }));
     preview.appendChild(para("SUMMARY LEGAL TITLE SEARCH REPORT TO BE SUBMITTED BY THE EMPANELLED ADVOCATE ALONG WITH DETAILED REPORT", { align: "center", bold: true }));
     preview.appendChild(spacer());
-    preview.appendChild(para(`Summary Title Search report on properties owned by ${owner}${data.intendedPurchaser ? ` and to be intended purchased by ${borrower}` : ""}`, { align: "center", bold: true }));
+preview.appendChild(para(`Summary Title Search report on properties owned by ${owner}${data.intendedPurchaser ? ` and to be intended purchased by ${borrower}` : ""}`));
     preview.appendChild(spacer());
 
-    preview.appendChild(para(`I have examined the copy of title deeds relating to the property/ies situated at the ${pr ? pr.location : (data.property || "said property")} and offered as security by way of Simple/ Equitable Mortgage. I have also taken search as mentioned and as available with The Sub-Registrar of Assurances & Records of Rights for last ${cfg.ecYears} from ${cfg.ecPeriod} (fees receipt is enclosed). I certify that owned by ${owner}${data.intendedPurchaser ? ` and to be intended purchased by ${borrower}` : ""} has acquire an absolute, clear and marketable title over the property shown above. I further certify that the documents of title refereed to under the opinion are perfect evidence of right, title and interest of the borrower/mortgagor and that if the said simple mortgage/ equitable mortgage by deposit of title deeds created in the manner required by law, it will satisfy the requirements of creation of simple mortgage/equitable mortgage.`, { align: "justify" }));
-    preview.appendChild(spacer());
-    preview.appendChild(rowSplit(place.toUpperCase(), ""));
-    preview.appendChild(rowSplit(`Dated:- ${refDate}`, "Signature & Seal of Advocate"));
-    preview.appendChild(spacer());
-    preview.appendChild(spacer());
-
-    const complianceRows = [
-        ["", "Details", ""],
-        ["", "Whether the documents of title given raise any doubts or suspicion.", "No"],
-        ["", "Have the title deeds been compared with those at registrar's office & particulars tally.", "Yes (Certified copy of latest deed has been already obtained)"],
-        ["", "Whether the original chain of title of the property has been verified.", "Yes"],
-        ["", "Whether the property has been notified for acquisition by the govt./ Development Authority/ any other Authority", "No"],
-        ["", "Please mention the nature of any charges or encumbrances observed against the property", "None"],
-        ["", "Whether the property is subject matter of any litigation and if so, details thereof.", "No"],
-        ["", "Whether any of the property intended to be given by way of mortgage is subject to any minor's or any other claims?", "No"],
-        ["", "Whether the property proposed to be mortgaged is subject to the provisions contained under any special enactment /local laws.", "No"],
-        ["", "Whether property to be mortgaged is coming under any restrictions on transfer.", "No"],
-        ["", "Whether provisions of urban ceiling Act are applicable? If applicable whether permission obtained.", "No. The application of The Urban Land (C.& R.) Act,1976 has been discontinued in the State of Madhya Pradesh by passing a resolution w.e.f.17-2-2000"],
-        ["", "Whether the user land has been converted under land revenue law? Whether N.A. Permission /change of user permission is obtained?", "Yes"],
-        ["", "Whether required documents are available for creating valid equitable mortgage?", "Yes"],
-        ["", "Whether the land is Adiwasi (Tribal) Land?", "No"],
-        ["", "Whether the land /property is joint family property?", "No"],
-        ["", "Whether any prohibitory order from Income Tax/ Wealth Tax or other authorities?", "No"],
-        ["", "Is land/ property subject to any reservations/ acquisitions/ requisitions?", "No"],
-        ["", "Whether plans for constructions are sanctioned by the Competent Authority?", "No"],
-        ["", "Whether Commencement certificate issued?", "Yes"],
-        ["", "Whether Completion certificate obtained?", "Yes"],
-        ["", "Whether there are any restrictions from Corporation such as \u201ceducation Zone\u201d, \u201cGreen Zone\u201d, \u201cCoastal Regulation Zone\u201d Etc.?", "No"],
-        ["", "Whether there are any prior encumbrances. If yes details thereof?", "No"],
-        ["", "Evidence of possession — findings on documents and revenue records, property tax etc. paid upto date or payable.", "Sale-deed. Property Tax Receipt may be obtained."],
-        ["", "Whether mortgage is to be created by an Agent under a PoA?", data.ordered.some((i) => i.type === "poa") ? "Yes" : "No"],
-        ["", "Whether the bank will be able to enforce the provisions of SARFAESI Act if required against the property offered as security?", "Yes"],
-        ["", "Whether equitable mortgage can be created on the strength of the title deeds mentioned above.", "Yes"],
-        ["", "RERA provisions (for real estate loans): Whether the Real Estate project is registered under RERA, 2016?", "Not Applicable"],
-        ["31.", "Whether title deeds perused are in conformity with the search taken", "Yes"],
-        ["32.", "Whether the chain of title is complete without any missing links.", "Yes"],
-        ["33.", "Whether any other documents to be obtained/compliances to be made so as to create equitable/ registered mortgage.", documentsDepositList(data, owner, borrower, ["Xerox of Sanction Map & Memo.", `Xerox of Noc from ${cfg.bankName}.`]).join("\n")],
-        ["34.", "Any special precautions/ suggestions/ views of the Advocate in the matter of creation of mortgage.", "Obtain an Affidavit from owners"]
-    ];
-    preview.appendChild(buildTable(["Sr.", "Particulars", "Compliance"], complianceRows));
-    preview.appendChild(spacer());
-
+    /* Summary table comes BEFORE the summary opinion paragraph, matching the
+       master report's page order (table, then narrative, then signature). */
     preview.appendChild(buildTable(["Sr. No.", "Particulars", "Compliance"], [
-        ["1", "Name of Branch", "________"],
+        ["1", "Name of Branch", ""],
         ["2", "Name of borrower", borrower],
         ["3", "Name of Advocate", advocate],
-        ["4", "Searches made with Registrar/ Revenue Records/ Municipality and verified", "Yes"],
-        ["5", "Description of Property/Nature of Title", pr ? pr.location : (data.property || "-")],
+        ["4", "Searches made with Registrar/ Revenue Records/ Municipality and verified", "Yes/ No"],
+        ["5", "Description of Property/Nature of Title", fullLocation],
         ["a)", "Name of owner/Mortgagor", owner],
-        ["b)", "Extent of area", pr ? pr.area : "-"],
-        ["c)", "Survey No./Plot No.", pr ? pr.plotNo : "-"],
-        ["d)", "Boundaries", pr ? pr.boundary || "-" : "-"],
+        ["b)", "Extent of area (in acres/hectors/Sq. Mt./sq. ft.)", pr ? pr.area : "-"],
+        ["c)", "Survey No./Gut No/CST no./House No.", pr ? pr.plotNo : "-"],
+        ["d)", "Boundaries", pr ? boundaryCommaList(pr.boundaryRows) : "-"],
         ["e)", "Type of land", pr ? pr.extent : "Freehold"],
         ["f)", "Nature of Property", "-"],
         ["g)", "Location", "-"],
-        ["h)", "Appears in Land Acquisitions/requisitions/reservations", "No"],
-        ["i)", "Plans for construction are sanctioned", "Yes"],
-        ["j)", "Taxes paid up-to", "Date of search"],
-        ["k)", "Trace of Title/History of Passing of title deed", "Traced up to Owner/mortgagor"],
-        ["l)", "Encumbrance Status", "Non-encumbered"]
+        ["h)", "Appears in Land Acquisitions/ requisitions/ reservations", "Yes/ No"],
+        ["i)", "Plans for construction are sanctioned", "Yes/ No"],
+        ["j)", "Taxes paid up-to", "Yes/ No"],
+        ["k)", "Trace of Title/History of Passing of title deed (Details of antecedent of title deeds)", "Traced/Not traced up to Owner/mortgagor"],
+        ["l)", "Encumbrance Status", "Encumbered/ Non encumbered"]
     ]));
+    preview.appendChild(spacer());
+
+    preview.appendChild(para(`I have examined the copy of title deeds relating to the property/ies situated at the ${fullLocation} and offered as security by way of Simple/ Equitable Mortgage. I have also taken search as mentioned and as available with The Sub-Registrar of Assurances & Records of Rights for last ${cfg.ecYears} from ${cfg.ecPeriod} (fees receipt is enclosed). I certify that owned by ${owner}${data.intendedPurchaser ? ` and to be intended purchased by ${borrower}` : ""} has acquire an absolute, clear and marketable title over the property shown above. I further certify that the documents of title refereed to under the opinion are perfect evidence of right, title and interest of the borrower/mortgagor and that if the said simple mortgage/ equitable mortgage by deposit of title deeds created in the manner required by law, it will satisfy the requirements of creation of simple mortgage/equitable mortgage.`, { align: "justify" }));
+    preview.appendChild(spacer());
+    preview.appendChild(rowSplit(place.toUpperCase(), ""));
+    preview.appendChild(rowSplit(`Dated:- ${refDate}`, "Signature & Seal of Advocate"));
 }
 
 /* =========================================================
@@ -1511,6 +1707,18 @@ body { font-family: "Times New Roman", Times, serif; font-size: 14px; line-heigh
 .label-line .lbl { font-weight: bold; }
 .label-line .val { font-weight: bold; }
 table { width: 100%; border-collapse: collapse; margin: 8px 0 16px 0; }
+table.bom-detail-table { table-layout: fixed; margin-top: 4px; margin-bottom: 16px; }
+table.bom-detail-table th, table.bom-detail-table td { font-size: 12px; padding: 6px 7px; line-height: 1.35; }
+table.bom-detail-table th:nth-child(1), table.bom-detail-table td:nth-child(1) { width: 7%; }
+table.bom-detail-table th:nth-child(2), table.bom-detail-table td:nth-child(2) { width: 46%; }
+table.bom-detail-table th:nth-child(3), table.bom-detail-table td:nth-child(3) { width: 47%; }
+table.bom-property-table { table-layout: fixed; }
+table.bom-property-table td:first-child { width: 55%; }
+table.bom-property-table td:last-child { width: 45%; }
+table.bom-boundary-header td { text-align: center; font-weight: bold; padding: 4px 7px; }
+table.bom-boundary-table { margin-top: -16px; table-layout: fixed; }
+table.bom-boundary-table td:first-child { width: 55%; }
+table.bom-boundary-table td:last-child { width: 45%; }
 th, td { border: 1px solid #000; padding: 6px 7px; font-size: 12.5px; vertical-align: top; text-align: left; white-space: pre-wrap; }
 th { text-align: center; font-weight: bold; }
 </style>
@@ -1531,4 +1739,3 @@ th { text-align: center; font-weight: bold; }
 </script>
 </body>
 </html>
-
