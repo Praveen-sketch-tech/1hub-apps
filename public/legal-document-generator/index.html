@@ -925,6 +925,18 @@ function extractData(text) {
 /* =========================================================
    REPORT ASSEMBLY (DOM)
 ========================================================= */
+function escapeHtml(str) {
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/* Wraps one occurrence of "Simple"/"Simple Mortgage" in <s></s>, matching the
+   reference reports where the inapplicable "Simple Mortgage" option is
+   struck through because the security actually being created is an
+   Equitable Mortgage. */
+function strikeSimple(word) {
+    return `<s>${escapeHtml(word)}</s>`;
+}
+
 function el(tag, opts = {}) {
     const node = document.createElement(tag);
     if (opts.class) node.className = opts.class;
@@ -932,13 +944,16 @@ function el(tag, opts = {}) {
     if (opts.html !== undefined) node.innerHTML = opts.html;
     if (opts.align) node.style.textAlign = opts.align;
     if (opts.bold) node.style.fontWeight = "bold";
+    if (opts.underline) node.style.textDecoration = "underline";
     return node;
 }
 
 function para(text, opts = {}) {
-    const p = el("div", { class: "p" + (opts.class ? " " + opts.class : ""), text });
+    const p = el("div", { class: "p" + (opts.class ? " " + opts.class : "") });
+    if (opts.isHtml) p.innerHTML = text; else p.textContent = text;
     if (opts.align) p.style.textAlign = opts.align;
     if (opts.bold) p.style.fontWeight = "bold";
+    if (opts.underline) p.style.textDecoration = "underline";
     return p;
 }
 
@@ -1198,6 +1213,10 @@ function documentsDepositList(data, ownerLabel, borrowerLabel, extraLines) {
     return lines;
 }
 
+function numberedList(lines) {
+    return lines.map((line, i) => `(${i + 1}) ${line}`);
+}
+
 /* "INDORE" -> "Indore". Used because the fixed place name is stored in caps
    (for the Annexure signature block) but the main certificate paragraph
    uses ordinary title case, e.g. "Place: - Indore". */
@@ -1293,7 +1312,7 @@ function buildDetailedChecklistRows(data, owner, borrower, cfg) {
         ["C)", "The safeguards suggested to ensure title to the property offered as security.", "Verification of property"],
         ["31.", "Whether title deeds perused are in conformity with the search taken", "Yes"],
         ["32.", "Whether the chain of title is complete without any missing links.", "Yes"],
-        ["33.", "Whether any other documents to be obtained/compliances to be made so as to create equitable/ registered mortgage.", documentsDepositList(data, owner, borrower, []).join("\n")],
+        ["33.", "Whether any other documents to be obtained/compliances to be made so as to create equitable/ registered mortgage.", numberedList(documentsDepositList(data, owner, borrower, [])).join("\n")],
         ["34.", "Any special precautions/ suggestions/ views of the Advocate in the matter of creation of mortgage.", "Obtain an Affidavit from owners"]
     ];
     let questionNo = 1;
@@ -1335,10 +1354,10 @@ function renderBOMReport(text, data) {
     preview.appendChild(para(cfg.branchLine));
     preview.appendChild(para(`Date :- ${refDate}`));
     preview.appendChild(spacer());
-    preview.appendChild(para("Subject: Legal Search & Title Verification Report", { bold: true, underline: true, align: "center" }));
+    preview.appendChild(para("Subject: Legal Search & Title Verification Report", { bold: true, align: "center" }));
     preview.appendChild(para("Sir/ Madam,"));
     preview.appendChild(spacer());
-    preview.appendChild(para(`In respect of the title report of properties owned by ${owner} referred by Branch: ________ in respect of borrower ${borrower} I have scrutinised following documents and I submit the Title Report as under:`, { align: "justify" }));
+    preview.appendChild(para(`In respect of the title report of properties owned by ${escapeHtml(owner)} referred by Branch: ________ in respect of borrower <b>${escapeHtml(borrower)}</b> I have scrutinised following documents and I submit the Title Report as under:`, { align: "justify", isHtml: true }));
     preview.appendChild(spacer());
 
     preview.appendChild(heading("1) Full and correct description of the property:"));
@@ -1375,9 +1394,7 @@ function renderBOMReport(text, data) {
     preview.appendChild(para(text, { align: "justify" }));
     preview.appendChild(spacer());
 
-    preview.appendChild(Object.assign(heading("Detailed information about property title:"), {
-    style: "text-align:center; text-decoration:underline;"
-    }));
+    preview.appendChild(para("Detailed information about property title:", { bold: true, underline: true, align: "center" }));
     preview.appendChild(spacer());
     const detailRows = buildDetailedChecklistRows(data, owner, borrower, cfg);
     /* The master has one header row: blank | Details | blank. Do not add a second
@@ -1388,19 +1405,23 @@ function renderBOMReport(text, data) {
     preview.appendChild(para("Certificate of title and No encumbrance", { bold: true, underline: true, align: "center" }));
     preview.appendChild(para("This is to certify that I have examined each and every page of the documents required for giving the title clearance certificate and do not find that any of the transactions under the documents sham and fictitious.", { align: "justify" }));
     preview.appendChild(spacer());
-    preview.appendChild(para(`I have examined the original/ certified title deeds relating to the property/ies situated at ${fullLocation} and offered as security by way of Simple Mortgage/Equitable Mortgage. I have also taken search with the Sub-Registrar of Assurances & Record of Rights for last ____ years (Original fee receipts enclosed). I certify that ${owner}${data.intendedPurchaser ? ` and to be intended purchased by ${borrower}` : ""} has an absolute, clear and marketable title over the property/ies shown above. I further certify that the documents of title refereed to under the opinion are perfect evidence of right, title and interest of the borrower / mortgagor and that if the said simple mortgage/equitable mortgage by deposit of title deeds created in the manner required by law, it will satisfy the requirements of creation of simple mortgage/equitable mortgage.`, { align: "justify" }));
+    const intendedClauseHtml = data.intendedPurchaser ? ` and to be intended purchased by ${escapeHtml(borrower)}` : "";
+    preview.appendChild(para(
+        `I have examined the original/ certified title deeds relating to the property/ies situated at <b>${escapeHtml(fullLocation)}</b> and offered as security by way of ${strikeSimple("Simple Mortgage")}/Equitable Mortgage. I have also taken search with the Sub-Registrar of Assurances & Record of Rights for last ____ years (Original fee receipts enclosed). I certify that <b>${escapeHtml(owner)}${intendedClauseHtml}</b> has an absolute, clear and marketable title over the property/ies shown above. I further certify that the documents of title refereed to under the opinion are perfect evidence of right, title and interest of the borrower / mortgagor and that if the said simple mortgage/equitable mortgage by deposit of title deeds created in the manner required by law, it will satisfy the requirements of creation of simple mortgage/equitable mortgage.`,
+        { align: "justify", isHtml: true }
+    ));
     preview.appendChild(spacer());
-    preview.appendChild(para(`Date:- ${refDate}`));
-    preview.appendChild(para(`Place: - ${placeTitleCase}`));
+    preview.appendChild(para(`<b>Date:- </b>${escapeHtml(refDate)}`, { isHtml: true, align: "justify" }));
+    preview.appendChild(para(`<b>Place: - </b>${escapeHtml(placeTitleCase)}`, { isHtml: true, align: "justify" }));
     preview.appendChild(spacer());
-    preview.appendChild(para("Signature & Seal of Advocate", { align: "right" }));
+    preview.appendChild(para("Signature & Seal of Advocate", { align: "right", bold: true }));
     preview.appendChild(spacer());
     preview.appendChild(spacer());
 
-    preview.appendChild(el("div", { class: "p p-title", text: "ANNEXURE II" }));
+    preview.appendChild(para("ANNEXURE II", { bold: true, align: "right" }));
     preview.appendChild(para("SUMMARY LEGAL TITLE SEARCH REPORT TO BE SUBMITTED BY THE EMPANELLED ADVOCATE ALONG WITH DETAILED REPORT", { align: "center", bold: true }));
     preview.appendChild(spacer());
-preview.appendChild(para(`Summary Title Search report on properties owned by ${owner}${data.intendedPurchaser ? ` and to be intended purchased by ${borrower}` : ""}`));
+    preview.appendChild(para(`Summary Title Search report on properties owned by ${owner}${data.intendedPurchaser ? ` and to be intended purchased by ${borrower}` : ""}`, { align: "justify" }));
     preview.appendChild(spacer());
 
     /* Summary table comes BEFORE the summary opinion paragraph, matching the
@@ -1416,8 +1437,8 @@ preview.appendChild(para(`Summary Title Search report on properties owned by ${o
         ["c)", "Survey No./Gut No/CST no./House No.", pr ? pr.plotNo : "-"],
         ["d)", "Boundaries", pr ? boundaryCommaList(pr.boundaryRows) : "-"],
         ["e)", "Type of land", pr ? pr.extent : "Freehold"],
-        ["f)", "Nature of Property", "-"],
-        ["g)", "Location", "-"],
+        ["f)", "Nature of Property", natureOfProperty || "-"],
+        ["g)", "Location", locationType || "-"],
         ["h)", "Appears in Land Acquisitions/ requisitions/ reservations", "Yes/ No"],
         ["i)", "Plans for construction are sanctioned", "Yes/ No"],
         ["j)", "Taxes paid up-to", "Yes/ No"],
@@ -1426,7 +1447,10 @@ preview.appendChild(para(`Summary Title Search report on properties owned by ${o
     ]));
     preview.appendChild(spacer());
 
-    preview.appendChild(para(`I have examined the copy of title deeds relating to the property/ies situated at the ${fullLocation} and offered as security by way of Simple/ Equitable Mortgage. I have also taken search as mentioned and as available with The Sub-Registrar of Assurances & Records of Rights for last ${cfg.ecYears} from ${cfg.ecPeriod} (fees receipt is enclosed). I certify that owned by ${owner}${data.intendedPurchaser ? ` and to be intended purchased by ${borrower}` : ""} has acquire an absolute, clear and marketable title over the property shown above. I further certify that the documents of title refereed to under the opinion are perfect evidence of right, title and interest of the borrower/mortgagor and that if the said simple mortgage/ equitable mortgage by deposit of title deeds created in the manner required by law, it will satisfy the requirements of creation of simple mortgage/equitable mortgage.`, { align: "justify" }));
+    preview.appendChild(para(
+        `I have examined the copy of title deeds relating to the property/ies situated at the ${escapeHtml(fullLocation)} and offered as security by way of ${strikeSimple("Simple")}/ Equitable Mortgage. I have also taken search as mentioned and as available with The Sub-Registrar of Assurances & Records of Rights for last <b>${escapeHtml(cfg.ecYears)} from ${escapeHtml(cfg.ecPeriod)}</b> (fees receipt is enclosed). I certify that owned by ${escapeHtml(owner)}${intendedClauseHtml} has acquire an absolute, clear and marketable title over the property shown above. I further certify that the documents of title refereed to under the opinion are perfect evidence of right, title and interest of the borrower/mortgagor and that if the said ${strikeSimple("simple mortgage")}/ equitable mortgage by deposit of title deeds created in the manner required by law, it will satisfy the requirements of creation of ${strikeSimple("simple mortgage")}/equitable mortgage.`,
+        { align: "justify", isHtml: true }
+    ));
     preview.appendChild(spacer());
     preview.appendChild(rowSplit(place.toUpperCase(), ""));
     preview.appendChild(rowSplit(`Dated:- ${refDate}`, "Signature & Seal of Advocate"));
@@ -1674,12 +1698,104 @@ function downloadPdf() {
    saves it as .doc. No external library/CDN involved, so this
    always works (Word/LibreOffice/Google Docs all open it fine).
 ========================================================= */
+/* Word's HTML renderer (used when a .doc file is opened) does not support
+   :nth-child / :first-child / :last-child selectors, and does not reliably
+   honor CSS white-space: pre-wrap. Both of those are relied on by the live
+   preview (for BOM's column widths and for multi-line cell text like
+   boundaries / document lists), which is why the preview and the printed
+   PDF look correct but the downloaded .doc loses column widths and runs
+   multi-line text onto one line. This walks a clone of the report and (a)
+   turns every literal "\n" into a real <br>, and (b) inlines the column
+   widths directly onto each cell so they survive in Word regardless of
+   selector support. */
+function wordSafeHtml(previewNode) {
+    const wrapper = document.createElement("div");
+    wrapper.id = "reportPreview";
+    wrapper.style.position = "absolute";
+    wrapper.style.left = "-99999px";
+    wrapper.style.top = "0";
+    wrapper.style.width = (previewNode.offsetWidth || 800) + "px";
+    wrapper.innerHTML = previewNode.innerHTML;
+    document.body.appendChild(wrapper);
+
+    /* Bake every element's actual on-screen text-align/bold/italic/underline/
+       strikethrough into an inline style. Word's HTML import ignores CSS it
+       doesn't like and falls back to its own Normal-style default instead of
+       the browser default -- explicit inline styles are the only thing it
+       honors reliably. */
+    Array.from(wrapper.querySelectorAll("*")).forEach((elm) => {
+        const cs = getComputedStyle(elm);
+        elm.style.textAlign = (!cs.textAlign || cs.textAlign === "start") ? "left" : (cs.textAlign === "end" ? "right" : cs.textAlign);
+        if (cs.fontWeight === "bold" || parseInt(cs.fontWeight, 10) >= 600) elm.style.fontWeight = "bold";
+        const decoration = [];
+        if (cs.textDecorationLine.indexOf("underline") !== -1) decoration.push("underline");
+        if (cs.textDecorationLine.indexOf("line-through") !== -1) decoration.push("line-through");
+        if (decoration.length) elm.style.textDecoration = decoration.join(" ");
+        if (cs.fontStyle === "italic") elm.style.fontStyle = "italic";
+    });
+
+    (function breakNewlines(node) {
+        Array.from(node.childNodes).forEach((child) => {
+            if (child.nodeType === Node.TEXT_NODE && child.nodeValue.indexOf("\n") !== -1) {
+                const frag = document.createDocumentFragment();
+                const parts = child.nodeValue.split("\n");
+                parts.forEach((part, i) => {
+                    frag.appendChild(document.createTextNode(part));
+                    if (i < parts.length - 1) frag.appendChild(document.createElement("br"));
+                });
+                child.replaceWith(frag);
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
+                breakNewlines(child);
+            }
+        });
+    })(wrapper);
+
+    wrapper.querySelectorAll("table").forEach((table) => {
+        table.style.width = "100%";
+        table.style.borderCollapse = "collapse";
+    });
+    wrapper.querySelectorAll("th, td").forEach((cell) => {
+        cell.style.border = "1px solid #000";
+        cell.style.verticalAlign = "top";
+        cell.style.padding = cell.style.padding || "6px 7px";
+        if (cell.tagName === "TH") {
+            cell.style.textAlign = "center";
+            cell.style.fontWeight = "bold";
+        }
+    });
+    /* Column widths use explicit percentages (not the computed-style bake
+       above, which would return absolute px) so they stay proportional to
+       the page width in Word, matching the reference reports' table grids
+       (:nth-child/:first-child/:last-child selectors are not honored by
+       Word's renderer at all, so these must be inlined per-cell). */
+    wrapper.querySelectorAll("table.bom-detail-table tr").forEach((tr) => {
+        const [c1, c2, c3] = tr.children;
+        if (c1) { c1.style.width = "7%"; c1.style.fontSize = "12px"; }
+        if (c2) { c2.style.width = "46%"; c2.style.fontSize = "12px"; }
+        if (c3) { c3.style.width = "47%"; c3.style.fontSize = "12px"; }
+    });
+    wrapper.querySelectorAll("table.bom-property-table tr, table.bom-boundary-table tr").forEach((tr) => {
+        const cells = tr.children;
+        if (!cells.length) return;
+        cells[0].style.width = "55%";
+        cells[cells.length - 1].style.width = "45%";
+    });
+    wrapper.querySelectorAll("table.bom-boundary-header td").forEach((td) => {
+        td.style.textAlign = "center";
+        td.style.fontWeight = "bold";
+        td.style.padding = "4px 7px";
+    });
+
+    document.body.removeChild(wrapper);
+    return wrapper.innerHTML;
+}
+
 function downloadDocx() {
     const preview = document.getElementById("reportPreview");
     const wasEditing = preview.getAttribute("contenteditable") === "true";
     if (wasEditing) toggleEdit();
 
-    const bodyHtml = preview.innerHTML;
+    const bodyHtml = wordSafeHtml(preview);
     const html = `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head>
