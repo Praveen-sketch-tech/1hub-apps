@@ -1790,67 +1790,44 @@ function wordSafeHtml(previewNode) {
     return wrapper.innerHTML;
 }
 
-function downloadDocx() {
+async function downloadDocx() {
     const preview = document.getElementById("reportPreview");
     const wasEditing = preview.getAttribute("contenteditable") === "true";
+
     if (wasEditing) toggleEdit();
 
-    const bodyHtml = wordSafeHtml(preview);
-    const html = `<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta charset="utf-8">
-<title>Title Clearance Report</title>
-<!--[if gte mso 9]>
-<xml>
-<w:WordDocument>
-<w:View>Print</w:View>
-<w:Zoom>100</w:Zoom>
-<w:DoNotOptimizeForBrowser/>
-</w:WordDocument>
-</xml>
-<![endif]-->
-<style>
-@page { size: 21cm 29.7cm; margin: 2cm; }
-body { font-family: "Times New Roman", Times, serif; font-size: 14px; line-height: 1.5; color: #000; }
-.p { margin: 0 0 6px 0; white-space: pre-wrap; }
-.p-title { text-align: center; font-weight: bold; font-size: 16px; text-decoration: underline; margin: 24px 0; }
-.p-heading { font-weight: bold; margin: 16px 0 6px 0; }
-.p-note { font-size: 12px; font-style: italic; margin: 0 0 10px 0; }
-.spacer { height: 14px; font-size: 1px; line-height: 14px; }
-.row-split { width: 100%; }
-.label-line { width: 100%; }
-.label-line .lbl { font-weight: bold; }
-.label-line .val { font-weight: bold; }
-table { width: 100%; border-collapse: collapse; margin: 8px 0 16px 0; }
-table.bom-detail-table { table-layout: fixed; margin-top: 4px; margin-bottom: 16px; }
-table.bom-detail-table th, table.bom-detail-table td { font-size: 12px; padding: 6px 7px; line-height: 1.35; }
-table.bom-detail-table th:nth-child(1), table.bom-detail-table td:nth-child(1) { width: 7%; }
-table.bom-detail-table th:nth-child(2), table.bom-detail-table td:nth-child(2) { width: 46%; }
-table.bom-detail-table th:nth-child(3), table.bom-detail-table td:nth-child(3) { width: 47%; }
-table.bom-property-table { table-layout: fixed; }
-table.bom-property-table td:first-child { width: 55%; }
-table.bom-property-table td:last-child { width: 45%; }
-table.bom-boundary-header td { text-align: center; font-weight: bold; padding: 4px 7px; }
-table.bom-boundary-table { margin-top: -16px; table-layout: fixed; }
-table.bom-boundary-table td:first-child { width: 55%; }
-table.bom-boundary-table td:last-child { width: 45%; }
-th, td { border: 1px solid #000; padding: 6px 7px; font-size: 12.5px; vertical-align: top; text-align: left; white-space: pre-wrap; }
-th { text-align: center; font-weight: bold; }
-</style>
-</head>
-<body>${bodyHtml}</body>
-</html>`;
+    try {
+        if (!window.HubHtmlToDocx || !window.HubHtmlToDocx.htmlToDocx) {
+            const script = document.createElement("script");
+            script.src = "/shared/html-to-docx.js";
 
-    const blob = new Blob(["\ufeff", html], { type: "application/msword" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "Title-Clearance-Report.doc";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+            await new Promise((resolve, reject) => {
+                script.onload = resolve;
+                script.onerror = () => reject(new Error("DOCX converter could not be loaded."));
+                document.head.appendChild(script);
+            });
+        }
+
+        const blob = await window.HubHtmlToDocx.htmlToDocx(preview, {
+            title: "Title Clearance Report",
+            author: "1 Hub Apps"
+        });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+
+        a.href = url;
+        a.download = "Title-Clearance-Report.docx";
+
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+        console.error("DOCX export failed:", error);
+        alert("Word export failed. Please try again.");
+    }
 }
 </script>
 </body>
