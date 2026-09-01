@@ -27,6 +27,7 @@
     "@pdfsmaller/pdf-decrypt": "^1.0.1",
     "@pdfsmaller/pdf-encrypt-lite": "^1.2.0",
     "@supabase/supabase-js": "^2.45.4",
+    "@turbodocx/html-to-docx": "^1.22.2",
     "@zxing/browser": "^0.2.1",
     "@zxing/library": "^0.23.0",
     "cropperjs": "^2.1.1",

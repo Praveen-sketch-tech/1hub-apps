@@ -1,5 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const https = require('https');
+const HTMLtoDOCX = require('@turbodocx/html-to-docx');
 
 const BOT_TOKEN = process.env.TG_TOKEN;
 const CHAT_ID = process.env.TG_CHAT_ID;
@@ -266,6 +267,98 @@ module.exports = async (req, res) => {
             admin_token_configured: !!ADMIN_TOKEN,
             admin_password_configured: !!ADMIN_PASSWORD
         });
+    }
+
+    // ============================================================
+    // WORD EXPORT - REAL DOCX
+    // ============================================================
+    if (path === '/word-export' && req.method === 'POST') {
+        try {
+            const { html } = req.body || {};
+
+            if (!html || typeof html !== 'string') {
+                return res.status(400).json({ error: 'HTML content is required' });
+            }
+
+            // Prevent unexpectedly large export requests.
+            if (Buffer.byteLength(html, 'utf8') > 2 * 1024 * 1024) {
+                return res.status(413).json({ error: 'Document content is too large' });
+            }
+
+            const fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@page {
+    size: A4 portrait;
+    margin: 20mm;
+}
+
+body {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 14pt;
+    line-height: 1.5;
+    color: #000;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid #000;
+    padding: 6px 7px;
+    vertical-align: top;
+}
+
+th {
+    text-align: center;
+    font-weight: bold;
+}
+
+p {
+    margin: 0 0 6pt 0;
+}
+</style>
+</head>
+<body>${html}</body>
+</html>`;
+
+            const docxBuffer = await HTMLtoDOCX(fullHtml, null, {
+                orientation: 'portrait',
+                title: 'Title Clearance Report',
+                creator: '1 Hub Apps',
+                table: {
+                    row: {
+                        cantSplit: true
+                    },
+                    borderOptions: {
+                        size: 1,
+                        color: '000000'
+                    }
+                }
+            });
+
+            res.statusCode = 200;
+            res.setHeader(
+                'Content-Type',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            );
+            res.setHeader(
+                'Content-Disposition',
+                'attachment; filename="Title-Clearance-Report.docx"'
+            );
+            res.setHeader('Content-Length', docxBuffer.length);
+
+            return res.end(Buffer.from(docxBuffer));
+        } catch (error) {
+            console.error('❌ DOCX export error:', error);
+            return res.status(500).json({
+                error: 'Failed to generate Word document: ' + error.message
+            });
+        }
     }
 
     // ============================================================
