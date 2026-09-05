@@ -235,14 +235,7 @@ function updatePreview() {
         const value = el?.value || '';
         if (value) {
             const key = field.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            // ROOT CAUSE FIX (Issue #3 - stray braces / "original doc shows"):
-            // Templates may use either {key} or {{key}} style placeholders.
-            // The old pattern only matched a single pair of braces, so a
-            // {{key}} template left one stray brace on each side after
-            // replacement (e.g. "{Ravi}" instead of "Ravi"). Matching 1-2
-            // braces on both sides consumes the whole placeholder token
-            // regardless of which style the template author used.
-            filledContent = filledContent.replace(new RegExp(`\\{{1,2}${key}\\}{1,2}`, 'g'), value);
+            filledContent = filledContent.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
         }
     });
     const previewEl = document.getElementById('previewContent');
@@ -277,51 +270,12 @@ function formatDocumentContent(text) {
     return html;
 }
 
-// ============================================================
-// ROOT CAUSE FIX (Issue #5 - Hindi/Devanagari PDF blank/garbled):
-// jsPDF's built-in fonts (Helvetica/Times etc.) have NO Devanagari glyphs,
-// so any Hindi text rendered with doc.text() using the default font comes
-// out blank or as garbled boxes. We lazily fetch the Devanagari-capable
-// Noto font already shipped at public/shared/fonts/, embed it into the
-// jsPDF virtual filesystem, and switch to it only when the content being
-// printed actually contains Devanagari characters (U+0900-U+097F) - plain
-// English documents keep using the default font untouched.
-// ============================================================
-const DEVANAGARI_REGEX = /[\u0900-\u097F]/;
-const DEVANAGARI_FONT_URL = '/shared/fonts/noto-sans-devanagari-regular.ttf';
-const DEVANAGARI_FONT_VFS_NAME = 'NotoSansDevanagari-Regular.ttf';
-const DEVANAGARI_FONT_ALIAS = 'NotoDevanagari';
-
-let devanagariFontBase64 = null;
-let devanagariFontLoadPromise = null;
-
-function arrayBufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    const chunkSize = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
-    }
-    return btoa(binary);
+function generatePDF() {
+    updatePreview();
+    downloadPDF();
 }
 
-async function ensureDevanagariFont(doc) {
-    if (!devanagariFontLoadPromise) {
-        devanagariFontLoadPromise = fetch(DEVANAGARI_FONT_URL)
-            .then(response => {
-                if (!response.ok) throw new Error(`Font fetch failed: HTTP ${response.status}`);
-                return response.arrayBuffer();
-            })
-            .then(buffer => {
-                devanagariFontBase64 = arrayBufferToBase64(buffer);
-            });
-    }
-    await devanagariFontLoadPromise;
-    doc.addFileToVFS(DEVANAGARI_FONT_VFS_NAME, devanagariFontBase64);
-    doc.addFont(DEVANAGARI_FONT_VFS_NAME, DEVANAGARI_FONT_ALIAS, 'normal');
-}
-
-async function downloadPDF() {
+function downloadPDF() {
     const content = document.getElementById('previewContent').innerHTML;
     if (!content || content.trim() === '') {
         showStatus('Please fill the form and generate preview first!', 'error');
@@ -351,19 +305,6 @@ async function downloadPDF() {
                 textToSplit += '\n';
             }
         }
-        if (DEVANAGARI_REGEX.test(textToSplit)) {
-            try {
-                await ensureDevanagariFont(doc);
-                doc.setFont(DEVANAGARI_FONT_ALIAS, 'normal');
-            } catch (fontError) {
-                console.error('Devanagari font load failed, Hindi text may not render:', fontError);
-                showStatus('⚠️ Hindi font failed to load, PDF text may be garbled', 'error');
-            }
-        }
-        // splitTextToSize is measured AFTER the font is switched, so line
-        // wrapping uses the correct glyph widths for whichever font will
-        // actually render the text (Devanagari fonts wrap differently than
-        // Helvetica).
         const splitLines = doc.splitTextToSize(textToSplit, maxWidth);
         for (let i = 0; i < splitLines.length; i++) {
             const line = splitLines[i];

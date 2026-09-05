@@ -1,3 +1,13 @@
+// ⚠️ ROOT CAUSE FIX (Admin upload/edit/pause/delete "EFATAL: Unsupported Buffer
+// file-type" error): node-telegram-bot-api's legacy Buffer handling tries to
+// sniff the mime type of any Buffer using the old `file-type@3.x` package and
+// THROWS a fatal error if it can't recognize the bytes (this is a documented,
+// deprecated safety check - see node-telegram-bot-api doc/usage.md). Setting
+// NTBA_FIX_350 disables that unsafe throw and makes it fall back to
+// 'application/octet-stream' instead, exactly like every other Telegram SDK.
+// This MUST be set before any sendDocument/sendPhoto/etc. call is made.
+process.env.NTBA_FIX_350 = process.env.NTBA_FIX_350 || '1';
+
 const TelegramBot = require('node-telegram-bot-api');
 const https = require('https');
 const HTMLtoDOCX = require('@turbodocx/html-to-docx');
@@ -28,6 +38,19 @@ let METADATA_MESSAGE_ID = null;
 let metadataLoaded = false;
 let loadingMetadata = false;
 let saveLock = false;
+// ⚠️ ROOT CAUSE FIX (documents/:id 404 right after upload): Vercel serverless
+// functions are NOT guaranteed to route consecutive requests to the same warm
+// container. `metadataLoaded` used to mean "loaded once, trust it forever for
+// this process's lifetime" - so a container that loaded metadata BEFORE a
+// document was uploaded (from another container) would keep serving its
+// stale copy indefinitely and 404 a document that genuinely exists in
+// Telegram (the real source of truth). We keep the in-memory copy only as a
+// short-lived cache (bounded staleness), not as a persistent store, so every
+// container re-syncs with Telegram's pinned metadata within a few seconds -
+// this is NOT a return to getUpdates()/full in-memory persistence, it's a
+// small TTL on an otherwise stateless read.
+let lastMetadataLoadAt = 0;
+const METADATA_CACHE_TTL_MS = 5000;
 
 let data = {
     documents: [],
@@ -64,6 +87,7 @@ async function loadMetadata() {
         if (!bot) {
             console.log('⚠️ Bot not initialized, using defaults');
             metadataLoaded = true;
+            lastMetadataLoadAt = Date.now();
             loadingMetadata = false;
             return;
         }
@@ -80,6 +104,7 @@ async function loadMetadata() {
                     data.keywords = parsed.keywords || data.keywords;
                     METADATA_MESSAGE_ID = chat.pinned_message.message_id;
                     metadataLoaded = true;
+                    lastMetadataLoadAt = Date.now();
                     console.log('✅ Metadata loaded from pinned message');
                     loadingMetadata = false;
                     return;
@@ -89,9 +114,13 @@ async function loadMetadata() {
         console.log('⚠️ No pinned metadata found, creating defaults');
         await saveMetadata();
         metadataLoaded = true;
+        lastMetadataLoadAt = Date.now();
     } catch (error) {
         console.error('❌ Load metadata error:', error.message);
+        // Do not mark as loaded-and-fresh on failure - allow the very next
+        // request to retry instead of freezing this container on defaults.
         metadataLoaded = true;
+        lastMetadataLoadAt = 0;
     }
     loadingMetadata = false;
 }
@@ -136,11 +165,27 @@ async function saveMetadata() {
             updatedAt: new Date().toISOString()
         };
         const jsonData = JSON.stringify(metadata);
-        const buffer = Buffer.from(jsonData, 'utf-8');
-        const result = await bot.sendDocument(CHAT_ID, buffer, {
-            filename: 'metadata.json',
-            caption: jsonData.substring(0, 200)
-        });
+        const fs = require('fs');
+        const path = require('path');
+        const tempFile = path.join('/tmp', 'document-generator-metadata.json');
+
+        fs.writeFileSync(tempFile, jsonData, 'utf-8');
+
+        let result;
+        try {
+            result = await bot.sendDocument(CHAT_ID, tempFile, {
+                caption: jsonData.substring(0, 200)
+            }, {
+                filename: 'metadata.json',
+                contentType: 'application/json'
+            });
+        } finally {
+            try {
+                fs.unlinkSync(tempFile);
+            } catch (e) {
+                // Ignore temp-file cleanup errors
+            }
+        }
         const newId = result.message_id;
         await bot.pinChatMessage(CHAT_ID, newId);
         if (METADATA_MESSAGE_ID && METADATA_MESSAGE_ID !== newId) {
@@ -149,6 +194,7 @@ async function saveMetadata() {
             } catch (e) { /* ignore */ }
         }
         METADATA_MESSAGE_ID = newId;
+        lastMetadataLoadAt = Date.now();
         console.log('✅ Metadata saved atomically');
     } catch (error) {
         console.error('❌ Save metadata error:', error.message);
@@ -159,9 +205,38 @@ async function saveMetadata() {
 }
 
 async function ensureMetadata() {
-    if (!metadataLoaded) {
+    const isStale = !metadataLoaded || (Date.now() - lastMetadataLoadAt) > METADATA_CACHE_TTL_MS;
+    if (isStale) {
         await loadMetadata();
-        metadataLoaded = true;
+    }
+}
+
+// ============================================================
+// ROOT CAUSE FIX (unreliable Telegram/metadata save flow):
+// Every mutating route used to mutate `data` in-memory FIRST and only THEN
+// call saveMetadata(). If saveMetadata() failed (e.g. transient Telegram
+// error), the in-memory copy in THIS warm container was left mutated even
+// though nothing was actually persisted - so this container would report
+// success-looking state (a "phantom" doc/category/keyword) to any request
+// that landed back on it, while Telegram (the real source of truth) never
+// had it. That is a direct contributor to id-mismatch/404 style bugs.
+// This helper snapshots state, applies the mutation, persists it, and rolls
+// the in-memory copy back if persistence fails - so in-memory state can
+// never drift from what's actually saved to Telegram.
+async function mutateAndPersist(mutateFn) {
+    const snapshot = {
+        documents: JSON.parse(JSON.stringify(data.documents)),
+        categories: JSON.parse(JSON.stringify(data.categories)),
+        keywords: JSON.parse(JSON.stringify(data.keywords)),
+    };
+    mutateFn();
+    try {
+        await saveMetadata();
+    } catch (error) {
+        data.documents = snapshot.documents;
+        data.categories = snapshot.categories;
+        data.keywords = snapshot.keywords;
+        throw error;
     }
 }
 
@@ -381,9 +456,10 @@ p {
             if (!fileBase64 || !filename || !metadata) {
                 return res.status(400).json({ error: 'Missing required fields' });
             }
+            let uploadedResult = null;
             try {
                 const buffer = Buffer.from(fileBase64, 'base64');
-                const result = await bot.sendDocument(CHAT_ID, buffer, {
+                uploadedResult = await bot.sendDocument(CHAT_ID, buffer, {
                     caption: JSON.stringify({
                         id: metadata.id,
                         name: metadata.name,
@@ -400,8 +476,8 @@ p {
                     category: metadata.category,
                     description: metadata.description || '',
                     status: metadata.status || 'active',
-                    file_id: result.document.file_id,
-                    message_id: result.message_id,
+                    file_id: uploadedResult.document.file_id,
+                    message_id: uploadedResult.message_id,
                     filename: filename,
                     mimeType: metadata.mimeType || 'application/octet-stream',
                     size: metadata.size || 0,
@@ -409,16 +485,26 @@ p {
                     placeholders: metadata.placeholders || [],
                     createdAt: new Date().toISOString()
                 };
-                data.documents.push(doc);
-                await saveMetadata();
+                await mutateAndPersist(() => { data.documents.push(doc); });
                 return res.status(200).json({ success: true, document: doc });
             } catch (error) {
                 console.error('Upload error:', error);
-                return res.status(500).json({ error: 'Upload failed: ' + error.message });
+                // If the file was already sent to Telegram but metadata
+                // failed to persist, don't leave an orphan file behind -
+                // best-effort cleanup so a retried upload doesn't duplicate it.
+                if (uploadedResult && bot) {
+                    try {
+                        await bot.deleteMessage(CHAT_ID, uploadedResult.message_id);
+                    } catch (cleanupError) { /* ignore */ }
+                }
+                // Return the underlying message as-is (don't stack another
+                // "Upload failed:" prefix on top of it - the caller already
+                // labels this as an upload failure).
+                return res.status(500).json({ error: error.message });
             }
         }
 
-        // DOCUMENTS - UPDATE
+        // DOCUMENTS - UPDATE (covers Edit/Pause: status toggles go through here too)
         if (path.startsWith('/documents/') && req.method === 'PUT') {
             const docId = path.split('/')[2];
             const index = data.documents.findIndex(d => d.id === docId);
@@ -426,9 +512,17 @@ p {
                 return res.status(404).json({ error: 'Document not found' });
             }
             const updates = req.body;
-            data.documents[index] = { ...data.documents[index], ...updates, updatedAt: new Date().toISOString() };
-            await saveMetadata();
-            return res.status(200).json({ success: true, document: data.documents[index] });
+            let updatedDoc;
+            try {
+                await mutateAndPersist(() => {
+                    data.documents[index] = { ...data.documents[index], ...updates, updatedAt: new Date().toISOString() };
+                    updatedDoc = data.documents[index];
+                });
+            } catch (error) {
+                console.error('Update error:', error);
+                return res.status(500).json({ error: error.message });
+            }
+            return res.status(200).json({ success: true, document: updatedDoc });
         }
 
         // DOCUMENTS - DELETE
@@ -439,13 +533,23 @@ p {
                 return res.status(404).json({ error: 'Document not found' });
             }
             const doc = data.documents[index];
+            try {
+                // Persist the metadata removal FIRST, then delete the actual
+                // Telegram file. If we deleted the file first and saveMetadata
+                // failed, the persisted metadata would keep pointing at a
+                // message that no longer exists (a broken file_id) - the
+                // reverse order means a failed save always leaves Telegram
+                // in a recoverable, consistent state.
+                await mutateAndPersist(() => { data.documents.splice(index, 1); });
+            } catch (error) {
+                console.error('Delete error:', error);
+                return res.status(500).json({ error: error.message });
+            }
             if (bot) {
                 try {
                     await bot.deleteMessage(CHAT_ID, doc.message_id);
-                } catch (e) { /* ignore */ }
+                } catch (e) { /* ignore - metadata is already consistent without this doc */ }
             }
-            data.documents.splice(index, 1);
-            await saveMetadata();
             return res.status(200).json({ success: true });
         }
 
@@ -463,8 +567,12 @@ p {
                 color: color || '#667eea',
                 createdAt: new Date().toISOString()
             };
-            data.categories.push(cat);
-            await saveMetadata();
+            try {
+                await mutateAndPersist(() => { data.categories.push(cat); });
+            } catch (error) {
+                console.error('Category create error:', error);
+                return res.status(500).json({ error: error.message });
+            }
             return res.status(200).json({ success: true, category: cat });
         }
 
@@ -481,8 +589,12 @@ p {
                     error: `Cannot delete: ${docsInCategory.length} documents use this category. Reassign them first.`
                 });
             }
-            data.categories.splice(index, 1);
-            await saveMetadata();
+            try {
+                await mutateAndPersist(() => { data.categories.splice(index, 1); });
+            } catch (error) {
+                console.error('Category delete error:', error);
+                return res.status(500).json({ error: error.message });
+            }
             return res.status(200).json({ success: true });
         }
 
@@ -501,8 +613,12 @@ p {
                 type: type || 'text',
                 createdAt: new Date().toISOString()
             };
-            data.keywords.push(kw);
-            await saveMetadata();
+            try {
+                await mutateAndPersist(() => { data.keywords.push(kw); });
+            } catch (error) {
+                console.error('Keyword create error:', error);
+                return res.status(500).json({ error: error.message });
+            }
             return res.status(200).json({ success: true, keyword: kw });
         }
 
@@ -513,8 +629,12 @@ p {
             if (index === -1) {
                 return res.status(404).json({ error: 'Keyword not found' });
             }
-            data.keywords.splice(index, 1);
-            await saveMetadata();
+            try {
+                await mutateAndPersist(() => { data.keywords.splice(index, 1); });
+            } catch (error) {
+                console.error('Keyword delete error:', error);
+                return res.status(500).json({ error: error.message });
+            }
             return res.status(200).json({ success: true });
         }
 
