@@ -47,6 +47,9 @@ td, th {
 <h1>🧪 TurboDocx Formatting Stress Test</h1>
 
 <button id="generateBtn">Generate Stress-Test DOCX</button>
+<button id="generateBtn2">🔁 Generate Again (no refresh, x1)</button>
+<button id="generateManyBtn">⚡ Generate 5x Consecutively (no refresh)</button>
+<button id="generateEmptyBtn">🚫 Try Generating Empty Content (should be blocked)</button>
 
 <div id="status">Waiting...</div>
 
@@ -246,24 +249,28 @@ if (typeof Buffer === "undefined") {
 <script type="module">
 
 import HTMLToDOCX from "./turbodocx.browser.esm.js";
+import {
+  hasRenderableContent,
+  finalizeDocx,
+  A4,
+  DEFAULT_MARGINS_TWIPS,
+} from "./docx-postprocess.js";
 
 window.__TurboDocx = HTMLToDOCX;
 
 const status = document.getElementById("status");
+const allButtons = [
+  document.getElementById("generateBtn"),
+  document.getElementById("generateBtn2"),
+  document.getElementById("generateManyBtn"),
+  document.getElementById("generateEmptyBtn"),
+];
 
-document.getElementById("generateBtn").addEventListener("click", async () => {
+// Guards against overlapping/rapid-click generations (see audit §2 & §11).
+let isGenerating = false;
 
-  try {
-
-    status.textContent = "⏳ Generating formatting stress-test DOCX...";
-
-    if (typeof window.__TurboDocx !== "function") {
-      throw new Error("TurboDocx is not available");
-    }
-
-    const source = document.getElementById("testDocument");
-
-    const html = `
+function buildFullHtml(bodyHtml) {
+  return `
       <!DOCTYPE html>
       <html>
       <head>
@@ -286,71 +293,129 @@ document.getElementById("generateBtn").addEventListener("click", async () => {
         </style>
       </head>
       <body>
-        ${source.innerHTML}
+        ${bodyHtml}
       </body>
       </html>
     `;
+}
 
-    const options = {
-      title: "TurboDocx Formatting Stress Test",
-      subject: "Hindi English formatting verification",
-      creator: "TurboDocx Testbench",
-      description: "Formatting stress test",
-      font: "Arial",
-      margins: {
-        top: 720,
-        right: 720,
-        bottom: 720,
-        left: 720
-      }
-    };
+// --- Fix: the engine's actual option key is `pageSize:{width,height}`;
+//     this page previously passed no page-size option at all and silently
+//     got the engine's US Letter default. finalizeDocx() also force-
+//     corrects the page size in the output as a safety net. ---
+function buildOptions() {
+  return {
+    title: "TurboDocx Formatting Stress Test",
+    subject: "Hindi English formatting verification",
+    creator: "TurboDocx Testbench",
+    description: "Formatting stress test",
+    font: "Arial",
+    pageSize: {
+      width: A4.WIDTH_TWIPS,
+      height: A4.HEIGHT_TWIPS,
+    },
+    margins: DEFAULT_MARGINS_TWIPS,
+  };
+}
 
-    const result = await window.__TurboDocx(
-      html,
-      null,
-      options
-    );
-
-    const blob =
-      result instanceof Blob
-        ? result
-        : new Blob(
-            [result],
-            {
-              type:
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            }
-          );
-
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-
-    a.href = url;
-    a.download = "turbodocx_formatting_stress_test.docx";
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-
-    status.textContent =
-      "✅ STRESS TEST DOCX GENERATED\n" +
-      "Size: " + blob.size + " bytes\n" +
-      "File: turbodocx_formatting_stress_test.docx";
-
-  } catch (error) {
-
-    console.error(error);
-
-    status.textContent =
-      "❌ STRESS TEST FAILED\n" +
-      error.message;
-
+/**
+ * Runs one generation + download. Returns the finalized Blob on success,
+ * or null if it was blocked / failed (status text already updated).
+ */
+async function generateAndDownload(bodyHtml, filename, { logPrefix = "" } = {}) {
+  if (typeof window.__TurboDocx !== "function") {
+    status.textContent = "❌ TurboDocx is not available";
+    return null;
   }
 
-});
+  // --- Fix: reject empty/whitespace-only content BEFORE calling the
+  //     engine, so a blank document can never be produced. ---
+  if (!hasRenderableContent(bodyHtml)) {
+    status.textContent =
+      logPrefix + "❌ Blocked: content is empty or whitespace-only — nothing to export.";
+    return null;
+  }
+
+  const html = buildFullHtml(bodyHtml);
+  const options = buildOptions();
+
+  const result = await window.__TurboDocx(html, null, options);
+
+  // --- Fix: normalize + validate + repair the result in one step instead
+  //     of a bare `instanceof Blob` branch with no content validation.
+  //     Forces A4 page size and patches in Devanagari font + hi-IN
+  //     language metadata for Hindi text. ---
+  const blob = await finalizeDocx(result, {
+    bodyFont: "Arial",
+    hindiFont: "Noto Sans Devanagari",
+  });
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+  status.textContent =
+    logPrefix + "✅ DOCX GENERATED (" + filename + ")\nSize: " + blob.size + " bytes";
+
+  return blob;
+}
+
+async function withGenerationLock(fn) {
+  if (isGenerating) {
+    status.textContent = "⏳ A generation is already in progress — please wait.";
+    return;
+  }
+  isGenerating = true;
+  allButtons.forEach(btn => btn.disabled = true);
+  try {
+    await fn();
+  } catch (error) {
+    console.error(error);
+    status.textContent = "❌ STRESS TEST FAILED\n" + (error.message || error);
+  } finally {
+    isGenerating = false;
+    allButtons.forEach(btn => btn.disabled = false);
+  }
+}
+
+document.getElementById("generateBtn").addEventListener("click", () => withGenerationLock(async () => {
+  status.textContent = "⏳ Generating formatting stress-test DOCX...";
+  const source = document.getElementById("testDocument");
+  await generateAndDownload(source.innerHTML, "turbodocx_formatting_stress_test.docx");
+}));
+
+// Exercises "repeated download without refresh" directly from the UI.
+document.getElementById("generateBtn2").addEventListener("click", () => withGenerationLock(async () => {
+  status.textContent = "⏳ Generating again (no refresh)...";
+  const source = document.getElementById("testDocument");
+  await generateAndDownload(source.innerHTML, "turbodocx_formatting_stress_test_2.docx");
+}));
+
+// Exercises "multiple consecutive generations" (5 in a row, no refresh).
+document.getElementById("generateManyBtn").addEventListener("click", () => withGenerationLock(async () => {
+  const source = document.getElementById("testDocument");
+  for (let i = 1; i <= 5; i++) {
+    status.textContent = `⏳ Consecutive generation ${i} of 5...`;
+    await generateAndDownload(
+      source.innerHTML,
+      `turbodocx_stress_consecutive_${i}.docx`,
+      { logPrefix: `[${i}/5] ` }
+    );
+  }
+  status.textContent = "✅ 5 consecutive generations completed with no refresh.";
+}));
+
+// Demonstrates the empty/whitespace-content guard: this must be BLOCKED,
+// never produce a downloadable file.
+document.getElementById("generateEmptyBtn").addEventListener("click", () => withGenerationLock(async () => {
+  status.textContent = "⏳ Attempting to generate from empty content (expected to be blocked)...";
+  await generateAndDownload("   \n <p></p> \n ", "should_never_download.docx");
+}));
 
 </script>
 

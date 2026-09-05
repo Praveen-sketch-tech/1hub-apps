@@ -139,12 +139,15 @@
   </script>
 
   <!-- =========================================================
-       STEP 2: TurboDocx ESM
+       STEP 2: TurboDocx ESM + post-processing helpers
        ========================================================= -->
   <script type="module">
     import HTMLToDOCX from "./turbodocx.browser.esm.js";
+    import { A4, DEFAULT_MARGINS_TWIPS } from "./docx-postprocess.js";
 
     window.__TurboDocx = HTMLToDOCX;
+    window.__DocxA4 = A4;
+    window.__DocxMargins = DEFAULT_MARGINS_TWIPS;
     window.__turboDiagnostics.scriptLoaded = true;
 
     console.log("DIAGNOSTIC: TurboDocx ESM loaded");
@@ -172,6 +175,10 @@
     🧪 Test DOCX Generation
   </button>
 
+  <button id="testBtn2" type="button">
+    🔁 Generate Again (no refresh)
+  </button>
+
   <button id="clearBtn" type="button">
     Clear
   </button>
@@ -182,12 +189,27 @@
 
 </div>
 
-<script>
+<script type="module">
+
+import {
+  hasRenderableContent,
+  finalizeDocx,
+  A4,
+  DEFAULT_MARGINS_TWIPS,
+} from "./docx-postprocess.js";
 
 (function() {
 
   const status = document.getElementById("status");
   const output = document.getElementById("output");
+  const testBtn = document.getElementById("testBtn");
+  const testBtn2 = document.getElementById("testBtn2");
+
+  // Guards against overlapping/rapid-click generations (see audit §2 & §11):
+  // a second click while one is already in flight is ignored rather than
+  // starting a concurrent generation, which is one of the things that can
+  // trip a browser's "multiple automatic downloads" throttling.
+  let isGenerating = false;
 
   function addStatus(message, type) {
 
@@ -339,192 +361,142 @@
 
   });
 
-  // Actual DOCX generation test
-  document
-    .getElementById("testBtn")
-    .addEventListener("click", async function() {
+  // Test fixture: exercises Hindi+English, bold, italic, all four
+  // alignments, a bulleted + numbered list, and a table — closing the
+  // coverage gap flagged in the audit (this page previously tested no
+  // alignment modes and no lists at all).
+  function buildTestHtml(label) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="UTF-8"></head>
+      <body>
+        <h1>TurboDocx Test ${label}</h1>
 
-      if (typeof window.__TurboDocx !== "function") {
+        <p>यह हिंदी परीक्षण है। This is an English test.</p>
+        <p><strong>Bold Hindi:</strong> यह बोल्ड टेक्स्ट है।</p>
+        <p><em>Italic English</em></p>
 
-        addStatus(
-          "❌ Cannot test DOCX: HTMLtoDOCX is unavailable",
-          "bad"
-        );
+        <p style="text-align:left">Left aligned paragraph.</p>
+        <p style="text-align:center">केंद्रित पाठ (Centered text)</p>
+        <p style="text-align:right">Right aligned paragraph.</p>
+        <p style="text-align:justify">Justify aligned paragraph with enough text to wrap across more than one line so the justification behavior is actually visible in the output.</p>
 
-        return;
-      }
+        <ul><li>Bullet one</li><li>Bullet two</li></ul>
+        <ol><li>Numbered one</li><li>Numbered two</li></ol>
 
-      try {
+        <table border="1">
+          <tr><th>हिंदी</th><th>English</th></tr>
+          <tr><td>परीक्षण</td><td>Test</td></tr>
+        </table>
+      </body>
+      </html>
+    `;
+  }
 
-        addStatus(
-          "⏳ Generating real DOCX...",
-          "info"
-        );
+  // Empty-content fixture used only to demonstrate the blank-input guard.
+  const EMPTY_TEST_HTML = "   \n  <p></p> \n  ";
 
-        const html = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="UTF-8">
-          </head>
+  async function runGeneration(label, { simulateEmpty = false } = {}) {
 
-          <body>
+    if (typeof window.__TurboDocx !== "function") {
+      addStatus("❌ Cannot test DOCX: HTMLtoDOCX is unavailable", "bad");
+      return;
+    }
 
-            <h1>TurboDocx Test</h1>
+    if (isGenerating) {
+      log("Ignored click: a generation is already in progress.");
+      return;
+    }
 
-            <p>
-              यह हिंदी परीक्षण है।
-              This is an English test.
-            </p>
+    const html = simulateEmpty ? EMPTY_TEST_HTML : buildTestHtml(label);
 
-            <p>
-              <strong>Bold Hindi:</strong>
-              यह बोल्ड टेक्स्ट है।
-            </p>
+    // --- Fix: reject empty/whitespace-only content BEFORE calling the
+    //     engine, so a blank document can never be produced. ---
+    if (!hasRenderableContent(html)) {
+      addStatus(
+        "❌ Nothing to export — the content is empty or whitespace-only.",
+        "bad"
+      );
+      log("Blocked generation: no renderable content.");
+      return;
+    }
 
-            <p>
-              <em>Italic English</em>
-            </p>
+    isGenerating = true;
+    testBtn.disabled = true;
+    testBtn2.disabled = true;
 
-            <table border="1">
-              <tr>
-                <th>हिंदी</th>
-                <th>English</th>
-              </tr>
-              <tr>
-                <td>परीक्षण</td>
-                <td>Test</td>
-              </tr>
-            </table>
+    try {
+      addStatus("⏳ Generating real DOCX (" + label + ")...", "info");
 
-          </body>
-          </html>
-        `;
+      const options = {
+        font: "Segoe UI",
+        pageSize: {
+          width: A4.WIDTH_TWIPS,
+          height: A4.HEIGHT_TWIPS,
+        },
+        margins: DEFAULT_MARGINS_TWIPS,
+        table: {
+          row: { cantSplit: true },
+        },
+      };
 
-        const options = {
+      log("Calling HTMLtoDOCX...");
 
-          margins: {
-            top: 1440,
-            bottom: 1440,
-            left: 1440,
-            right: 1440
-          },
+      const result = await window.__TurboDocx(html, null, options);
 
-          table: {
-            row: {
-              cantSplit: true
-            }
-          }
+      log("Result type: " + Object.prototype.toString.call(result));
 
-        };
+      // --- Fix: normalize + validate + repair the result in one step,
+      //     instead of a bare `instanceof Blob` branch and a
+      //     `blob.size < 100` sanity check (which cannot catch a blank
+      //     document, since the empty-content skeleton is already ~20KB).
+      //     finalizeDocx() also forces A4 page size and patches in a real
+      //     Devanagari font + hi-IN language metadata for Hindi text. ---
+      const blob = await finalizeDocx(result, {
+        bodyFont: "Segoe UI",
+        hindiFont: "Noto Sans Devanagari",
+      });
 
-        log("Calling HTMLtoDOCX...");
+      log("Finalized blob size: " + blob.size + " bytes");
 
-        const result =
-          await window.__TurboDocx(
-            html,
-            null,
-            options
-          );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "turbodocx_diagnostic_test_" + label + ".docx";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
 
-        log(
-          "Result type: " +
-          Object.prototype.toString.call(result)
-        );
+      setTimeout(function () {
+        URL.revokeObjectURL(url);
+      }, 5000);
 
-        log(
-          "Result constructor: " +
-          (
-            result &&
-            result.constructor
-              ? result.constructor.name
-              : "unknown"
-          )
-        );
+      addStatus("✅ REAL DOCX GENERATED AND DOWNLOAD STARTED (" + label + ")", "ok");
+      log("DOCX generation SUCCESS (" + label + ")");
 
-        let blob;
+    } catch (error) {
 
-        if (result instanceof Blob) {
+      console.error("DOCX generation error:", error);
+      addStatus("❌ DOCX generation failed: " + (error.message || error), "bad");
+      log("DOCX ERROR: " + (error.stack || error.message || error));
 
-          blob = result;
+    } finally {
+      isGenerating = false;
+      testBtn.disabled = false;
+      testBtn2.disabled = false;
+    }
+  }
 
-        } else {
+  testBtn.addEventListener("click", function () {
+    runGeneration("A");
+  });
 
-          blob = new Blob(
-            [result],
-            {
-              type:
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            }
-          );
-
-        }
-
-        log(
-          "Blob size: " +
-          blob.size +
-          " bytes"
-        );
-
-        if (blob.size < 100) {
-
-          throw new Error(
-            "Generated DOCX is suspiciously small"
-          );
-
-        }
-
-        const url =
-          URL.createObjectURL(blob);
-
-        const link =
-          document.createElement("a");
-
-        link.href = url;
-
-        link.download =
-          "turbodocx_diagnostic_test.docx";
-
-        document.body.appendChild(link);
-
-        link.click();
-
-        link.remove();
-
-        setTimeout(function() {
-
-          URL.revokeObjectURL(url);
-
-        }, 5000);
-
-        addStatus(
-          "✅ REAL DOCX GENERATED AND DOWNLOAD STARTED",
-          "ok"
-        );
-
-        log("DOCX generation SUCCESS");
-
-      } catch (error) {
-
-        console.error(
-          "DOCX generation error:",
-          error
-        );
-
-        addStatus(
-          "❌ DOCX generation failed: " +
-          (error.message || error),
-          "bad"
-        );
-
-        log(
-          "DOCX ERROR: " +
-          (error.stack || error.message || error)
-        );
-
-      }
-
-    });
+  // Exercises "repeated download without refresh" directly from the UI:
+  // click Test, then click this one immediately after — no page reload.
+  testBtn2.addEventListener("click", function () {
+    runGeneration("B");
+  });
 
   document
     .getElementById("clearBtn")

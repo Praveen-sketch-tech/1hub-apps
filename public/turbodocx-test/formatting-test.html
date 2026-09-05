@@ -338,6 +338,7 @@
   <!-- Download -->
   <div class="download-bar">
     <button class="btn-primary" id="downloadWordBtn">📥 Download Word (.docx)</button>
+    <button class="btn-primary" id="downloadWordBtn2">🔁 Download Again (no refresh)</button>
     <button class="btn-secondary" id="downloadPdfBtn">🖨️ Print / Save as PDF</button>
   </div>
   <div id="statusMsg" class="status-msg"></div>
@@ -354,6 +355,12 @@
     const doneEditingBtn = document.getElementById('doneEditing');
     let isEditing = true;
     let turboDocxLoaded = false;
+    let docxPostprocess = null;
+
+    // Guards against overlapping/rapid-click generations (see audit §2 & §11):
+    // a second click while one is already in flight is ignored, and the
+    // trigger buttons are disabled for the duration of generation.
+    let isGenerating = false;
 
     // --- Browser polyfills for TurboDocx ---
     if (typeof global === 'undefined') {
@@ -584,9 +591,13 @@
         showStatus('⏳ Loading TurboDocx...', 'info');
         console.log('[TurboDocx] Loading from local bundle...');
         
-        const module = await import('./turbodocx.browser.esm.js');
+        const [module, postprocessModule] = await Promise.all([
+          import('./turbodocx.browser.esm.js'),
+          import('./docx-postprocess.js'),
+        ]);
         const HTMLToDOCX = module.default || module;
-        
+        docxPostprocess = postprocessModule;
+
         if (typeof HTMLToDOCX === 'function') {
           turboDocxLoaded = true;
           window.__TurboDocx = HTMLToDOCX;
@@ -604,9 +615,19 @@
     }
 
     // --- Download Word using TurboDocx ---
-    document.getElementById('downloadWordBtn').addEventListener('click', async function() {
+    const downloadButtons = [
+      document.getElementById('downloadWordBtn'),
+      document.getElementById('downloadWordBtn2'),
+    ];
+
+    async function runDownload(filename) {
+      if (isGenerating) {
+        showStatus('⏳ A generation is already in progress — please wait.', 'info');
+        return;
+      }
+
       try {
-        if (!turboDocxLoaded) {
+        if (!turboDocxLoaded || !docxPostprocess) {
           showStatus('⏳ Loading TurboDocx, please wait...', 'info');
           const loaded = await loadTurboDocx();
           if (!loaded) {
@@ -615,10 +636,22 @@
           }
         }
 
+        const content = editor.innerHTML;
+
+        // --- Fix: reject empty/whitespace-only editor content BEFORE
+        //     calling the engine, so a blank document can never result
+        //     from an empty editor. ---
+        if (!docxPostprocess.hasRenderableContent(content)) {
+          showStatus('❌ Nothing to export — the editor is empty. Add some content first.', 'error');
+          return;
+        }
+
+        isGenerating = true;
+        downloadButtons.forEach(btn => btn.disabled = true);
+
         showStatus('⏳ Generating DOCX with TurboDocx...', 'info');
 
         const HTMLToDOCX = window.__TurboDocx;
-        const content = editor.innerHTML;
 
         // Clean up the HTML for better conversion
         const cleanHtml = `
@@ -678,19 +711,19 @@
           </html>
         `;
 
-        // A4 dimensions in twips
-        const A4_WIDTH_TWIPS = Math.round(8.27 * 1440);
-        const A4_HEIGHT_TWIPS = Math.round(11.69 * 1440);
+        // --- Fix: the engine's actual option key is `pageSize:{width,height}`
+        //     — the previous `pageWidth`/`pageHeight` keys are silently
+        //     ignored by the engine, so this page was generating Letter-size
+        //     documents despite intending A4. `finalizeDocx()` below also
+        //     force-corrects the page size in the output as a safety net. ---
+        const { A4, DEFAULT_MARGINS_TWIPS } = docxPostprocess;
 
         const options = {
-          margins: {
-            top: 1440,
-            bottom: 1440,
-            left: 1440,
-            right: 1440
+          margins: DEFAULT_MARGINS_TWIPS,
+          pageSize: {
+            width: A4.WIDTH_TWIPS,
+            height: A4.HEIGHT_TWIPS,
           },
-          pageWidth: A4_WIDTH_TWIPS,
-          pageHeight: A4_HEIGHT_TWIPS,
           table: {
             row: {
               cantSplit: true,
@@ -702,26 +735,20 @@
         console.log('[TurboDocx] Converting HTML to DOCX...');
         const result = await HTMLToDOCX(cleanHtml, null, options);
 
-        // Handle result - could be Blob or Uint8Array
-        let blob;
-        if (result instanceof Blob) {
-          blob = result;
-        } else if (result instanceof Uint8Array) {
-          blob = new Blob([result], { 
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
-          });
-        } else {
-          throw new Error('Unexpected result type from HTMLToDOCX');
-        }
-
-        if (blob.size < 100) {
-          throw new Error('Generated DOCX is suspiciously small (' + blob.size + ' bytes)');
-        }
+        // --- Fix: normalize + validate + repair the result in one step.
+        //     finalizeDocx() rejects a blank/no-visible-text document
+        //     instead of letting it download as a "success", forces A4
+        //     page size, and patches in a real Devanagari complex-script
+        //     font + hi-IN language metadata for Hindi text. ---
+        const blob = await docxPostprocess.finalizeDocx(result, {
+          bodyFont: 'Segoe UI',
+          hindiFont: 'Noto Sans Devanagari',
+        });
 
         // Download
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = 'document_formatting_test.docx';
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -733,8 +760,14 @@
       } catch (error) {
         console.error('[TurboDocx] Error:', error);
         showStatus('❌ Error: ' + error.message, 'error');
+      } finally {
+        isGenerating = false;
+        downloadButtons.forEach(btn => btn.disabled = false);
       }
-    });
+    }
+
+    downloadButtons[0].addEventListener('click', () => runDownload('document_formatting_test.docx'));
+    downloadButtons[1].addEventListener('click', () => runDownload('document_formatting_test_2.docx'));
 
     // --- PDF (Print / Save as PDF) ---
     document.getElementById('downloadPdfBtn').addEventListener('click', function() {
