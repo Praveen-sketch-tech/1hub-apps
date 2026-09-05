@@ -203,6 +203,46 @@ This is the final English formatting verification.
 
 </div>
 
+<script>
+/* TurboDocx browser polyfills */
+if (typeof global === "undefined") {
+  window.global = window;
+}
+
+if (typeof process === "undefined") {
+  window.process = {
+    env: {}
+  };
+}
+
+if (typeof Buffer === "undefined") {
+  window.Buffer = {
+    from: function(data, encoding) {
+      if (typeof data === "string") {
+        if (encoding === "base64") {
+          const binary = atob(data);
+          const bytes = new Uint8Array(binary.length);
+
+          for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+
+          return bytes;
+        }
+
+        return new TextEncoder().encode(data);
+      }
+
+      return new Uint8Array(data);
+    },
+
+    isBuffer: function() {
+      return false;
+    }
+  };
+}
+</script>
+
 <script type="module">
 
 import HTMLToDOCX from "./turbodocx.browser.esm.js";
