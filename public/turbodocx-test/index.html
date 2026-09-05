@@ -148,6 +148,7 @@
       window.__turboDiagnostics.scriptLoaded = true;
       console.log('DIAGNOSTIC: TurboDocx script loaded');
       console.log('window.HTMLtoDOCX =', typeof window.HTMLtoDOCX);
+      console.log("DOCX globals:", Object.keys(window).filter(k => k.toLowerCase().includes("docx")));
       console.log('window.htmlToDocx =', typeof window.htmlToDocx);
     "
     onerror="
