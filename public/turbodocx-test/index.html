@@ -139,24 +139,24 @@
   </script>
 
   <!-- =========================================================
-       STEP 2: TurboDocx CDN
+       STEP 2: TurboDocx ESM
        ========================================================= -->
+  <script type="module">
+    import HTMLToDOCX from "./turbodocx.browser.esm.js";
 
-  <script
-    src="./turbodocx.browser.js"
-    onload="
-      window.__turboDiagnostics.scriptLoaded = true;
-      console.log('DIAGNOSTIC: TurboDocx script loaded');
-      console.log('window.HTMLtoDOCX =', typeof window.HTMLtoDOCX);
-      console.log("DOCX globals:", Object.keys(window).filter(k => k.toLowerCase().includes("docx")));
-      console.log('window.htmlToDocx =', typeof window.htmlToDocx);
-    "
-    onerror="
-      window.__turboDiagnostics.scriptLoaded = false;
-      window.__turboDiagnostics.errors.push('TurboDocx CDN script failed to load');
-      console.error('DIAGNOSTIC: TurboDocx CDN script FAILED');
-    "
-  ></script>
+    window.__TurboDocx = HTMLToDOCX;
+    window.__turboDiagnostics.scriptLoaded = true;
+
+    console.log("DIAGNOSTIC: TurboDocx ESM loaded");
+    console.log("typeof imported HTMLToDOCX =", typeof HTMLToDOCX);
+    console.log("typeof window.__TurboDocx =", typeof window.__TurboDocx);
+
+    if (typeof HTMLToDOCX !== "function") {
+      window.__turboDiagnostics.errors.push(
+        "TurboDocx ESM default export is not a function"
+      );
+    }
+  </script>
 
 </head>
 
@@ -285,7 +285,7 @@
 
     log(
       "HTMLtoDOCX: " +
-      typeof window.HTMLtoDOCX
+      typeof window.__TurboDocx
     );
 
     log(
@@ -303,7 +303,7 @@
       window.__turboDiagnostics.errors.length
     );
 
-    if (typeof window.HTMLtoDOCX === "function") {
+    if (typeof window.__TurboDocx === "function") {
 
       addStatus(
         "✅ TurboDocx loaded correctly: HTMLtoDOCX is a function",
@@ -344,7 +344,7 @@
     .getElementById("testBtn")
     .addEventListener("click", async function() {
 
-      if (typeof window.HTMLtoDOCX !== "function") {
+      if (typeof window.__TurboDocx !== "function") {
 
         addStatus(
           "❌ Cannot test DOCX: HTMLtoDOCX is unavailable",
@@ -421,7 +421,7 @@
         log("Calling HTMLtoDOCX...");
 
         const result =
-          await window.HTMLtoDOCX(
+          await window.__TurboDocx(
             html,
             null,
             options
