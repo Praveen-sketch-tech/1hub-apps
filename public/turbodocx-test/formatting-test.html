@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📄 Formatting & Export Testbench</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: #f2f4f8;
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      max-width: 1300px;
+      width: 100%;
+      background: white;
+      border-radius: 28px;
+      padding: 1.8rem 2rem 2.5rem;
+      box-shadow: 0 20px 40px -12px rgba(0,0,0,0.2);
+    }
+    h1 {
+      font-weight: 500;
+      font-size: 1.9rem;
+      letter-spacing: -0.3px;
+      color: #0b1a2e;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 1.8rem;
+      border-bottom: 2px solid #eaeef5;
+      padding-bottom: 0.8rem;
+    }
+    h1 small {
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: #3c5a7d;
+      margin-left: 12px;
+      background: #eef3fa;
+      padding: 2px 14px;
+      border-radius: 40px;
+    }
+    .editor-section {
+      background: #fafcff;
+      border-radius: 20px;
+      padding: 1.2rem 1.5rem 1.5rem;
+      border: 1px solid #dfe7f0;
+      margin-bottom: 2rem;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 10px;
+      background: white;
+      padding: 10px 16px;
+      border-radius: 60px;
+      border: 1px solid #dde5ef;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .toolbar button, .toolbar select, .toolbar input {
+      background: #f4f8fe;
+      border: none;
+      border-radius: 30px;
+      padding: 6px 14px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #1e2f44;
+      cursor: pointer;
+      transition: all 0.1s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+      border: 1px solid transparent;
+      font-family: inherit;
+    }
+    .toolbar button:hover {
+      background: #e3ebf6;
+      border-color: #bbcfe0;
+    }
+    .toolbar button:active { background: #d0ddea; }
+    .toolbar select { background: white; padding-right: 24px; }
+    .toolbar input[type="number"] { width: 60px; padding: 6px 6px; }
+    .sep { width: 1px; height: 28px; background: #d6dfea; display: inline-block; margin: 0 4px; }
+    .text-editor {
+      min-height: 180px;
+      border: 1px solid #d7e0ea;
+      border-radius: 16px;
+      padding: 18px 22px;
+      background: white;
+      font-size: 1rem;
+      line-height: 1.6;
+      outline: none;
+      transition: border 0.15s;
+      font-family: 'Segoe UI', 'Noto Sans Devanagari', 'Arial Unicode MS', sans-serif;
+      overflow-y: auto;
+      max-height: 400px;
+      color: #0b1a2e;
+    }
+    .text-editor:focus { border-color: #6d8bb0; box-shadow: 0 0 0 3px rgba(70, 130, 200, 0.15); }
+    .text-editor.readonly { 
+      background: #f8fafc;
+      cursor: default;
+    }
+    .preview-section {
+      background: #f6f9fe;
+      border-radius: 24px;
+      padding: 1.5rem 2rem;
+      border: 1px solid #dce4ef;
+      margin: 2rem 0 1.5rem;
+    }
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.2rem;
+      color: #1f3a57;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+    .preview-box {
+      background: white;
+      border-radius: 18px;
+      padding: 2rem 2.5rem;
+      min-height: 220px;
+      border: 1px solid #d2ddee;
+      box-shadow: 0 6px 14px rgba(0, 20, 40, 0.04);
+      font-family: 'Segoe UI', 'Noto Sans Devanagari', 'Arial Unicode MS', sans-serif;
+      font-size: 1rem;
+      line-height: 1.6;
+      color: #0b1a2e;
+    }
+    .preview-box * { 
+      max-width: 100%; 
+    }
+    .preview-box table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.5rem 0;
+      border: 1px solid #a0b8d0;
+    }
+    .preview-box td, .preview-box th {
+      border: 1px solid #8aa1bb;
+      padding: 6px 12px;
+      text-align: left;
+    }
+    .download-bar {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 1.8rem;
+      justify-content: center;
+    }
+    .btn-primary {
+      background: #1f3a5f;
+      border: none;
+      padding: 12px 34px;
+      border-radius: 60px;
+      font-weight: 600;
+      color: white;
+      font-size: 1.05rem;
+      box-shadow: 0 6px 10px rgba(25, 55, 100, 0.2);
+      transition: 0.15s;
+      cursor: pointer;
+      border: 1px solid #2c4b77;
+      letter-spacing: 0.4px;
+    }
+    .btn-primary:hover { background: #143152; transform: scale(1.01); box-shadow: 0 8px 16px rgba(0,0,0,0.15); }
+    .btn-secondary {
+      background: #eaf0fa;
+      border: 1px solid #bacfe4;
+      padding: 12px 34px;
+      border-radius: 60px;
+      font-weight: 600;
+      color: #1c314b;
+      font-size: 1.05rem;
+      transition: 0.15s;
+      cursor: pointer;
+    }
+    .btn-secondary:hover { background: #dce6f5; }
+    .status-badge {
+      background: #e6edf8;
+      padding: 2px 20px;
+      border-radius: 30px;
+      font-size: 0.8rem;
+      color: #1f3f63;
+    }
+    .footnote {
+      margin-top: 2rem;
+      color: #4b6688;
+      font-size: 0.9rem;
+      border-top: 1px solid #d3dfee;
+      padding-top: 1.5rem;
+      text-align: center;
+    }
+    .row-controls { display: flex; align-items: center; gap: 6px; }
+    .row-controls button { background: #e8eff8; padding: 6px 12px; }
+    .status-msg {
+      margin-top: 10px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      display: none;
+      text-align: center;
+      font-weight: 500;
+    }
+    .status-msg.success {
+      display: block;
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #a5d6a7;
+    }
+    .status-msg.error {
+      display: block;
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #ef9a9a;
+    }
+    .status-msg.info {
+      display: block;
+      background: #e3f2fd;
+      color: #0d47a1;
+      border: 1px solid #90caf9;
+    }
+    .btn-active {
+      background: #1f3a5f !important;
+      color: white !important;
+    }
+
+    @media print {
+      body { background: white; padding: 0; margin: 0; }
+      .container { box-shadow: none; padding: 0; max-width: 100%; border-radius: 0; }
+      h1, .editor-section, .toolbar, .download-bar, .footnote, .preview-header, .status-badge, .status-msg { display: none !important; }
+      .preview-section { padding: 0; margin: 0; border: none; background: white; }
+      .preview-box { border: none; padding: 1.5rem; box-shadow: none; border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="container" id="app">
+  <h1>📋 Formatting Testbench <small>Hindi · English · Export</small></h1>
+
+  <!-- Editor -->
+  <div class="editor-section">
+    <div class="toolbar" id="toolbar">
+      <button id="doneEditing" title="Toggle edit mode">✏️ Edit</button>
+      <span class="sep"></span>
+      <button id="boldBtn"><b>B</b></button>
+      <button id="italicBtn"><i>I</i></button>
+      <button id="underlineBtn"><u>U</u></button>
+      <button id="strikeBtn"><s>S</s></button>
+      <span class="sep"></span>
+      <select id="fontSizeSelect">
+        <option value="10">10</option>
+        <option value="11">11</option>
+        <option value="12" selected>12</option>
+        <option value="14">14</option>
+        <option value="16">16</option>
+        <option value="18">18</option>
+        <option value="20">20</option>
+        <option value="24">24</option>
+        <option value="28">28</option>
+      </select>
+      <span class="sep"></span>
+      <button id="leftAlign">⬅</button>
+      <button id="centerAlign">⬌</button>
+      <button id="rightAlign">➡</button>
+      <button id="justifyAlign">☰</button>
+      <span class="sep"></span>
+      <button id="bulletList">•</button>
+      <button id="numberedList">1.</button>
+      <span class="sep"></span>
+      <button id="indentBtn">↪</button>
+      <button id="outdentBtn">↩</button>
+      <span class="sep"></span>
+      <span class="row-controls">
+        <button id="addRowBtn">+ Row</button>
+        <button id="removeRowBtn">− Row</button>
+      </span>
+      <span class="sep"></span>
+      <button id="undoBtn">↩ Undo</button>
+      <button id="redoBtn">↪ Redo</button>
+      <span class="sep"></span>
+      <button id="clearFormatBtn">🧹 Clear</button>
+      <button id="copyTextBtn">📋 Copy</button>
+      <span class="sep"></span>
+      <button id="pageBreakBtn">📄 Page Break</button>
+      <span class="sep"></span>
+      <select id="lineSpacingSelect">
+        <option value="1">Single</option>
+        <option value="1.15">1.15</option>
+        <option value="1.5">1.5</option>
+        <option value="2">Double</option>
+      </select>
+    </div>
+
+    <div id="editor" class="text-editor" contenteditable="true">
+      <h2>📜 नमूना दस्तावेज़ / Sample Document</h2>
+      <p><strong>हिंदी (Devanagari)</strong> — यह एक परीक्षण पैराग्राफ है। इसमें <em>तिरछा</em>, <u>रेखांकित</u>, और <s>कटा हुआ</s> पाठ शामिल है।</p>
+      <p><strong>English</strong> — This is a test paragraph with <em>italic</em>, <u>underline</u>, and <s>strikethrough</s> formatting.</p>
+      <p style="text-align: center;"><b>⚠️ मिश्रित / Mixed</b> — यहाँ हिंदी और English एक साथ हैं। Bold, Italic, Underline सभी काम करते हैं।</p>
+      <ul>
+        <li>हिंदी बुलेट पॉइंट • Hindi bullet</li>
+        <li>English bullet point • mixed content</li>
+      </ul>
+      <ol>
+        <li>पहला आइटम / First item</li>
+        <li>दूसरा आइटम / Second item</li>
+      </ol>
+      <table style="width:100%; border:1px solid #2c4b77;">
+        <tr><th>हिंदी शीर्षक</th><th>English Title</th></tr>
+        <tr><td>पंक्ति 1, सेल 1</td><td>Row 1, Cell 2</td></tr>
+        <tr><td>पंक्ति 2, सेल 1</td><td>Row 2, Cell 2</td></tr>
+      </table>
+      <p style="line-height: 2.2; background: #f4f8fd; padding: 6px;">🔹 लाइन स्पेसिंग (line-height: 2.2) का परीक्षण — यहाँ हिंदी एवं English दोनों हैं।</p>
+      <div style="page-break-after: always; border-bottom: 2px dashed #a0b8d0; padding-bottom: 12px;">📄 पेज ब्रेक सिमुलेशन (Page break)</div>
+      <p style="text-align: right;">➡️ Right aligned: हिंदी / English</p>
+      <p style="text-align: justify;">📏 Justify: यह पैराग्राफ दोनों तरफ से संरेखित है। इसमें हिंदी और English शब्द मिले-जुले हैं। Justification test for both scripts.</p>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-section" id="previewSection">
+    <div class="preview-header">
+      <span>📄 Document Preview (exact rendering)</span>
+      <span class="status-badge">Live sync</span>
+    </div>
+    <div id="preview" class="preview-box">
+    </div>
+  </div>
+
+  <!-- Download -->
+  <div class="download-bar">
+    <button class="btn-primary" id="downloadWordBtn">📥 Download Word (.docx)</button>
+    <button class="btn-secondary" id="downloadPdfBtn">🖨️ Print / Save as PDF</button>
+  </div>
+  <div id="statusMsg" class="status-msg"></div>
+  <div class="footnote">⚠️ Hindi & English rendering · Formatting preserved · Tables · Lists · Alignment</div>
+</div>
+
+<script>
+  (function() {
+    'use strict';
+
+    const editor = document.getElementById('editor');
+    const preview = document.getElementById('preview');
+    const statusMsg = document.getElementById('statusMsg');
+    const doneEditingBtn = document.getElementById('doneEditing');
+    let isEditing = true;
+    let turboDocxLoaded = false;
+
+    // --- Browser polyfills for TurboDocx ---
+    if (typeof global === 'undefined') {
+      window.global = window;
+    }
+
+    if (typeof process === 'undefined') {
+      window.process = {
+        env: {}
+      };
+    }
+
+    if (typeof Buffer === 'undefined') {
+      window.Buffer = {
+        from: function(data, encoding) {
+          if (typeof data === 'string') {
+            if (encoding === 'base64') {
+              const binary = atob(data);
+              const bytes = new Uint8Array(binary.length);
+              for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+              }
+              return bytes;
+            }
+            return new TextEncoder().encode(data);
+          }
+          return new Uint8Array(data);
+        },
+        isBuffer: function() {
+          return false;
+        }
+      };
+    }
+
+    // --- Helper: get closest element ---
+    function getClosestElement(node, selector) {
+      if (!node) return null;
+      const element = node.nodeType === Node.ELEMENT_NODE
+        ? node
+        : node.parentElement;
+      return element?.closest(selector) || null;
+    }
+
+    // --- Helper: update preview ---
+    function updatePreview() {
+      preview.innerHTML = editor.innerHTML;
+    }
+
+    // --- Helper: exec command ---
+    function exec(cmd, value = null) {
+      if (!isEditing) return;
+      editor.focus();
+      document.execCommand(cmd, false, value);
+      updatePreview();
+    }
+
+    // --- Helper: apply font size ---
+    function applyFontSize(size) {
+      if (!isEditing) return;
+      editor.focus();
+      document.execCommand('fontSize', false, '7');
+      const selection = window.getSelection();
+      if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const span = document.createElement('span');
+        span.style.fontSize = size + 'pt';
+        range.surroundContents(span);
+      }
+      updatePreview();
+    }
+
+    // --- Helper: apply line spacing ---
+    function applyLineSpacing(value) {
+      if (!isEditing) return;
+      editor.focus();
+      document.execCommand('insertParagraph', false, null);
+      const selection = window.getSelection();
+      if (selection.rangeCount > 0) {
+        const node = selection.getRangeAt(0).startContainer;
+        const p = getClosestElement(node, 'p');
+        if (p) {
+          p.style.lineHeight = value;
+        }
+      }
+      updatePreview();
+    }
+
+    // --- Helper: insert page break ---
+    function insertPageBreak() {
+      if (!isEditing) return;
+      editor.focus();
+      const div = document.createElement('div');
+      div.style.cssText = 'page-break-after: always; border-bottom: 2px dashed #a0b8d0; padding-bottom: 12px; margin: 12px 0;';
+      div.textContent = '📄 पेज ब्रेक / Page Break';
+      const selection = window.getSelection();
+      if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        range.insertNode(div);
+        range.setStartAfter(div);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      } else {
+        editor.appendChild(div);
+      }
+      updatePreview();
+    }
+
+    // --- Status message helper ---
+    function showStatus(message, type = 'info') {
+      statusMsg.textContent = message;
+      statusMsg.className = 'status-msg ' + type;
+      // Auto-hide after 8 seconds for success messages
+      if (type === 'success') {
+        setTimeout(() => {
+          if (statusMsg.className === 'status-msg success') {
+            statusMsg.className = 'status-msg';
+          }
+        }, 8000);
+      }
+    }
+
+    // --- Toolbar bindings ---
+    doneEditingBtn.addEventListener('click', function() {
+      isEditing = !isEditing;
+      if (isEditing) {
+        editor.contentEditable = 'true';
+        editor.classList.remove('readonly');
+        doneEditingBtn.textContent = '✏️ Edit';
+        doneEditingBtn.classList.remove('btn-active');
+      } else {
+        editor.contentEditable = 'false';
+        editor.classList.add('readonly');
+        doneEditingBtn.textContent = '✅ Done';
+        doneEditingBtn.classList.add('btn-active');
+        updatePreview();
+      }
+    });
+
+    document.getElementById('boldBtn').addEventListener('click', () => exec('bold'));
+    document.getElementById('italicBtn').addEventListener('click', () => exec('italic'));
+    document.getElementById('underlineBtn').addEventListener('click', () => exec('underline'));
+    document.getElementById('strikeBtn').addEventListener('click', () => exec('strikeThrough'));
+
+    document.getElementById('leftAlign').addEventListener('click', () => exec('justifyLeft'));
+    document.getElementById('centerAlign').addEventListener('click', () => exec('justifyCenter'));
+    document.getElementById('rightAlign').addEventListener('click', () => exec('justifyRight'));
+    document.getElementById('justifyAlign').addEventListener('click', () => exec('justifyFull'));
+
+    document.getElementById('bulletList').addEventListener('click', () => exec('insertUnorderedList'));
+    document.getElementById('numberedList').addEventListener('click', () => exec('insertOrderedList'));
+
+    document.getElementById('indentBtn').addEventListener('click', () => exec('indent'));
+    document.getElementById('outdentBtn').addEventListener('click', () => exec('outdent'));
+
+    document.getElementById('undoBtn').addEventListener('click', () => exec('undo'));
+    document.getElementById('redoBtn').addEventListener('click', () => exec('redo'));
+
+    document.getElementById('clearFormatBtn').addEventListener('click', () => {
+      exec('removeFormat');
+      updatePreview();
+    });
+
+    document.getElementById('copyTextBtn').addEventListener('click', () => {
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      document.execCommand('copy');
+      sel.removeAllRanges();
+      showStatus('✅ Text copied to clipboard!', 'success');
+    });
+
+    document.getElementById('fontSizeSelect').addEventListener('change', function(e) {
+      const size = parseInt(this.value);
+      applyFontSize(size);
+    });
+
+    document.getElementById('lineSpacingSelect').addEventListener('change', function(e) {
+      const value = parseFloat(this.value);
+      applyLineSpacing(value);
+    });
+
+    document.getElementById('pageBreakBtn').addEventListener('click', insertPageBreak);
+
+    document.getElementById('addRowBtn').addEventListener('click', function() {
+      const sel = window.getSelection();
+      if (sel.rangeCount) {
+        const node = sel.getRangeAt(0).startContainer;
+        const tr = getClosestElement(node, 'tr');
+        if (tr && tr.parentNode && tr.parentNode.tagName === 'TBODY') {
+          const newRow = tr.cloneNode(true);
+          const cells = newRow.querySelectorAll('td, th');
+          cells.forEach(c => c.innerHTML = ' ');
+          tr.parentNode.appendChild(newRow);
+          updatePreview();
+          showStatus('✅ Row added', 'success');
+        } else {
+          showStatus('⚠️ Place cursor inside a table row to add.', 'error');
+        }
+      }
+    });
+
+    document.getElementById('removeRowBtn').addEventListener('click', function() {
+      const sel = window.getSelection();
+      if (sel.rangeCount) {
+        const node = sel.getRangeAt(0).startContainer;
+        const tr = getClosestElement(node, 'tr');
+        if (tr && tr.parentNode && tr.parentNode.children.length > 1) {
+          tr.remove();
+          updatePreview();
+          showStatus('✅ Row removed', 'success');
+        } else {
+          showStatus('⚠️ Cannot remove last row.', 'error');
+        }
+      }
+    });
+
+    editor.addEventListener('input', updatePreview);
+    editor.addEventListener('keyup', updatePreview);
+
+    updatePreview();
+
+    // --- Load TurboDocx ---
+    async function loadTurboDocx() {
+      try {
+        showStatus('⏳ Loading TurboDocx...', 'info');
+        console.log('[TurboDocx] Loading from local bundle...');
+        
+        const module = await import('./turbodocx.browser.esm.js');
+        const HTMLToDOCX = module.default || module;
+        
+        if (typeof HTMLToDOCX === 'function') {
+          turboDocxLoaded = true;
+          window.__TurboDocx = HTMLToDOCX;
+          showStatus('✅ TurboDocx: Loaded ✓', 'success');
+          console.log('[TurboDocx] Successfully loaded from local bundle');
+          return true;
+        } else {
+          throw new Error('Imported module is not a function');
+        }
+      } catch (error) {
+        console.error('[TurboDocx] Failed to load:', error);
+        showStatus('❌ TurboDocx: Failed to load - ' + error.message, 'error');
+        return false;
+      }
+    }
+
+    // --- Download Word using TurboDocx ---
+    document.getElementById('downloadWordBtn').addEventListener('click', async function() {
+      try {
+        if (!turboDocxLoaded) {
+          showStatus('⏳ Loading TurboDocx, please wait...', 'info');
+          const loaded = await loadTurboDocx();
+          if (!loaded) {
+            showStatus('❌ TurboDocx not available. Please refresh and try again.', 'error');
+            return;
+          }
+        }
+
+        showStatus('⏳ Generating DOCX with TurboDocx...', 'info');
+
+        const HTMLToDOCX = window.__TurboDocx;
+        const content = editor.innerHTML;
+
+        // Clean up the HTML for better conversion
+        const cleanHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>
+              body {
+                font-family: 'Segoe UI', 'Noto Sans Devanagari', 'Arial Unicode MS', sans-serif;
+                font-size: 12pt;
+                line-height: 1.6;
+                margin: 72pt;
+              }
+              h1, h2, h3, h4, h5, h6 {
+                margin-top: 12pt;
+                margin-bottom: 6pt;
+              }
+              p {
+                margin-top: 6pt;
+                margin-bottom: 6pt;
+              }
+              table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 12pt 0;
+              }
+              td, th {
+                border: 1px solid #333;
+                padding: 6pt 12pt;
+                text-align: left;
+              }
+              th {
+                font-weight: bold;
+                background-color: #f0f4f8;
+              }
+              ul, ol {
+                margin-top: 6pt;
+                margin-bottom: 6pt;
+                padding-left: 36pt;
+              }
+              li {
+                margin-top: 3pt;
+                margin-bottom: 3pt;
+              }
+              .center { text-align: center; }
+              .left { text-align: left; }
+              .right { text-align: right; }
+              .justify { text-align: justify; }
+              .page-break { page-break-after: always; }
+              div[style*="page-break-after"] { page-break-after: always; }
+            </style>
+          </head>
+          <body>
+            ${content}
+          </body>
+          </html>
+        `;
+
+        // A4 dimensions in twips
+        const A4_WIDTH_TWIPS = Math.round(8.27 * 1440);
+        const A4_HEIGHT_TWIPS = Math.round(11.69 * 1440);
+
+        const options = {
+          margins: {
+            top: 1440,
+            bottom: 1440,
+            left: 1440,
+            right: 1440
+          },
+          pageWidth: A4_WIDTH_TWIPS,
+          pageHeight: A4_HEIGHT_TWIPS,
+          table: {
+            row: {
+              cantSplit: true,
+            },
+          },
+          font: 'Segoe UI',
+        };
+
+        console.log('[TurboDocx] Converting HTML to DOCX...');
+        const result = await HTMLToDOCX(cleanHtml, null, options);
+
+        // Handle result - could be Blob or Uint8Array
+        let blob;
+        if (result instanceof Blob) {
+          blob = result;
+        } else if (result instanceof Uint8Array) {
+          blob = new Blob([result], { 
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+          });
+        } else {
+          throw new Error('Unexpected result type from HTMLToDOCX');
+        }
+
+        if (blob.size < 100) {
+          throw new Error('Generated DOCX is suspiciously small (' + blob.size + ' bytes)');
+        }
+
+        // Download
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'document_formatting_test.docx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(link.href), 5000);
+
+        showStatus('✅ DOCX generated and downloaded successfully!', 'success');
+        console.log('[TurboDocx] DOCX generated successfully, size:', blob.size, 'bytes');
+
+      } catch (error) {
+        console.error('[TurboDocx] Error:', error);
+        showStatus('❌ Error: ' + error.message, 'error');
+      }
+    });
+
+    // --- PDF (Print / Save as PDF) ---
+    document.getElementById('downloadPdfBtn').addEventListener('click', function() {
+      window.print();
+    });
+
+    // --- Auto-load TurboDocx on page load ---
+    window.addEventListener('load', function() {
+      console.log('[Formatting Testbench] Page loaded');
+      // Try loading TurboDocx in background
+      setTimeout(() => {
+        loadTurboDocx();
+      }, 100);
+    });
+
+    console.log('✅ Formatting Testbench ready');
+
+  })();
+</script>
+</body>
+</html>
