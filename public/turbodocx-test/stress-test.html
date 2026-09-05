@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurboDocx Formatting Stress Test</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  line-height: 1.5;
+}
+button {
+  padding: 10px 16px;
+  margin: 5px;
+  cursor: pointer;
+}
+#status {
+  margin-top: 15px;
+  padding: 12px;
+  background: #f3f3f3;
+  white-space: pre-wrap;
+}
+#testDocument {
+  border: 1px solid #aaa;
+  padding: 25px;
+  margin-top: 20px;
+  background: white;
+}
+.page-break {
+  page-break-before: always;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+td, th {
+  border: 1px solid #333;
+  padding: 8px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🧪 TurboDocx Formatting Stress Test</h1>
+
+<button id="generateBtn">Generate Stress-Test DOCX</button>
+
+<div id="status">Waiting...</div>
+
+<div id="testDocument">
+
+<h1>TurboDocx Formatting Test</h1>
+
+<p>
+यह हिंदी परीक्षण है। This is an English test.
+</p>
+
+<h2>1. Text Formatting</h2>
+
+<p>
+<strong>Bold Hindi: यह बोल्ड टेक्स्ट है।</strong>
+</p>
+
+<p>
+<em>Italic English Text</em>
+</p>
+
+<p>
+<u>Underline Hindi: यह अंडरलाइन टेक्स्ट है।</u>
+</p>
+
+<p>
+<s>Strike English Text</s>
+</p>
+
+<p>
+<strong><em><u>Combined Hindi + English: परीक्षण Test</u></em></strong>
+</p>
+
+<h2>2. Font Sizes</h2>
+
+<p style="font-size: 10pt;">10pt — छोटा हिंदी टेक्स्ट</p>
+<p style="font-size: 12pt;">12pt — Normal Hindi Text</p>
+<p style="font-size: 16pt;">16pt — बड़ा हिंदी टेक्स्ट</p>
+<p style="font-size: 20pt;">20pt — Large English Text</p>
+<p style="font-size: 28pt;">28pt — बहुत बड़ा परीक्षण</p>
+
+<h2>3. Alignment</h2>
+
+<p style="text-align:left;">LEFT — बाईं ओर / English Left</p>
+
+<p style="text-align:center;">CENTER — बीच में / English Center</p>
+
+<p style="text-align:right;">RIGHT — दाईं ओर / English Right</p>
+
+<p style="text-align:justify;">
+JUSTIFY — यह एक लंबा Hindi और English paragraph है जिसका उद्देश्य
+text justification को test करना है। This paragraph contains enough
+mixed Hindi and English content to test justified paragraph formatting
+inside the generated DOCX document.
+</p>
+
+<h2>4. Bullet List</h2>
+
+<ul>
+<li>पहला बिंदु — First Point</li>
+<li>दूसरा बिंदु — Second Point</li>
+<li>तीसरा बिंदु — Third Point</li>
+</ul>
+
+<h2>5. Numbered List</h2>
+
+<ol>
+<li>पहला चरण — First Step</li>
+<li>दूसरा चरण — Second Step</li>
+<li>तीसरा चरण — Third Step</li>
+</ol>
+
+<h2>6. Indentation</h2>
+
+<p style="margin-left:40px;">
+Indented Hindi paragraph — यह paragraph indentation test करता है।
+</p>
+
+<p style="margin-left:80px;">
+Double Indent — यह दूसरा indentation level है।
+</p>
+
+<h2>7. Line Spacing</h2>
+
+<p style="line-height:2;">
+यह double line spacing वाला Hindi paragraph है। This is a double
+line-spacing English paragraph used for testing document spacing.
+</p>
+
+<h2>8. Table Test</h2>
+
+<table>
+<thead>
+<tr>
+<th>क्रमांक</th>
+<th>नाम / Name</th>
+<th>भाषा / Language</th>
+<th>स्थिति / Status</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>1</td>
+<td>राम / Ram</td>
+<td>हिंदी / Hindi</td>
+<td>सफल / Pass</td>
+</tr>
+
+<tr>
+<td>2</td>
+<td>John</td>
+<td>English</td>
+<td>Success</td>
+</tr>
+
+<tr>
+<td>3</td>
+<td>सीमा / Seema</td>
+<td>Hindi + English</td>
+<td>परीक्षण / Testing</td>
+</tr>
+</tbody>
+</table>
+
+<h2>9. Long Mixed Paragraph</h2>
+
+<p>
+यह एक लंबा mixed-language paragraph है। The purpose of this paragraph
+is to test whether TurboDocx can preserve Hindi Devanagari characters,
+English characters, normal spacing, punctuation, bold and italic
+sections together in the same document. यह देखना महत्वपूर्ण है कि
+generated DOCX में Hindi characters सही तरीके से दिखाई दें और English
+text के साथ उनका layout खराब न हो।
+</p>
+
+<div class="page-break"></div>
+
+<h1>Page 2 — Page Break Test</h1>
+
+<p>
+यह नया page है। This content should appear after an explicit page break.
+</p>
+
+<p>
+<strong>Final Hindi Test:</strong>
+यह TurboDocx का अंतिम Hindi formatting परीक्षण है।
+</p>
+
+<p>
+<strong>Final English Test:</strong>
+This is the final English formatting verification.
+</p>
+
+</div>
+
+<script type="module">
+
+import HTMLToDOCX from "./turbodocx.browser.esm.js";
+
+window.__TurboDocx = HTMLToDOCX;
+
+const status = document.getElementById("status");
+
+document.getElementById("generateBtn").addEventListener("click", async () => {
+
+  try {
+
+    status.textContent = "⏳ Generating formatting stress-test DOCX...";
+
+    if (typeof window.__TurboDocx !== "function") {
+      throw new Error("TurboDocx is not available");
+    }
+
+    const source = document.getElementById("testDocument");
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body {
+            font-family: Arial, "Noto Sans Devanagari", sans-serif;
+            font-size: 12pt;
+          }
+
+          table {
+            border-collapse: collapse;
+            width: 100%;
+          }
+
+          td, th {
+            border: 1px solid #333;
+            padding: 8px;
+          }
+        </style>
+      </head>
+      <body>
+        ${source.innerHTML}
+      </body>
+      </html>
+    `;
+
+    const options = {
+      title: "TurboDocx Formatting Stress Test",
+      subject: "Hindi English formatting verification",
+      creator: "TurboDocx Testbench",
+      description: "Formatting stress test",
+      font: "Arial",
+      margins: {
+        top: 720,
+        right: 720,
+        bottom: 720,
+        left: 720
+      }
+    };
+
+    const result = await window.__TurboDocx(
+      html,
+      null,
+      options
+    );
+
+    const blob =
+      result instanceof Blob
+        ? result
+        : new Blob(
+            [result],
+            {
+              type:
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            }
+          );
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "turbodocx_formatting_stress_test.docx";
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+    status.textContent =
+      "✅ STRESS TEST DOCX GENERATED\n" +
+      "Size: " + blob.size + " bytes\n" +
+      "File: turbodocx_formatting_stress_test.docx";
+
+  } catch (error) {
+
+    console.error(error);
+
+    status.textContent =
+      "❌ STRESS TEST FAILED\n" +
+      error.message;
+
+  }
+
+});
+
+</script>
+
+</body>
+</html>
