@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TurboDocx Diagnostic Test</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 20px;
+      margin: 0;
+    }
+
+    .box {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.08);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .status {
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .ok {
+      background: #dff5e3;
+      color: #176b2c;
+    }
+
+    .bad {
+      background: #ffe1e1;
+      color: #9b1c1c;
+    }
+
+    .info {
+      background: #e5efff;
+      color: #174a91;
+    }
+
+    button {
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+
+    #testBtn {
+      background: #1f3a5f;
+      color: white;
+    }
+
+    #clearBtn {
+      background: #ddd;
+      margin-left: 8px;
+    }
+
+    pre {
+      background: #111;
+      color: #eee;
+      padding: 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+
+  <!-- =========================================================
+       STEP 1: Browser polyfills
+       ========================================================= -->
+
+  <script>
+    window.__turboDiagnostics = {
+      scriptStarted: true,
+      errors: []
+    };
+
+    // global
+    if (typeof global === 'undefined') {
+      window.global = window;
+    }
+
+    // process
+    if (typeof process === 'undefined') {
+      window.process = {
+        env: {}
+      };
+    }
+
+    // Buffer
+    if (typeof Buffer === 'undefined') {
+      window.Buffer = {
+        from: function(data, encoding) {
+
+          if (typeof data === 'string') {
+
+            if (encoding === 'base64') {
+              const binary = atob(data);
+              const bytes = new Uint8Array(binary.length);
+
+              for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+              }
+
+              return bytes;
+            }
+
+            return new TextEncoder().encode(data);
+          }
+
+          return new Uint8Array(data);
+        },
+
+        isBuffer: function() {
+          return false;
+        }
+      };
+    }
+
+    console.log("DIAGNOSTIC: polyfills initialized");
+    console.log("global =", typeof global);
+    console.log("process =", typeof process);
+    console.log("Buffer =", typeof Buffer);
+  </script>
+
+  <!-- =========================================================
+       STEP 2: TurboDocx CDN
+       ========================================================= -->
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/@turbodocx/html-to-docx@1.22.0/dist/html-to-docx.browser.js"
+    onload="
+      window.__turboDiagnostics.scriptLoaded = true;
+      console.log('DIAGNOSTIC: TurboDocx script loaded');
+      console.log('window.HTMLtoDOCX =', typeof window.HTMLtoDOCX);
+      console.log('window.htmlToDocx =', typeof window.htmlToDocx);
+    "
+    onerror="
+      window.__turboDiagnostics.scriptLoaded = false;
+      window.__turboDiagnostics.errors.push('TurboDocx CDN script failed to load');
+      console.error('DIAGNOSTIC: TurboDocx CDN script FAILED');
+    "
+  ></script>
+
+</head>
+
+<body>
+
+<div class="box">
+
+  <h1>🧪 TurboDocx Diagnostic</h1>
+
+  <div id="status"></div>
+
+  <button id="testBtn" type="button">
+    🧪 Test DOCX Generation
+  </button>
+
+  <button id="clearBtn" type="button">
+    Clear
+  </button>
+
+  <h3>Diagnostic Output</h3>
+
+  <pre id="output">Waiting...</pre>
+
+</div>
+
+<script>
+
+(function() {
+
+  const status = document.getElementById("status");
+  const output = document.getElementById("output");
+
+  function addStatus(message, type) {
+
+    const div = document.createElement("div");
+
+    div.className = "status " + type;
+
+    div.textContent = message;
+
+    status.appendChild(div);
+  }
+
+  function log(message) {
+
+    console.log(message);
+
+    output.textContent += "\n" + message;
+  }
+
+  // Catch global JS errors
+  window.addEventListener("error", function(event) {
+
+    const message =
+      "GLOBAL ERROR: " +
+      (event.message || "Unknown error") +
+      "\nFile: " +
+      (event.filename || "unknown") +
+      "\nLine: " +
+      (event.lineno || "?");
+
+    window.__turboDiagnostics.errors.push(message);
+
+    log(message);
+
+    addStatus("❌ JavaScript Error detected", "bad");
+
+  });
+
+  // Catch rejected promises
+  window.addEventListener("unhandledrejection", function(event) {
+
+    const reason =
+      event.reason && event.reason.message
+        ? event.reason.message
+        : String(event.reason);
+
+    const message =
+      "UNHANDLED PROMISE ERROR: " + reason;
+
+    window.__turboDiagnostics.errors.push(message);
+
+    log(message);
+
+    addStatus("❌ Promise Error detected", "bad");
+
+  });
+
+  function runDiagnostics() {
+
+    status.innerHTML = "";
+
+    output.textContent = "";
+
+    log("===== TurboDocx Diagnostics =====");
+
+    log(
+      "User Agent: " +
+      navigator.userAgent
+    );
+
+    log(
+      "Page URL: " +
+      location.href
+    );
+
+    log(
+      "Online: " +
+      navigator.onLine
+    );
+
+    log(
+      "global: " +
+      typeof window.global
+    );
+
+    log(
+      "process: " +
+      typeof window.process
+    );
+
+    log(
+      "Buffer: " +
+      typeof window.Buffer
+    );
+
+    log(
+      "HTMLtoDOCX: " +
+      typeof window.HTMLtoDOCX
+    );
+
+    log(
+      "htmlToDocx: " +
+      typeof window.htmlToDocx
+    );
+
+    log(
+      "Turbo script loaded flag: " +
+      window.__turboDiagnostics.scriptLoaded
+    );
+
+    log(
+      "Errors: " +
+      window.__turboDiagnostics.errors.length
+    );
+
+    if (typeof window.HTMLtoDOCX === "function") {
+
+      addStatus(
+        "✅ TurboDocx loaded correctly: HTMLtoDOCX is a function",
+        "ok"
+      );
+
+    } else {
+
+      addStatus(
+        "❌ TurboDocx NOT initialized: HTMLtoDOCX is not a function",
+        "bad"
+      );
+
+    }
+
+    if (window.__turboDiagnostics.scriptLoaded === false) {
+
+      addStatus(
+        "❌ CDN script failed to load",
+        "bad"
+      );
+
+    }
+
+    log("===== End Diagnostics =====");
+
+  }
+
+  // Run automatically
+  window.addEventListener("load", function() {
+
+    setTimeout(runDiagnostics, 500);
+
+  });
+
+  // Actual DOCX generation test
+  document
+    .getElementById("testBtn")
+    .addEventListener("click", async function() {
+
+      if (typeof window.HTMLtoDOCX !== "function") {
+
+        addStatus(
+          "❌ Cannot test DOCX: HTMLtoDOCX is unavailable",
+          "bad"
+        );
+
+        return;
+      }
+
+      try {
+
+        addStatus(
+          "⏳ Generating real DOCX...",
+          "info"
+        );
+
+        const html = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+          </head>
+
+          <body>
+
+            <h1>TurboDocx Test</h1>
+
+            <p>
+              यह हिंदी परीक्षण है।
+              This is an English test.
+            </p>
+
+            <p>
+              <strong>Bold Hindi:</strong>
+              यह बोल्ड टेक्स्ट है।
+            </p>
+
+            <p>
+              <em>Italic English</em>
+            </p>
+
+            <table border="1">
+              <tr>
+                <th>हिंदी</th>
+                <th>English</th>
+              </tr>
+              <tr>
+                <td>परीक्षण</td>
+                <td>Test</td>
+              </tr>
+            </table>
+
+          </body>
+          </html>
+        `;
+
+        const options = {
+
+          margins: {
+            top: 1440,
+            bottom: 1440,
+            left: 1440,
+            right: 1440
+          },
+
+          table: {
+            row: {
+              cantSplit: true
+            }
+          }
+
+        };
+
+        log("Calling HTMLtoDOCX...");
+
+        const result =
+          await window.HTMLtoDOCX(
+            html,
+            null,
+            options
+          );
+
+        log(
+          "Result type: " +
+          Object.prototype.toString.call(result)
+        );
+
+        log(
+          "Result constructor: " +
+          (
+            result &&
+            result.constructor
+              ? result.constructor.name
+              : "unknown"
+          )
+        );
+
+        let blob;
+
+        if (result instanceof Blob) {
+
+          blob = result;
+
+        } else {
+
+          blob = new Blob(
+            [result],
+            {
+              type:
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            }
+          );
+
+        }
+
+        log(
+          "Blob size: " +
+          blob.size +
+          " bytes"
+        );
+
+        if (blob.size < 100) {
+
+          throw new Error(
+            "Generated DOCX is suspiciously small"
+          );
+
+        }
+
+        const url =
+          URL.createObjectURL(blob);
+
+        const link =
+          document.createElement("a");
+
+        link.href = url;
+
+        link.download =
+          "turbodocx_diagnostic_test.docx";
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        link.remove();
+
+        setTimeout(function() {
+
+          URL.revokeObjectURL(url);
+
+        }, 5000);
+
+        addStatus(
+          "✅ REAL DOCX GENERATED AND DOWNLOAD STARTED",
+          "ok"
+        );
+
+        log("DOCX generation SUCCESS");
+
+      } catch (error) {
+
+        console.error(
+          "DOCX generation error:",
+          error
+        );
+
+        addStatus(
+          "❌ DOCX generation failed: " +
+          (error.message || error),
+          "bad"
+        );
+
+        log(
+          "DOCX ERROR: " +
+          (error.stack || error.message || error)
+        );
+
+      }
+
+    });
+
+  document
+    .getElementById("clearBtn")
+    .addEventListener("click", function() {
+
+      status.innerHTML = "";
+
+      output.textContent = "Cleared.";
+
+    });
+
+})();
+
+</script>
+
+</body>
+</html>
