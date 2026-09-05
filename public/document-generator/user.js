@@ -321,6 +321,33 @@ async function ensureDevanagariFont(doc) {
     doc.addFont(DEVANAGARI_FONT_VFS_NAME, DEVANAGARI_FONT_ALIAS, 'normal');
 }
 
+async function downloadWord() {
+    const content = document.getElementById('previewContent').innerHTML;
+
+    if (!content || content.trim() === '') {
+        showStatus('Please fill the form and generate preview first!', 'error');
+        return;
+    }
+
+    if (typeof window.generateDocx !== 'function') {
+        showStatus('❌ Word generator is not loaded. Please refresh the page.', 'error');
+        return;
+    }
+
+    try {
+        const filename = currentDocument
+            ? `${currentDocument.name}_${new Date().toISOString().split('T')[0]}.docx`
+            : 'document.docx';
+
+        await window.generateDocx(content, filename);
+
+        showStatus('✅ Word document downloaded successfully!', 'success');
+    } catch (error) {
+        console.error('DOCX generation failed:', error);
+        showStatus('❌ Error generating Word document: ' + error.message, 'error');
+    }
+}
+
 async function downloadPDF() {
     const content = document.getElementById('previewContent').innerHTML;
     if (!content || content.trim() === '') {

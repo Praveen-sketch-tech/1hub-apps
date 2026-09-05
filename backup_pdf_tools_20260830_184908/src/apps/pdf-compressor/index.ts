@@ -1,1 +1,0 @@
-export { PdfCompressorPage } from './PdfCompressorPage'
