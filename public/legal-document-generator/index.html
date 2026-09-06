@@ -112,7 +112,8 @@ button { border: 0; border-radius: 9px; padding: 12px 18px; font-size: 15px; fon
     <div class="card" id="previewCard" hidden>
         <div class="toolbar">
             <button class="btn-edit" id="editBtn" onclick="toggleEdit()">Edit Report</button>
-            <button class="btn-docx" onclick="downloadDocx()">Download Word File</button>
+            <button class="btn-docx" id="generateLegalDocxBtn" onclick="downloadDocx()">Generate Word File</button>
+            <button class="btn-docx" id="downloadReadyLegalDocxBtn" onclick="downloadReadyLegalDocx()" style="display:none;">Download Word File</button>
             <button class="btn-pdf" onclick="downloadPdf()">Print / Save as PDF</button>
             <button class="btn-copy" onclick="copyReportText()">Copy Text</button>
         </div>
@@ -1804,10 +1805,22 @@ async function downloadDocx() {
         return;
     }
 
+    const generateButton = document.getElementById("generateLegalDocxBtn");
+    const downloadButton = document.getElementById("downloadReadyLegalDocxBtn");
+
     const wasEditing = preview.getAttribute("contenteditable") === "true";
 
     if (wasEditing) {
         toggleEdit();
+    }
+
+    if (generateButton) {
+        generateButton.disabled = true;
+        generateButton.textContent = "Generating Word...";
+    }
+
+    if (downloadButton) {
+        downloadButton.style.display = "none";
     }
 
     try {
@@ -1818,16 +1831,51 @@ async function downloadDocx() {
             throw new Error("Report content is empty.");
         }
 
-        await window.generateDocx(
+        const result = await window.generateDocx(
             safeHtml,
             "Title-Clearance-Report.docx"
         );
 
+        if (!result || !result.filename) {
+            throw new Error("DOCX was generated but is not ready for download.");
+        }
+
+        if (downloadButton) {
+            downloadButton.textContent =
+                "Download Word File (" +
+                Math.round(result.size / 1024) +
+                " KB)";
+            downloadButton.style.display = "inline-block";
+        }
+
+        console.log("DOCX ready for user download:", result);
     } catch (error) {
-        console.error("DOCX download error:", error);
+        console.error("DOCX generation error:", error);
+        alert("Word generation failed: " + error.message);
+    } finally {
+        if (generateButton) {
+            generateButton.disabled = false;
+            generateButton.textContent = "Generate Word File";
+        }
+    }
+}
+
+function downloadReadyLegalDocx() {
+    if (typeof window.downloadPendingDocx !== "function") {
+        alert("Word download system is not loaded. Please refresh the page.");
+        return;
+    }
+
+    try {
+        const result = window.downloadPendingDocx();
+
+        console.log("DOCX download started:", result);
+    } catch (error) {
+        console.error("DOCX download failed:", error);
         alert("Word download failed: " + error.message);
     }
 }
+
 </script>
 </body>
 </html>

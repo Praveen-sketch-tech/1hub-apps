@@ -334,17 +334,71 @@ async function downloadWord() {
         return;
     }
 
+    const generateButton = document.getElementById('generateWordBtn');
+    const downloadButton = document.getElementById('downloadReadyWordBtn');
+
+    if (generateButton) {
+        generateButton.disabled = true;
+        generateButton.textContent = '⏳ Generating Word...';
+    }
+
+    if (downloadButton) {
+        downloadButton.style.display = 'none';
+    }
+
     try {
         const filename = currentDocument
             ? `${currentDocument.name}_${new Date().toISOString().split('T')[0]}.docx`
             : 'document.docx';
 
-        await window.generateDocx(content, filename);
+        const result = await window.generateDocx(content, filename);
 
-        showStatus('✅ Word document downloaded successfully!', 'success');
+        if (!result || !result.filename) {
+            throw new Error('DOCX was generated but is not ready for download.');
+        }
+
+        if (downloadButton) {
+            downloadButton.textContent = `⬇️ Download Word (${Math.round(result.size / 1024)} KB)`;
+            downloadButton.style.display = 'inline-block';
+        }
+
+        showStatus(
+            '✅ Word document is ready. Tap "Download Word" to save it.',
+            'success'
+        );
     } catch (error) {
         console.error('DOCX generation failed:', error);
-        showStatus('❌ Error generating Word document: ' + error.message, 'error');
+        showStatus(
+            '❌ Error generating Word document: ' + error.message,
+            'error'
+        );
+    } finally {
+        if (generateButton) {
+            generateButton.disabled = false;
+            generateButton.textContent = '📝 Generate Word';
+        }
+    }
+}
+
+function downloadReadyWord() {
+    if (typeof window.downloadPendingDocx !== 'function') {
+        showStatus('❌ Word download system is not loaded. Please refresh the page.', 'error');
+        return;
+    }
+
+    try {
+        const result = window.downloadPendingDocx();
+
+        showStatus(
+            '✅ Word document download started: ' + result.filename,
+            'success'
+        );
+    } catch (error) {
+        console.error('DOCX download failed:', error);
+        showStatus(
+            '❌ Word download failed: ' + error.message,
+            'error'
+        );
     }
 }
 

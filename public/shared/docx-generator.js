@@ -330,37 +330,98 @@
         return true;
     }
 
-    function triggerDownload(blob, filename) {
+    /*
+     * Prepare a DOCX for a real user-initiated download.
+     *
+     * TurboDocx generation is asynchronous, so automatically calling
+     * <a>.click() after generation can lose the browser's user-gesture
+     * context. Instead we keep the Blob in memory and expose an explicit
+     * download action that the caller can invoke from a real click/tap.
+     */
+    let pendingDownload = null;
+
+    function prepareDownload(blob, filename) {
+        if (!(blob instanceof Blob)) {
+            throw new Error('Cannot prepare download: DOCX is not a Blob');
+        }
+
+        if (pendingDownload && pendingDownload.url) {
+            try {
+                URL.revokeObjectURL(pendingDownload.url);
+            } catch (error) {
+                // Ignore cleanup failures.
+            }
+        }
+
+        const safeFilename = sanitizeFilename(filename);
         const objectUrl = URL.createObjectURL(blob);
 
+        pendingDownload = {
+            blob: blob,
+            filename: safeFilename,
+            url: objectUrl
+        };
+
+        return {
+            filename: safeFilename,
+            size: blob.size
+        };
+    }
+
+    function downloadPendingDocx() {
+        if (!pendingDownload) {
+            throw new Error('No generated DOCX is ready for download.');
+        }
+
+        const item = pendingDownload;
+
+        const link = document.createElement('a');
+        link.href = item.url;
+        link.download = item.filename;
+        link.rel = 'noopener';
+        link.style.display = 'none';
+
+        document.body.appendChild(link);
+
         try {
-            const link = document.createElement('a');
-
-            link.href = objectUrl;
-            link.download = filename;
-            link.rel = 'noopener';
-            link.style.display = 'none';
-
-            document.body.appendChild(link);
-
-            try {
-                link.click();
-            } finally {
-                link.remove();
-            }
+            link.click();
         } finally {
-            /*
-             * Keep the object URL alive briefly so Chromium/WebView has
-             * enough time to consume the download request.
-             */
-            setTimeout(function () {
+            link.remove();
+        }
+
+        /*
+         * Do not clear the pending Blob immediately. Keeping the object URL
+         * alive allows the browser to consume the download request reliably,
+         * including repeated user-initiated downloads.
+         */
+        setTimeout(function () {
+            if (pendingDownload === item) {
                 try {
-                    URL.revokeObjectURL(objectUrl);
+                    URL.revokeObjectURL(item.url);
                 } catch (error) {
                     // Ignore cleanup failures.
                 }
-            }, 10000);
+
+                pendingDownload = null;
+            }
+        }, 30000);
+
+        return {
+            filename: item.filename,
+            size: item.blob.size
+        };
+    }
+
+    function clearPendingDocx() {
+        if (pendingDownload && pendingDownload.url) {
+            try {
+                URL.revokeObjectURL(pendingDownload.url);
+            } catch (error) {
+                // Ignore cleanup failures.
+            }
         }
+
+        pendingDownload = null;
     }
 
     async function generateDocxInternal(html, filename) {
@@ -386,8 +447,10 @@
                 right: DEFAULT_MARGINS.right
             },
 
-            pageWidth: A4_WIDTH_TWIPS,
-            pageHeight: A4_HEIGHT_TWIPS,
+            pageSize: {
+                width: A4_WIDTH_TWIPS,
+                height: A4_HEIGHT_TWIPS
+            },
 
             table: {
                 row: {
@@ -432,15 +495,7 @@
 
         await validateDocxBlob(blob);
 
-        const safeFilename = sanitizeFilename(filename);
-
-        triggerDownload(blob, safeFilename);
-
-        return {
-            blob: blob,
-            filename: safeFilename,
-            size: blob.size
-        };
+        return prepareDownload(blob, filename);
     }
 
     /*
@@ -479,6 +534,8 @@
      * Does not affect normal production behavior.
      */
     window.generateDocx = generateDocx;
+    window.downloadPendingDocx = downloadPendingDocx;
+    window.clearPendingDocx = clearPendingDocx;
 
     window.__turboDocxDiagnostics = {
         load: loadTurboDocx,
