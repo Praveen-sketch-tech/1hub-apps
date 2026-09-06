@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Download Diagnostic</title></head>
+<body>
+<h2>Repeated Download Diagnostic</h2>
+<button id="auto">1️⃣ Generate automatic download</button>
+<button id="auto2">2️⃣ Generate automatic download</button>
+<hr>
+<a id="manual" href="#" download="manual-test-1.txt">⬇️ MANUAL DOWNLOAD</a>
+<a id="manual2" href="#" download="manual-test-2.txt">⬇️ MANUAL DOWNLOAD 2</a>
+
+<script>
+function makeFile(name) {
+  const blob = new Blob(
+    ["Download diagnostic: " + new Date().toISOString()],
+    {type: "text/plain"}
+  );
+  const url = URL.createObjectURL(blob);
+  return {blob, url, name};
+}
+
+function autoDownload(name) {
+  const {url} = makeFile(name);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+function prepareManual(anchor, name) {
+  const {url} = makeFile(name);
+  anchor.href = url;
+  anchor.download = name;
+}
+
+document.getElementById("auto").onclick =
+  () => autoDownload("auto-1.txt");
+
+document.getElementById("auto2").onclick =
+  () => autoDownload("auto-2.txt");
+
+prepareManual(
+  document.getElementById("manual"),
+  "manual-1.txt"
+);
+
+prepareManual(
+  document.getElementById("manual2"),
+  "manual-2.txt"
+);
+</script>
+</body>
+</html>
