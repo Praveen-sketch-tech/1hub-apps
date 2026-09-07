@@ -1,38 +1,41 @@
 import { useCallback, useMemo, useState } from 'react'
-import type { ImagePlacement, PageItem, ResultSummary, ToolMode, CompressionMode } from '@apps/smart-pdf-tools/types'
+import type { ImagePlacement, PageItem, ResultSummary, ToolMode } from '@apps/smart-pdf-tools/types'
 import { usePdfWorkspace } from '@apps/smart-pdf-tools/hooks/usePdfWorkspace'
 import PageWorkspace from '@apps/smart-pdf-tools/components/PageWorkspace'
 import WorkspaceToolbar from '@apps/smart-pdf-tools/components/WorkspaceToolbar'
 import SplitPanel from '@apps/smart-pdf-tools/components/SplitPanel'
-import CompressionPanel from '@apps/smart-pdf-tools/components/CompressionPanel'
 import ResultPanel from '@apps/smart-pdf-tools/components/ResultPanel'
 import ProgressPanel from '@apps/smart-pdf-tools/components/ProgressPanel'
 import ImagePageEditor from '@apps/smart-pdf-tools/components/ImagePageEditor'
 import { generateMergedOrExtractedPdf, generateSplitOutputs } from '@apps/smart-pdf-tools/lib/pdfGenerator'
 import { parseSplitRanges } from '@apps/smart-pdf-tools/lib/splitRanges'
 import { getImageDimensions } from '@apps/smart-pdf-tools/lib/pdfRenderer'
-import { compressPdf } from '@apps/smart-pdf-tools/lib/pdfCompression'
 import '@apps/smart-pdf-tools/smart-pdf-tools.css'
 import { PdfEditorStartCards } from './PdfEditorStartCards'
 
 /**
  * Reuses Smart PDF Tools' (personal App #001) tested workspace — page
- * thumbnails, reorder, rotate, delete, image placement editor, and now
- * Compress too — for Merge, Images→PDF, Split, Extract and Compress, exactly
- * as that workspace already works. Nothing in the personal app is modified;
- * everything here is a read-only cross-app import.
+ * thumbnails, reorder, rotate, delete, image placement editor — for Merge,
+ * Images→PDF, Split and Extract. Compress is deliberately NOT offered here;
+ * the "Compress" tab that ships inside WorkspaceToolbar is hidden via CSS
+ * and its mode changes are ignored below, since that component has no prop
+ * to exclude a mode and the personal app itself must not be edited.
  */
 export function PdfEditorPanel() {
   const workspace = usePdfWorkspace()
-  const [toolMode, setToolMode] = useState<ToolMode>(null)
+  const [toolMode, setToolModeRaw] = useState<ToolMode>(null)
   const [result, setResult] = useState<ResultSummary | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [genProgress, setGenProgress] = useState(0)
   const [editingImagePageId, setEditingImagePageId] = useState<string | null>(null)
   const [pendingDeleteSelected, setPendingDeleteSelected] = useState(false)
   const [imageDimsCache] = useState(() => new Map<string, { width: number; height: number }>())
   const [, forceRerenderTick] = useState(0)
   const [hasStarted, setHasStarted] = useState(false)
+
+  const setToolMode = useCallback((mode: ToolMode) => {
+    if (mode === 'compress') return // Compress intentionally excluded from this app.
+    setToolModeRaw(mode)
+  }, [])
 
   const handleInitialFiles = useCallback(
     (files: File[], preselectMode: ToolMode) => {
@@ -47,7 +50,7 @@ export function PdfEditorPanel() {
 
   const handleStartOver = useCallback(() => {
     workspace.reset()
-    setToolMode(null)
+    setToolModeRaw(null)
     setResult(null)
     setHasStarted(false)
   }, [workspace])
@@ -126,32 +129,6 @@ export function PdfEditorPanel() {
       }
     },
     [workspace.pages, workspace.sources],
-  )
-
-  const handleCompress = useCallback(
-    async (mode: CompressionMode) => {
-      const pdfSource = Array.from(workspace.sources.values()).find((s) => s.fileType === 'pdf')
-      if (!pdfSource) {
-        alert('Compress karne ke liye ek PDF upload karo (image files compress nahi hoti).')
-        return
-      }
-      setIsGenerating(true)
-      setGenProgress(0)
-      try {
-        const compressed = await compressPdf(pdfSource.bytes, pdfSource.fileName, mode, setGenProgress)
-        setResult({
-          operation: 'compress',
-          files: [{ fileName: compressed.fileName, blob: compressed.blob, pageCount: compressed.pageCount }],
-          totalOutputSize: compressed.compressedSize,
-          isZip: false,
-        })
-      } catch {
-        alert('Kuch galat ho gaya PDF compress karte waqt, dobara try karo.')
-      } finally {
-        setIsGenerating(false)
-      }
-    },
-    [workspace.sources],
   )
 
   const editingPage: PageItem | undefined = useMemo(
@@ -249,9 +226,6 @@ export function PdfEditorPanel() {
               )}
               {toolMode === 'split' && (
                 <SplitPanel totalPages={workspace.pages.length} onSplit={handleSplit} isProcessing={isGenerating} />
-              )}
-              {toolMode === 'compress' && (
-                <CompressionPanel onCompress={handleCompress} isProcessing={isGenerating} progressPercent={genProgress} />
               )}
               {toolMode === 'extract' && (
                 <div className="spt-generate-panel">

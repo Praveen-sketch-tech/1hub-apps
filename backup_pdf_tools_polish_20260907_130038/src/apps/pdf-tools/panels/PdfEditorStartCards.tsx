@@ -10,7 +10,6 @@ const CARDS: { mode: ToolMode; title: string; description: string }[] = [
   { mode: 'merge', title: 'Merge / Edit PDFs', description: 'Combine multiple PDFs, reorder, rotate, and clean up pages.' },
   { mode: 'split', title: 'Split PDF', description: 'Split a PDF into several files by page range.' },
   { mode: 'extract', title: 'Extract Pages', description: 'Pull out specific pages into a new PDF.' },
-  { mode: 'compress', title: 'Compress PDF', description: 'Shrink a PDF to WhatsApp/email-friendly sizes.' },
 ]
 
 export function PdfEditorStartCards({ onFilesSelected }: StartCardsProps) {

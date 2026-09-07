@@ -7,15 +7,8 @@ import {
   applyTextEdits,
   type EditableTextItem,
   type TextEdit,
-  type EditFontFamily,
 } from '../lib/pdfTextEdit'
 import type * as pdfjsLib from 'pdfjs-dist'
-
-const FONT_OPTIONS: { value: EditFontFamily; label: string }[] = [
-  { value: 'helvetica', label: 'Helvetica' },
-  { value: 'times', label: 'Times New Roman' },
-  { value: 'courier', label: 'Courier' },
-]
 
 export function EditTextPanel() {
   const [file, setFile] = useState<File | null>(null)
@@ -28,7 +21,6 @@ export function EditTextPanel() {
   const [editedByPage, setEditedByPage] = useState<Map<string, string>>(new Map())
   const [activeItemId, setActiveItemId] = useState<string | null>(null)
   const [draftText, setDraftText] = useState('')
-  const [fontFamily, setFontFamily] = useState<EditFontFamily>('helvetica')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +31,7 @@ export function EditTextPanel() {
     setLoading(true)
     setError(null)
     try {
-      const rendered = await renderPageForEditing(pdfDoc, idx, 900)
+      const rendered = await renderPageForEditing(pdfDoc, idx)
       setCanvasUrl(rendered.canvasDataUrl)
       setDisplaySize({ width: rendered.displayWidth, height: rendered.displayHeight })
       setItems(rendered.items)
@@ -96,11 +88,14 @@ export function EditTextPanel() {
     setError(null)
     try {
       const edits: TextEdit[] = []
+      // Re-render every page that has at least one edit, to gather accurate
+      // pdf-space coordinates for each edited item (items are only cached
+      // in memory for the currently viewed page).
       const editedIds = Array.from(editedByPage.keys())
       const pagesWithEdits = new Set(editedIds.map((id) => Number(id.split('-')[0])))
 
       for (const pIdx of pagesWithEdits) {
-        const rendered = pIdx === pageIndex ? { items } : await renderPageForEditing(doc, pIdx, 900)
+        const rendered = pIdx === pageIndex ? { items } : await renderPageForEditing(doc, pIdx)
         for (const item of rendered.items) {
           const newText = editedByPage.get(item.id)
           if (newText !== undefined && newText !== item.str) {
@@ -122,7 +117,7 @@ export function EditTextPanel() {
       }
 
       const bytes = await file.arrayBuffer()
-      const blob = await applyTextEdits(bytes, edits, fontFamily)
+      const blob = await applyTextEdits(bytes, edits)
       setResultUrl(URL.createObjectURL(blob))
     } catch {
       setError('Save karte waqt dikkat aayi, dobara try karo.')
@@ -137,13 +132,10 @@ export function EditTextPanel() {
     setCanvasUrl(null)
     setItems([])
     setEditedByPage(new Map())
-    setActiveItemId(null)
     setResultUrl(null)
     setError(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
-
-  const activeItem = items.find((i) => i.id === activeItemId)
 
   return (
     <Card>
@@ -159,49 +151,51 @@ export function EditTextPanel() {
 
         {file && canvasUrl && (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              {numPages > 1 ? (
-                <div className="flex items-center gap-3 text-sm">
-                  <button type="button" className="pdft-secondary-button" onClick={() => goToPage(pageIndex - 1)} disabled={pageIndex === 0}>← Prev</button>
-                  <span>Page {pageIndex + 1} / {numPages}</span>
-                  <button type="button" className="pdft-secondary-button" onClick={() => goToPage(pageIndex + 1)} disabled={pageIndex === numPages - 1}>Next →</button>
-                </div>
-              ) : <span />}
-
-              <div className="flex items-center gap-2 text-sm">
-                <label className="text-slate-500">Font:</label>
-                <select className="pdft-select" style={{ maxWidth: 160 }} value={fontFamily} onChange={(e) => setFontFamily(e.target.value as EditFontFamily)}>
-                  {FONT_OPTIONS.map((f) => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
-                  ))}
-                </select>
+            {numPages > 1 && (
+              <div className="flex items-center justify-center gap-3 text-sm">
+                <button type="button" className="pdft-secondary-button" onClick={() => goToPage(pageIndex - 1)} disabled={pageIndex === 0}>← Prev</button>
+                <span>Page {pageIndex + 1} / {numPages}</span>
+                <button type="button" className="pdft-secondary-button" onClick={() => goToPage(pageIndex + 1)} disabled={pageIndex === numPages - 1}>Next →</button>
               </div>
-            </div>
+            )}
 
-            <p className="pdft-hint">Jis text ko edit karna hai us par tap karo. Page ko dono taraf scroll/pan kar sakte ho.</p>
+            <p className="pdft-hint">Jis text ko edit karna hai usPe click karo.</p>
 
-            <div className="pdft-edit-viewport">
-              <div className="pdft-edit-stage" style={{ width: displaySize.width, height: displaySize.height }}>
-                <img src={canvasUrl} alt={`Page ${pageIndex + 1}`} width={displaySize.width} height={displaySize.height} />
-                {items.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`pdft-edit-hit ${editedByPage.has(item.id) ? 'pdft-edit-hit--edited' : ''} ${activeItemId === item.id ? 'pdft-edit-hit--active' : ''}`}
-                    style={{ left: item.displayX, top: item.displayY, width: item.displayWidth, height: item.displayHeight }}
-                    onClick={() => handleItemClick(item)}
-                    title={editedByPage.get(item.id) ?? item.str}
-                  />
-                ))}
-              </div>
+            <div className="pdft-edit-stage" style={{ width: displaySize.width, height: displaySize.height }}>
+              <img src={canvasUrl} alt={`Page ${pageIndex + 1}`} width={displaySize.width} height={displaySize.height} />
+              {items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`pdft-edit-hit ${editedByPage.has(item.id) ? 'pdft-edit-hit--edited' : ''}`}
+                  style={{ left: item.displayX, top: item.displayY, width: item.displayWidth, height: item.displayHeight }}
+                  onClick={() => handleItemClick(item)}
+                  title={editedByPage.get(item.id) ?? item.str}
+                />
+              ))}
+
+              {activeItemId && (() => {
+                const active = items.find((i) => i.id === activeItemId)
+                if (!active) return null
+                return (
+                  <div className="pdft-edit-popover" style={{ left: active.displayX, top: active.displayY + active.displayHeight + 4 }}>
+                    <input
+                      autoFocus
+                      value={draftText}
+                      onChange={(e) => setDraftText(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && saveDraft()}
+                    />
+                    <button type="button" onClick={saveDraft}>OK</button>
+                  </div>
+                )
+              })()}
             </div>
 
             {loading && <p className="pdft-hint">Page load ho raha hai…</p>}
 
             <p className="pdft-hint">
-              {editedByPage.size} edit{editedByPage.size === 1 ? '' : 's'} kiye gaye. Naya text chuni gayi font mein
-              likha jayega, original text ke bilkul upar white box ke sath — exact original font match guarantee nahi
-              hai (PDF ki technical limitation), font dropdown se closest match choose kar lena.
+              {editedByPage.size} edit{editedByPage.size === 1 ? '' : 's'} kiye gaye. Note: naya text Helvetica font mein
+              likha jayega (original font match nahi hoga), purane text ke upar white box daal ke.
             </p>
 
             <div className="flex w-full gap-3">
@@ -222,20 +216,6 @@ export function EditTextPanel() {
           </>
         )}
       </div>
-
-      {activeItem && (
-        <div className="pdft-edit-bar">
-          <input
-            autoFocus
-            value={draftText}
-            onChange={(e) => setDraftText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && saveDraft()}
-            placeholder="Naya text likho…"
-          />
-          <button type="button" className="pdft-edit-bar-cancel" onClick={() => setActiveItemId(null)}>Cancel</button>
-          <button type="button" className="pdft-edit-bar-save" onClick={saveDraft}>Save</button>
-        </div>
-      )}
     </Card>
   )
 }

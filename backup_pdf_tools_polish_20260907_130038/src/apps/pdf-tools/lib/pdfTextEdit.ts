@@ -1,10 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist'
-import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib'
-import fontkit from '@pdf-lib/fontkit'
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { loadPdfDocument } from '@apps/smart-pdf-tools/lib/pdfLoader'
-import { splitByScript } from './textSegmentation'
-
-export type EditFontFamily = 'helvetica' | 'times' | 'courier'
 
 export interface EditableTextItem {
   id: string
@@ -98,74 +94,42 @@ export interface TextEdit {
   newText: string
 }
 
-const STANDARD_FONT_SETS: Record<EditFontFamily, { regular: StandardFonts; bold: StandardFonts }> = {
-  helvetica: { regular: StandardFonts.Helvetica, bold: StandardFonts.HelveticaBold },
-  times: { regular: StandardFonts.TimesRoman, bold: StandardFonts.TimesRomanBold },
-  courier: { regular: StandardFonts.Courier, bold: StandardFonts.CourierBold },
-}
-
 /**
  * Applies edits directly onto the ORIGINAL PDF's pages (loaded via pdf-lib,
  * not re-rendered as images) — everything the user didn't touch stays crisp
  * vector content. Each edit covers the old text with a white rectangle sized
- * to its original bounding box, then draws the new text at the same spot.
+ * to its original bounding box, then draws the new text at the same spot
+ * using a standard font at approximately the original size.
  *
- * Honest limitation: we tried extracting and reusing the PDF's own embedded
- * font, but subset fonts embedded by most PDF generators use a non-standard
- * internal glyph mapping that renders garbled when reused for new text — so
- * this uses one of the 3 standard PDF font families instead (chosen by the
- * user to best match their document) rather than a guaranteed exact match.
- * Mixed Hindi + English edits automatically use the bundled Devanagari font
- * for the Devanagari portion of the new text.
+ * Honest limitation: the new text always uses Helvetica, not the PDF's
+ * original font, and won't perfectly match color/style — this is a
+ * cover-and-retype approach, not true in-place text reflow.
  */
-export async function applyTextEdits(
-  originalBytes: ArrayBuffer,
-  edits: TextEdit[],
-  fontFamily: EditFontFamily = 'helvetica',
-): Promise<Blob> {
+export async function applyTextEdits(originalBytes: ArrayBuffer, edits: TextEdit[]): Promise<Blob> {
   const doc = await PDFDocument.load(originalBytes)
-  doc.registerFontkit(fontkit)
+  const font = await doc.embedFont(StandardFonts.Helvetica)
   const white = rgb(1, 1, 1)
   const black = rgb(0.05, 0.05, 0.08)
-
-  const fontSet = STANDARD_FONT_SETS[fontFamily]
-  const latinRegular = await doc.embedFont(fontSet.regular)
-
-  const needsDevanagari = edits.some((e) => /[\u0900-\u097F]/.test(e.newText))
-  let devanagariRegular: PDFFont | null = null
-  if (needsDevanagari) {
-    const bytes = await fetch('/fonts/noto-sans-devanagari-regular.ttf').then((r) => r.arrayBuffer())
-    devanagariRegular = await doc.embedFont(bytes, { subset: true })
-  }
-
-  function widthOf(text: string, size: number): number {
-    let total = 0
-    for (const run of splitByScript(text)) {
-      const font = run.script === 'devanagari' && devanagariRegular ? devanagariRegular : latinRegular
-      total += font.widthOfTextAtSize(run.text, size)
-    }
-    return total
-  }
 
   for (const edit of edits) {
     const page = doc.getPage(edit.pageIndex)
     const padding = edit.pdfFontSize * 0.15
-    const newWidth = widthOf(edit.newText, edit.pdfFontSize)
-
+    // Cover the old text.
     page.drawRectangle({
       x: edit.pdfX - padding,
       y: edit.pdfY - padding,
-      width: Math.max(edit.pdfWidth, newWidth) + padding * 2,
+      width: Math.max(edit.pdfWidth, font.widthOfTextAtSize(edit.newText, edit.pdfFontSize)) + padding * 2,
       height: edit.pdfFontSize + padding * 2,
       color: white,
     })
-
-    let cursorX = edit.pdfX
-    for (const run of splitByScript(edit.newText)) {
-      const font = run.script === 'devanagari' && devanagariRegular ? devanagariRegular : latinRegular
-      page.drawText(run.text, { x: cursorX, y: edit.pdfY, size: edit.pdfFontSize, font, color: black })
-      cursorX += font.widthOfTextAtSize(run.text, edit.pdfFontSize)
-    }
+    // Draw the new text.
+    page.drawText(edit.newText, {
+      x: edit.pdfX,
+      y: edit.pdfY,
+      size: edit.pdfFontSize,
+      font,
+      color: black,
+    })
   }
 
   const bytes = await doc.save()
