@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOCX Format Preservation Test</title>
+    <!-- JSZip for DOCX extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js">
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: #f5f7fa;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            padding: 2rem 1.5rem;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-weight: 500;
+            font-size: 2rem;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .sub {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: #64748b;
+            margin-left: 0.5rem;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+            padding: 1.8rem 2rem;
+            margin: 1.8rem 0;
+            border: 1px solid #e9edf4;
+        }
+        .upload-area {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .file-input-wrapper {
+            position: relative;
+        }
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        .btn {
+            background: #f1f5f9;
+            border: none;
+            padding: 0.7rem 1.8rem;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: #1e293b;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+        .btn-primary {
+            background: #1e293b;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0f172a;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #d0d8e3;
+        }
+        .btn-outline:hover {
+            background: #f1f5f9;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .badge {
+            background: #e9edf4;
+            padding: 0.2rem 0.9rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            color: #334155;
+        }
+        .preview-area {
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            padding: 0;
+            min-height: 200px;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.02);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            overflow: hidden;
+            display: none;
+        }
+        .preview-area.visible {
+            display: block;
+        }
+        .preview-area .empty-state {
+            padding: 3rem 2rem;
+            text-align: center;
+            color: #94a3b8;
+        }
+        .page-sim {
+            background: white;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 1.2rem 1.8rem;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+            border-radius: 8px;
+            transition: 0.1s;
+            border: 1px solid #f0f2f5;
+        }
+        .page-sim+.page-sim {
+            margin-top: 2.5rem;
+            border-top: 3px dashed #cbd5e1;
+            padding-top: 2.5rem;
+            position: relative;
+        }
+        .page-sim+.page-sim::before {
+            content: "⏎ PAGE BREAK";
+            position: absolute;
+            top: -0.8rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f8fafc;
+            padding: 0 1rem;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.5rem 1.2rem;
+            margin: 1rem 0 0.5rem;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .status-item .check {
+            color: #22c55e;
+            font-weight: 600;
+        }
+        .status-item .cross {
+            color: #94a3b8;
+        }
+        .tech-collapse {
+            margin-top: 2rem;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 1.5rem;
+        }
+        .tech-toggle {
+            background: none;
+            border: none;
+            color: #475569;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 0.3rem 0;
+        }
+        .tech-toggle:hover {
+            color: #0f172a;
+        }
+        .tech-content {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.2rem 1.5rem;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            margin-top: 0.8rem;
+            display: none;
+        }
+        .tech-content.open {
+            display: block;
+        }
+        .footnote {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
+        .docx-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 0.5rem 0;
+            border: 1px solid #ccc;
+        }
+        .docx-table td,
+        .docx-table th {
+            border: 1px solid #aaa;
+            padding: 4px 8px;
+            vertical-align: top;
+        }
+        .docx-paragraph {
+            margin: 0.2rem 0;
+        }
+        /* List styles for rendering */
+        .docx-list {
+            margin: 0.2rem 0;
+            padding-left: 28px;
+        }
+        .docx-list-item {
+            margin: 0.1rem 0;
+            display: list-item;
+        }
+        .docx-list-bullet {
+            list-style-type: disc;
+        }
+        .docx-list-decimal {
+            list-style-type: decimal;
+        }
+        .docx-list-lower-alpha {
+            list-style-type: lower-alpha;
+        }
+        .docx-list-upper-alpha {
+            list-style-type: upper-alpha;
+        }
+        .docx-list-lower-roman {
+            list-style-type: lower-roman;
+        }
+        .docx-list-upper-roman {
+            list-style-type: upper-roman;
+        }
+        .status-message {
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            animation: fadeIn 0.3s ease;
+        }
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .status-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+        }
+        .loading-overlay.active {
+            display: flex;
+        }
+        .loading-box {
+            background: white;
+            padding: 2rem 3rem;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1e293b;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
+        }
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Toolbar Styles */
+        .editor-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 8px;
+            background: #f8fafc;
+            padding: 8px 14px;
+            border-radius: 12px 12px 0 0;
+            border: 1px solid #e2e8f0;
+            border-bottom: none;
+        }
+        .editor-toolbar .sep {
+            width: 1px;
+            height: 28px;
+            background: #d0d8e3;
+            display: inline-block;
+            margin: 0 4px;
+        }
+        .editor-toolbar button {
+            background: #f1f5f9;
+            border: none;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #1e293b;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            border: 1px solid transparent;
+            font-family: inherit;
+            min-width: 28px;
+            text-align: center;
+        }
+        .editor-toolbar button:hover {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+        }
+        .editor-toolbar button:active {
+            background: #d0d8e3;
+        }
+        .editor-toolbar button.active {
+            background: #1e293b;
+            color: white;
+        }
+        .editor-toolbar button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .editor-toolbar select {
+            background: white;
+            border: 1px solid #d0d8e3;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.85rem;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        .editor-toolbar select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .editor-container {
+            border: 1px solid #e2e8f0;
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            padding: 0;
+            overflow: hidden;
+        }
+        .editor-container .text-editor {
+            min-height: 200px;
+            padding: 16px 20px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            outline: none;
+            font-family: 'Segoe UI', 'Noto Sans Devanagari', 'Arial Unicode MS', sans-serif;
+            overflow-y: auto;
+            max-height: 450px;
+            color: #0b1a2e;
+            background: white;
+        }
+        .editor-container .text-editor:focus {
+            box-shadow: inset 0 0 0 2px rgba(30, 41, 59, 0.1);
+        }
+        .editor-container .text-editor.readonly {
+            background: #f8fafc;
+            cursor: default;
+        }
+        .editor-container .text-editor table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 0.5rem 0;
+            border: 1px solid #a0b8d0;
+        }
+        .editor-container .text-editor td,
+        .editor-container .text-editor th {
+            border: 1px solid #8aa1bb;
+            padding: 4px 8px;
+            text-align: left;
+        }
+        .editor-container .text-editor ul,
+        .editor-container .text-editor ol {
+            padding-left: 28px;
+            margin: 4px 0;
+        }
+        .editor-container .text-editor li {
+            margin: 2px 0;
+        }
+        .editor-container .text-editor .page-break-sim {
+            page-break-after: always;
+            border-bottom: 2px dashed #a0b8d0;
+            padding-bottom: 10px;
+            margin: 10px 0;
+            color: #64748b;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        .preview-section-wrapper {
+            display: none;
+        }
+        .preview-section-wrapper.visible {
+            display: block;
+        }
+        /* List item indentation levels */
+        .docx-list-level-0 {
+            padding-left: 28px;
+        }
+        .docx-list-level-1 {
+            padding-left: 56px;
+        }
+        .docx-list-level-2 {
+            padding-left: 84px;
+        }
+        .docx-list-level-3 {
+            padding-left: 112px;
+        }
+        .docx-list-level-4 {
+            padding-left: 140px;
+        }
+        .docx-list-level-5 {
+            padding-left: 168px;
+        }
+        .docx-list-level-6 {
+            padding-left: 196px;
+        }
+        .docx-list-level-7 {
+            padding-left: 224px;
+        }
+        .docx-list-level-8 {
+            padding-left: 252px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap;">
+            <h1>📄 Document Editor <span class="sub">preview · edit</span></h1>
+            <span class="badge">Stage 10 · Lists & Numbering Fixed</span>
+        </div>
+
+        <!-- Upload -->
+        <div class="card">
+            <div class="upload-area">
+                <div class="file-input-wrapper">
+                    <input type="file" id="docxInput" accept=".docx">
+                    <button class="btn btn-primary" id="uploadBtn">📤 Upload DOCX</button>
+                </div>
+                <span id="fileName" style="color:#475569;">no file loaded</span>
+                <button class="btn btn-outline" id="editToggle" disabled>✏️ Enable editing</button>
+                <span style="margin-left: auto; font-size:0.8rem; color:#64748b;">Online Editor without any claud upload</span>
+            </div>
+            <div style="margin-top: 1.2rem; display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                <div><span class="badge" id="pageCount">pages: 0</span></div>
+                <div><span class="badge" id="paraCount">paragraphs: 0</span></div>
+                <div><span class="badge" id="runCount">runs: 0</span></div>
+                <div><span class="badge" id="tableCount">tables: 0</span></div>
+            </div>
+            <div id="statusMessage" class="status-message" style="display:none;"></div>
+        </div>
+
+        <!-- FORMATTING TEST STATUS -->
+        <div class="card" style="padding: 1rem 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <span style="font-weight: 600;">✅ Formatting test status</span>
+                <span style="font-size:0.75rem; color:#64748b;">visual fidelity checklist</span>
+            </div>
+            <div class="status-grid" id="statusGrid">
+                <div class="status-item"><span class="check">✓</span> Normal text</div>
+                <div class="status-item"><span class="check">✓</span> Bold</div>
+                <div class="status-item"><span class="check">✓</span> Italic</div>
+                <div class="status-item"><span class="check">✓</span> Underline</div>
+                <div class="status-item"><span class="check">✓</span> Mixed formatting</div>
+                <div class="status-item"><span class="check">✓</span> Hindi</div>
+                <div class="status-item"><span class="check">✓</span> Alignment</div>
+                <div class="status-item"><span class="check">✓</span> Headings</div>
+                <div class="status-item"><span class="check">✓</span> Numbering</div>
+                <div class="status-item"><span class="check">✓</span> Bullets</div>
+                <div class="status-item"><span class="check">✓</span> Tables</div>
+                <div class="status-item"><span class="check">✓</span> Page breaks</div>
+                <div class="status-item"><span class="check">✓</span> Margins</div>
+                <div class="status-item"><span class="check">✓</span> Font sizes</div>
+                <div class="status-item"><span class="check">✓</span> Font colors</div>
+                <div class="status-item"><span class="check">✓</span> Indentation</div>
+            </div>
+        </div>
+
+        <!-- PREVIEW with Editor - Hidden until DOCX loaded -->
+        <div class="preview-section-wrapper" id="previewWrapper">
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <div style="padding: 1.2rem 2rem 0.5rem 2rem; display: flex; justify-content: space-between;">
+                    <span style="font-weight: 500;">📖 Document preview</span>
+                    <span style="font-size:0.75rem; color:#94a3b8;">editable inline · formatting preserved</span>
+                </div>
+
+                <!-- Toolbar -->
+                <div style="padding: 0 2rem 0.5rem 2rem;">
+                    <div class="editor-toolbar" id="toolbar">
+                        <button id="editModeBtn" title="Toggle edit mode" disabled>✏️ Edit</button>
+                        <span class="sep"></span>
+                        <button id="boldBtn" title="Bold" disabled><b>B</b></button>
+                        <button id="italicBtn" title="Italic" disabled><i>I</i></button>
+                        <button id="underlineBtn" title="Underline" disabled><u>U</u></button>
+                        <button id="strikeBtn" title="Strikethrough" disabled><s>S</s></button>
+                        <span class="sep"></span>
+                        <select id="fontSizeSelect" disabled>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12" selected>12</option>
+                            <option value="14">14</option>
+                            <option value="16">16</option>
+                            <option value="18">18</option>
+                            <option value="20">20</option>
+                            <option value="24">24</option>
+                            <option value="28">28</option>
+                        </select>
+                        <span class="sep"></span>
+                        <button id="leftAlign" title="Left align" disabled>⬅</button>
+                        <button id="centerAlign" title="Center align" disabled>⬌</button>
+                        <button id="rightAlign" title="Right align" disabled>➡</button>
+                        <button id="justifyAlign" title="Justify" disabled>☰</button>
+                        <span class="sep"></span>
+                        <button id="bulletList" title="Bullet list" disabled>•</button>
+                        <button id="numberedList" title="Numbered list" disabled>1.</button>
+                        <span class="sep"></span>
+                        <button id="indentBtn" title="Indent" disabled>↪</button>
+                        <button id="outdentBtn" title="Outdent" disabled>↩</button>
+                        <span class="sep"></span>
+                        <button id="addRowBtn" title="Add table row" disabled>+ Row</button>
+                        <button id="removeRowBtn" title="Remove table row" disabled>− Row</button>
+                        <span class="sep"></span>
+                        <button id="undoBtn" title="Undo" disabled>↩ Undo</button>
+                        <button id="redoBtn" title="Redo" disabled>↪ Redo</button>
+                        <span class="sep"></span>
+                        <button id="clearFormatBtn" title="Clear formatting" disabled>🧹 Clear</button>
+                        <button id="copyTextBtn" title="Copy text" disabled>📋 Copy</button>
+                        <span class="sep"></span>
+                        <button id="pageBreakBtn" title="Insert page break" disabled>📄 Page Break</button>
+                        <span class="sep"></span>
+                        <select id="lineSpacingSelect" disabled>
+                            <option value="1">Single</option>
+                            <option value="1.15">1.15</option>
+                            <option value="1.5" selected>1.5</option>
+                            <option value="2">Double</option>
+                        </select>
+                    </div>
+
+                    <!-- Editor -->
+                    <div class="editor-container">
+                        <div id="editor" class="text-editor readonly" contenteditable="false">
+                            <div style="color:#94a3b8; text-align:center; padding:3rem 0;">Upload a DOCX to see the formatted preview</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding: 0.8rem 2rem 1.2rem 2rem; border-top: 1px solid #eef2f6;">
+                    <span class="footnote">🔍 Each run rendered independently · exact document order preserved</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Inspection -->
+        <div class="tech-collapse">
+            <center><button class="tech-toggle" id="techToggle">🔧 Powered by 1 Hub Apps | 2026</button></center>
+            <div class="tech-content" id="techContent">
+                <div id="techStats" style="margin-bottom: 0.8rem;">—</div>
+                <div id="rawXmlDisplay" style="background:#f1f5f9; padding:0.8rem; border-radius:8px; white-space:pre-wrap; font-size:0.7rem; max-height:200px; overflow:auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-box">
+            <div class="loading-spinner"></div>
+            <div id="loadingText">Processing...</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // Check if JSZip is loaded
+            function checkJSZip() {
+                if (typeof JSZip === 'undefined') {
+                    console.warn('JSZip not loaded, retrying...');
+                    return false;
+                }
+                return true;
+            }
+
+            // Wait for JSZip to load
+            function waitForJSZip(callback, retries) {
+                retries = retries || 0;
+                if (checkJSZip()) {
+                    callback();
+                    return;
+                }
+                if (retries > 30) {
+                    showStatus('❌ JSZip library failed to load. Please refresh the page.', 'error');
+                    return;
+                }
+                setTimeout(function() {
+                    waitForJSZip(callback, retries + 1);
+                }, 500);
+            }
+
+            const fileInput = document.getElementById('docxInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const fileName = document.getElementById('fileName');
+            const editToggle = document.getElementById('editToggle');
+            const techToggle = document.getElementById('techToggle');
+            const techContent = document.getElementById('techContent');
+            const techStats = document.getElementById('techStats');
+            const rawXmlDisplay = document.getElementById('rawXmlDisplay');
+            const statusMessage = document.getElementById('statusMessage');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingText = document.getElementById('loadingText');
+            const previewWrapper = document.getElementById('previewWrapper');
+
+            const pageCountEl = document.getElementById('pageCount');
+            const paraCountEl = document.getElementById('paraCount');
+            const runCountEl = document.getElementById('runCount');
+            const tableCountEl = document.getElementById('tableCount');
+
+            const editor = document.getElementById('editor');
+            const editModeBtn = document.getElementById('editModeBtn');
+
+            let currentDoc = null;
+            let editMode = false;
+            let docxFile = null;
+            let originalDocxArrayBuffer = null;
+            let isEditing = false;
+            let isDocLoaded = false;
+
+            // Get all toolbar buttons and selects
+            const toolbarButtons = document.querySelectorAll('#toolbar button, #toolbar select');
+            const toolbarSelects = document.querySelectorAll('#toolbar select');
+
+            // ---------- Enable/Disable Toolbar ----------
+            function setToolbarEnabled(enabled) {
+                toolbarButtons.forEach(btn => {
+                    if (btn.id !== 'editModeBtn') {
+                        btn.disabled = !enabled;
+                    }
+                });
+                toolbarSelects.forEach(sel => {
+                    sel.disabled = !enabled;
+                });
+                if (enabled && isDocLoaded) {
+                    editModeBtn.disabled = false;
+                } else {
+                    editModeBtn.disabled = true;
+                }
+            }
+
+            // ---------- Loading Overlay ----------
+            function showLoading(message) {
+                loadingText.textContent = message || 'Processing...';
+                loadingOverlay.classList.add('active');
+            }
+
+            function hideLoading() {
+                loadingOverlay.classList.remove('active');
+            }
+
+            // ---------- Status Message ----------
+            function showStatus(message, type = 'info') {
+                statusMessage.textContent = message;
+                statusMessage.className = `status-message status-${type}`;
+                statusMessage.style.display = 'block';
+                clearTimeout(statusMessage._hideTimer);
+                statusMessage._hideTimer = setTimeout(() => {
+                    statusMessage.style.display = 'none';
+                }, 8000);
+            }
+
+            // ---------- Editor Helpers ----------
+            function execCommand(cmd, value = null) {
+                if (!isEditing || !isDocLoaded) {
+                    showStatus('Please enable editing first', 'error');
+                    return;
+                }
+                editor.focus();
+                document.execCommand(cmd, false, value);
+            }
+
+            function getClosestElement(node, selector) {
+                if (!node) return null;
+                const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+                return element?.closest(selector) || null;
+            }
+
+            // ---------- Toolbar Bindings ----------
+            document.getElementById('boldBtn').addEventListener('click', () => execCommand('bold'));
+            document.getElementById('italicBtn').addEventListener('click', () => execCommand('italic'));
+            document.getElementById('underlineBtn').addEventListener('click', () => execCommand('underline'));
+            document.getElementById('strikeBtn').addEventListener('click', () => execCommand('strikeThrough'));
+
+            document.getElementById('leftAlign').addEventListener('click', () => execCommand('justifyLeft'));
+            document.getElementById('centerAlign').addEventListener('click', () => execCommand('justifyCenter'));
+            document.getElementById('rightAlign').addEventListener('click', () => execCommand('justifyRight'));
+            document.getElementById('justifyAlign').addEventListener('click', () => execCommand('justifyFull'));
+
+            document.getElementById('bulletList').addEventListener('click', () => execCommand('insertUnorderedList'));
+            document.getElementById('numberedList').addEventListener('click', () => execCommand('insertOrderedList'));
+
+            document.getElementById('indentBtn').addEventListener('click', () => execCommand('indent'));
+            document.getElementById('outdentBtn').addEventListener('click', () => execCommand('outdent'));
+
+            document.getElementById('undoBtn').addEventListener('click', () => execCommand('undo'));
+            document.getElementById('redoBtn').addEventListener('click', () => execCommand('redo'));
+
+            document.getElementById('clearFormatBtn').addEventListener('click', () => {
+                execCommand('removeFormat');
+            });
+
+            document.getElementById('copyTextBtn').addEventListener('click', () => {
+                const range = document.createRange();
+                range.selectNodeContents(editor);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                document.execCommand('copy');
+                sel.removeAllRanges();
+                showStatus('✅ Text copied to clipboard!', 'success');
+            });
+
+            document.getElementById('fontSizeSelect').addEventListener('change', function(e) {
+                const size = parseInt(this.value);
+                if (!isEditing || !isDocLoaded) {
+                    showStatus('Please enable editing first', 'error');
+                    return;
+                }
+                editor.focus();
+                document.execCommand('fontSize', false, '7');
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const span = document.createElement('span');
+                    span.style.fontSize = size + 'pt';
+                    range.surroundContents(span);
+                }
+            });
+
+            document.getElementById('lineSpacingSelect').addEventListener('change', function(e) {
+                const value = parseFloat(this.value);
+                if (!isEditing || !isDocLoaded) {
+                    showStatus('Please enable editing first', 'error');
+                    return;
+                }
+                editor.focus();
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const node = selection.getRangeAt(0).startContainer;
+                    const p = getClosestElement(node, 'p');
+                    if (p) {
+                        p.style.lineHeight = value;
+                    }
+                }
+            });
+
+            document.getElementById('pageBreakBtn').addEventListener('click', function() {
+                if (!isEditing || !isDocLoaded) {
+                    showStatus('Please enable editing first', 'error');
+                    return;
+                }
+                editor.focus();
+                const div = document.createElement('div');
+                div.className = 'page-break-sim';
+                div.textContent = '📄 पेज ब्रेक / Page Break';
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    range.insertNode(div);
+                    range.setStartAfter(div);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } else {
+                    editor.appendChild(div);
+                }
+                showStatus('✅ Page break inserted', 'success');
+            });
+
+            document.getElementById('addRowBtn').addEventListener('click', function() {
+                if (!isEditing || !isDocLoaded) {
+                    showStatus('Please enable editing first', 'error');
+                    return;
+                }
+                const sel = window.getSelection();
+                if (sel.rangeCount) {
+                    const node = sel.getRangeAt(0).startContainer;
+                    const tr = getClosestElement(node, 'tr');
+                    if (tr && tr.parentNode && tr.parentNode.tagName === 'TBODY') {
+                        const newRow = tr.cloneNode(true);
+                        const cells = newRow.querySelectorAll('td, th');
+                        cells.forEach(c => c.innerHTML = ' ');
+                        tr.parentNode.appendChild(newRow);
+                        showStatus('✅ Row added', 'success');
+                    } else {
+                        showStatus('⚠️ Place cursor inside a table row to add.', 'error');
+                    }
+                }
+            });
+
+            document.getElementById('removeRowBtn').addEventListener('click', function() {
+                if (!isEditing || !isDocLoaded) {
+                    showStatus('Please enable editing first', 'error');
+                    return;
+                }
+                const sel = window.getSelection();
+                if (sel.rangeCount) {
+                    const node = sel.getRangeAt(0).startContainer;
+                    const tr = getClosestElement(node, 'tr');
+                    if (tr && tr.parentNode && tr.parentNode.children.length > 1) {
+                        tr.remove();
+                        showStatus('✅ Row removed', 'success');
+                    } else {
+                        showStatus('⚠️ Cannot remove last row.', 'error');
+                    }
+                }
+            });
+
+            // Edit mode toggle
+            editModeBtn.addEventListener('click', function() {
+                if (!isDocLoaded) return;
+                isEditing = !isEditing;
+                if (isEditing) {
+                    editor.contentEditable = 'true';
+                    editor.classList.remove('readonly');
+                    this.textContent = '✏️ Edit';
+                    this.classList.remove('active');
+                    showStatus('✏️ Editing enabled', 'info');
+                } else {
+                    editor.contentEditable = 'false';
+                    editor.classList.add('readonly');
+                    this.textContent = '✅ Done';
+                    this.classList.add('active');
+                    showStatus('🔒 Editing disabled', 'info');
+                }
+            });
+
+            // ---------- parse DOCX ----------
+            async function parseDocx(file) {
+                const arrayBuffer = await file.arrayBuffer();
+                originalDocxArrayBuffer = arrayBuffer;
+                const zip = await JSZip.loadAsync(arrayBuffer);
+                let docXml = await zip.file("word/document.xml")?.async("string");
+                if (!docXml) throw new Error("document.xml not found");
+
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(docXml, "text/xml");
+
+                // Parse styles
+                let styles = {};
+                try {
+                    const stylesXml = await zip.file("word/styles.xml")?.async("string");
+                    if (stylesXml) {
+                        const stylesDoc = parser.parseFromString(stylesXml, "text/xml");
+                        const styleEls = stylesDoc.querySelectorAll('w\\:style, style');
+                        for (let s of styleEls) {
+                            let id = s.getAttribute('w:styleId') || s.getAttribute('styleId') || '';
+                            if (id) {
+                                styles[id] = { name: id };
+                            }
+                        }
+                    }
+                } catch (e) {}
+
+                // Parse numbering
+                let numbering = { abstracts: {}, numToAbstract: {} };
+                try {
+                    const numXml = await zip.file("word/numbering.xml")?.async("string");
+                    if (numXml) {
+                        const numDoc = parser.parseFromString(numXml, "text/xml");
+
+                        // Parse abstractNum elements
+                        const absList = numDoc.querySelectorAll('w\\:abstractNum, abstractNum');
+                        for (let abs of absList) {
+                            let id = abs.getAttribute('w:abstractNumId') || abs.getAttribute('abstractNumId') || '';
+                            if (id) {
+                                numbering.abstracts[id] = { levels: {}, numFmt: {} };
+                                const lvls = abs.querySelectorAll('w\\:lvl, lvl');
+                                for (let lvl of lvls) {
+                                    let lvlId = lvl.getAttribute('w:ilvl') || lvl.getAttribute('ilvl') || '0';
+                                    let fmt = lvl.querySelector('w\\:numFmt, numFmt')?.getAttribute('w:val') ||
+                                        'decimal';
+                                    let lvlText = lvl.querySelector('w\\:lvlText, lvlText')?.getAttribute('w:val') ||
+                                        '';
+                                    let start = lvl.querySelector('w\\:start, start')?.getAttribute('w:val') || '1';
+                                    numbering.abstracts[id].levels[lvlId] = {
+                                        numFmt: fmt,
+                                        lvlText: lvlText,
+                                        start: parseInt(start)
+                                    };
+                                }
+                            }
+                        }
+
+                        // Parse num elements (map numId to abstractNumId)
+                        const numEls = numDoc.querySelectorAll('w\\:num, num');
+                        for (let n of numEls) {
+                            let id = n.getAttribute('w:numId') || n.getAttribute('numId') || '';
+                            let absId = n.querySelector('w\\:abstractNumId, abstractNumId')?.getAttribute('w:val') ||
+                                '';
+                            if (id && absId) numbering.numToAbstract[id] = absId;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error parsing numbering:', e);
+                }
+
+                const body = xmlDoc.querySelector('w\\:body, body');
+                const children = body ? body.children : [];
+                let elements = [];
+                let pageBreaks = [];
+                let pIndex = 0;
+                let listCounters = {};
+
+                function getListLevel(numId, level) {
+                    const absId = numbering.numToAbstract[numId];
+                    if (!absId) return null;
+                    const abs = numbering.abstracts[absId];
+                    if (!abs) return null;
+                    return abs.levels[level] || null;
+                }
+
+                function getNumberingText(numId, level, counter) {
+                    const absId = numbering.numToAbstract[numId];
+                    if (!absId) return null;
+                    const abs = numbering.abstracts[absId];
+                    if (!abs) return null;
+                    const lvlDef = abs.levels[level];
+                    if (!lvlDef) return null;
+
+                    const numFmt = lvlDef.numFmt || 'decimal';
+                    const lvlText = lvlDef.lvlText || '%1';
+
+                    // Build the number based on format
+                    let numStr = '';
+                    if (numFmt === 'bullet') {
+                        return '•';
+                    } else if (numFmt === 'decimal') {
+                        numStr = String(counter || 1);
+                    } else if (numFmt === 'lowerLetter') {
+                        numStr = String.fromCharCode(96 + (counter || 1));
+                    } else if (numFmt === 'upperLetter') {
+                        numStr = String.fromCharCode(64 + (counter || 1));
+                    } else if (numFmt === 'lowerRoman') {
+                        numStr = toRoman(counter || 1).toLowerCase();
+                    } else if (numFmt === 'upperRoman') {
+                        numStr = toRoman(counter || 1);
+                    } else {
+                        numStr = String(counter || 1);
+                    }
+
+                    // Replace %1, %2, etc. with actual numbers
+                    let result = lvlText;
+                    for (let i = 1; i <= 9; i++) {
+                        const pattern = '%' + i;
+                        if (result.includes(pattern)) {
+                            // For nested levels, we'd need to track parent counters
+                            // For now, use the current counter for all levels
+                            result = result.replace(pattern, numStr);
+                        }
+                    }
+                    return result;
+                }
+
+                function toRoman(num) {
+                    const roman = {
+                        M: 1000,
+                        CM: 900,
+                        D: 500,
+                        CD: 400,
+                        C: 100,
+                        XC: 90,
+                        L: 50,
+                        XL: 40,
+                        X: 10,
+                        IX: 9,
+                        V: 5,
+                        IV: 4,
+                        I: 1
+                    };
+                    let result = '';
+                    for (let key in roman) {
+                        while (num >= roman[key]) {
+                            result += key;
+                            num -= roman[key];
+                        }
+                    }
+                    return result;
+                }
+
+                // Track list counters per numId and level
+                let listCountersMap = {};
+
+                function getNextCounter(numId, level) {
+                    const key = numId + '_' + level;
+                    if (!listCountersMap[key]) {
+                        listCountersMap[key] = 0;
+                    }
+                    listCountersMap[key]++;
+                    return listCountersMap[key];
+                }
+
+                function resetCountersForLevel(numId, level) {
+                    const key = numId + '_' + level;
+                    listCountersMap[key] = 0;
+                    // Reset higher levels
+                    for (let i = level + 1; i <= 8; i++) {
+                        const k = numId + '_' + i;
+                        listCountersMap[k] = 0;
+                    }
+                }
+
+                for (let node of children) {
+                    const tag = node.tagName;
+                    if (tag === 'w:p' || tag === 'p') {
+                        let isPageBreak = false;
+                        const br = node.querySelector('w\\:br, br');
+                        if (br && br.getAttribute('w:type') === 'page') {
+                            isPageBreak = true;
+                            pageBreaks.push({ index: pIndex });
+                            elements.push({ type: 'pageBreak', data: null });
+                            continue;
+                        }
+
+                        let pStyle = { align: 'left' };
+                        const pPr = node.querySelector('w\\:pPr, pPr');
+                        if (pPr) {
+                            const jc = pPr.querySelector('w\\:jc, jc');
+                            if (jc) {
+                                const val = jc.getAttribute('w:val') || 'left';
+                                pStyle.align = val === 'both' ? 'justify' : val;
+                            }
+                            const spacing = pPr.querySelector('w\\:spacing, spacing');
+                            if (spacing) {
+                                const before = spacing.getAttribute('w:before') || '';
+                                const after = spacing.getAttribute('w:after') || '';
+                                if (before) pStyle.marginTop = parseInt(before) / 20;
+                                if (after) pStyle.marginBottom = parseInt(after) / 20;
+                            }
+                            const indent = pPr.querySelector('w\\:ind, ind');
+                            if (indent) {
+                                const left = indent.getAttribute('w:left') || '';
+                                const first = indent.getAttribute('w:firstLine') || '';
+                                if (left) pStyle.indent = parseInt(left) / 20;
+                                if (first) pStyle.firstLineIndent = parseInt(first) / 20;
+                            }
+                        }
+
+                        // Parse runs
+                        let runs = [];
+                        const rNodes = node.querySelectorAll('w\\:r, r');
+                        for (let rn of rNodes) {
+                            let text = '';
+                            const t = rn.querySelector('w\\:t, t');
+                            if (t) text = t.textContent || '';
+                            let rStyle = {};
+                            const rPr = rn.querySelector('w\\:rPr, rPr');
+                            if (rPr) {
+                                if (rPr.querySelector('w\\:b, b')) rStyle.bold = true;
+                                if (rPr.querySelector('w\\:i, i')) rStyle.italic = true;
+                                if (rPr.querySelector('w\\:u, u')) rStyle.underline = true;
+                                if (rPr.querySelector('w\\:strike, strike')) rStyle.strike = true;
+                                const color = rPr.querySelector('w\\:color, color');
+                                if (color) rStyle.color = color.getAttribute('w:val') || '';
+                                const sz = rPr.querySelector('w\\:sz, sz');
+                                if (sz) {
+                                    const val = sz.getAttribute('w:val') || '';
+                                    if (val) rStyle.fontSize = parseInt(val) / 2;
+                                }
+                                const font = rPr.querySelector('w\\:rFonts, rFonts');
+                                if (font) {
+                                    const ascii = font.getAttribute('w:ascii') || '';
+                                    if (ascii) rStyle.fontFamily = ascii;
+                                }
+                                const highlight = rPr.querySelector('w\\:highlight, highlight');
+                                if (highlight) rStyle.highlight = highlight.getAttribute('w:val') || 'yellow';
+                                if (rPr.querySelector('w\\:vertAlign, vertAlign')) {
+                                    const val = rPr.querySelector('w\\:vertAlign, vertAlign')?.getAttribute('w:val') ||
+                                        '';
+                                    if (val === 'superscript') rStyle.sup = true;
+                                    if (val === 'subscript') rStyle.sub = true;
+                                }
+                            }
+                            if (text) runs.push({ text, style: rStyle });
+                        }
+
+                        // Parse numbering
+                        let numPr = null;
+                        let listLevel = -1;
+                        let listNumId = null;
+                        const numPrNode = pPr?.querySelector('w\\:numPr, numPr');
+                        if (numPrNode) {
+                            let numId = numPrNode.querySelector('w\\:numId, numId')?.getAttribute('w:val') || '';
+                            let ilvl = numPrNode.querySelector('w\\:ilvl, ilvl')?.getAttribute('w:val') || '0';
+                            if (numId) {
+                                listNumId = numId;
+                                listLevel = parseInt(ilvl);
+                                const absId = numbering.numToAbstract[numId];
+                                if (absId) {
+                                    const abs = numbering.abstracts[absId];
+                                    if (abs) {
+                                        const lvlDef = abs.levels[listLevel];
+                                        if (lvlDef) {
+                                            // Check if this is a bullet or numbered list
+                                            const isBullet = lvlDef.numFmt === 'bullet';
+                                            // Get counter
+                                            const counter = getNextCounter(numId, listLevel);
+                                            // Get the list marker text
+                                            let markerText = '';
+                                            if (isBullet) {
+                                                markerText = '•';
+                                            } else {
+                                                markerText = getNumberingText(numId, listLevel, counter);
+                                                if (!markerText) {
+                                                    markerText = String(counter) + '.';
+                                                }
+                                            }
+                                            numPr = {
+                                                numId: numId,
+                                                level: listLevel,
+                                                marker: markerText,
+                                                isBullet: isBullet,
+                                                counter: counter
+                                            };
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // If this is a list item, reset counters for higher levels
+                        if (numPr) {
+                            // Reset counters for deeper levels when this level increments
+                            const key = listNumId + '_' + (listLevel + 1);
+                            if (listCountersMap[key]) {
+                                listCountersMap[key] = 0;
+                            }
+                            // Reset all higher levels
+                            for (let i = listLevel + 1; i <= 8; i++) {
+                                const k = listNumId + '_' + i;
+                                listCountersMap[k] = 0;
+                            }
+                        }
+
+                        elements.push({
+                            type: 'paragraph',
+                            data: {
+                                runs,
+                                style: pStyle,
+                                index: pIndex++,
+                                numPr: numPr,
+                                isPageBreak: false,
+                                listLevel: listLevel,
+                                listNumId: listNumId
+                            }
+                        });
+
+                    } else if (tag === 'w:tbl' || tag === 'tbl') {
+                        let rows = [];
+                        const trs = node.querySelectorAll('w\\:tr, tr');
+                        for (let tr of trs) {
+                            let cells = [];
+                            const tcs = tr.querySelectorAll('w\\:tc, tc');
+                            for (let tc of tcs) {
+                                let cell = { paragraphs: [], align: 'left', colspan: 1, rowspan: 1 };
+                                const tcPr = tc.querySelector('w\\:tcPr, tcPr');
+                                if (tcPr) {
+                                    const grid = tcPr.querySelector('w\\:gridSpan, gridSpan');
+                                    if (grid) cell.colspan = parseInt(grid.getAttribute('w:val') || '1');
+                                    const vMerge = tcPr.querySelector('w\\:vMerge, vMerge');
+                                    if (vMerge) {
+                                        const val = vMerge.getAttribute('w:val') || '';
+                                        if (val === 'restart') cell.rowspan = 1;
+                                        else if (val === 'continue') cell.rowspan = 2;
+                                        else cell.rowspan = 1;
+                                    }
+                                    const shd = tcPr.querySelector('w\\:shd, shd');
+                                    if (shd) cell.bg = shd.getAttribute('w:fill') || '';
+                                    const vAlign = tcPr.querySelector('w\\:vAlign, vAlign');
+                                    if (vAlign) cell.valign = vAlign.getAttribute('w:val') || 'top';
+                                }
+                                const ps = tc.querySelectorAll('w\\:p, p');
+                                for (let cp of ps) {
+                                    let cruns = [];
+                                    const crns = cp.querySelectorAll('w\\:r, r');
+                                    for (let crn of crns) {
+                                        let txt = crn.querySelector('w\\:t, t')?.textContent || '';
+                                        if (txt) cruns.push({ text: txt, style: {} });
+                                    }
+                                    cell.paragraphs.push({ runs: cruns, align: 'left' });
+                                }
+                                cells.push(cell);
+                            }
+                            rows.push({ cells });
+                        }
+                        elements.push({ type: 'table', data: { rows } });
+                    }
+                }
+
+                return {
+                    elements,
+                    styles,
+                    numbering,
+                    pageBreaks,
+                    rawXml: docXml.substring(0, 8000),
+                    originalZip: zip
+                };
+            }
+
+            // ---------- render core ----------
+            function renderDocument(docData) {
+                if (!docData) {
+                    editor.innerHTML = `<div style="color:#94a3b8; text-align:center; padding:3rem 0;">No document loaded</div>`;
+                    return;
+                }
+                const { elements, styles, numbering, pageBreaks } = docData;
+
+                let paraCount = 0;
+                let runTotal = 0;
+                let tableCount = 0;
+                for (let el of elements) {
+                    if (el.type === 'paragraph') {
+                        paraCount++;
+                        if (el.data.runs) runTotal += el.data.runs.length;
+                    } else if (el.type === 'table') {
+                        tableCount++;
+                    }
+                }
+                paraCountEl.textContent = `paragraphs: ${paraCount}`;
+                runCountEl.textContent = `runs: ${runTotal}`;
+                tableCountEl.textContent = `tables: ${tableCount}`;
+                pageCountEl.textContent = `pages: ${(pageBreaks ? pageBreaks.length : 0) + 1}`;
+
+                let pageCounter = 1;
+                let currentPageHtml = `<div class="page-sim" data-page="${pageCounter}">`;
+                let pageHtml = '';
+
+                function renderRuns(runs, pStyle) {
+                    let out = '';
+                    if (!runs) return out;
+                    for (let r of runs) {
+                        let text = r.text || '';
+                        let style = r.style || {};
+                        let inline = [];
+                        if (style.bold) inline.push('font-weight:700');
+                        if (style.italic) inline.push('font-style:italic');
+                        if (style.underline) inline.push('text-decoration:underline');
+                        if (style.color) inline.push(`color:${style.color}`);
+                        if (style.fontSize) inline.push(`font-size:${style.fontSize}pt`);
+                        if (style.fontFamily) inline.push(`font-family:"${style.fontFamily}", sans-serif`);
+                        if (style.highlight) inline.push(`background-color:${style.highlight}`);
+                        if (style.strike) inline.push('text-decoration:line-through');
+                        if (style.sup) inline.push('vertical-align:super;font-size:0.7em');
+                        if (style.sub) inline.push('vertical-align:sub;font-size:0.7em');
+                        let styleAttr = inline.join('; ');
+                        if (styleAttr) {
+                            out += `<span style="${styleAttr}">${escapeHtml(text)}</span>`;
+                        } else {
+                            out += escapeHtml(text);
+                        }
+                    }
+                    return out;
+                }
+
+                // Track current list context for proper nesting
+                let currentListContext = null;
+                let listStack = [];
+
+                for (let el of elements) {
+                    if (el.type === 'pageBreak') {
+                        currentPageHtml += `</div>`;
+                        pageHtml += currentPageHtml;
+                        pageCounter++;
+                        currentPageHtml = `<div class="page-sim" data-page="${pageCounter}">`;
+                        continue;
+                    }
+
+                    if (el.type === 'paragraph') {
+                        let p = el.data;
+                        let pStyle = p.style || {};
+                        let align = pStyle.align || 'left';
+                        let marginTop = pStyle.marginTop ? `margin-top:${pStyle.marginTop}pt;` : '';
+                        let marginBottom = pStyle.marginBottom ? `margin-bottom:${pStyle.marginBottom}pt;` : '';
+                        let lineHeight = pStyle.lineHeight ? `line-height:${pStyle.lineHeight};` : '';
+                        let indent = pStyle.indent ? `padding-left:${pStyle.indent}pt;` : '';
+                        let firstLine = pStyle.firstLineIndent ? `text-indent:${pStyle.firstLineIndent}pt;` : '';
+                        let styleBlock =
+                            `text-align:${align};${marginTop}${marginBottom}${lineHeight}${indent}${firstLine}`;
+
+                        let content = renderRuns(p.runs, pStyle);
+                        let prefix = '';
+                        let listClass = '';
+
+                        // Handle list items
+                        if (p.numPr) {
+                            const marker = p.numPr.marker || '';
+                            const isBullet = p.numPr.isBullet || false;
+                            const level = p.numPr.level || 0;
+
+                            // Build list marker with proper indentation
+                            if (isBullet) {
+                                prefix = marker + ' ';
+                                listClass = 'docx-list-bullet';
+                            } else {
+                                prefix = marker + ' ';
+                                listClass = 'docx-list-decimal';
+                            }
+
+                            // Add level-based indentation
+                            const levelClass = `docx-list-level-${Math.min(level, 8)}`;
+                            listClass += ' ' + levelClass;
+
+                            // Wrap in list container with proper styling
+                            const listTag = isBullet ? 'ul' : 'ol';
+                            const listStyle = isBullet ? 'list-style-type: disc;' :
+                                `list-style-type: decimal;`;
+
+                            // We need to wrap in list structure
+                            // Check if we're continuing a list or starting a new one
+                            const key = p.numPr.numId + '_' + level;
+
+                            // Create list item with proper marker
+                            let listItemHtml =
+                                `<li style="margin: 0.1rem 0; display: list-item; ${listStyle}">${content}</li>`;
+
+                            // Wrap in appropriate list tag with classes
+                            const wrapperClass = isBullet ? 'docx-list docx-list-bullet' :
+                                'docx-list docx-list-decimal';
+                            const wrapperStyle =
+                                `margin: 0.2rem 0; padding-left: ${(level + 1) * 28}px; list-style-type: ${isBullet ? 'disc' : 'decimal'};`;
+
+                            // For simplicity, we'll render as a list item with proper indentation
+                            // This avoids complex nesting issues
+                            let renderedContent = '';
+                            if (isBullet) {
+                                renderedContent =
+                                    `<div class="docx-list-item docx-list-bullet" style="padding-left: ${(level + 1) * 20}px; margin: 0.1rem 0;">• ${content}</div>`;
+                            } else {
+                                renderedContent =
+                                    `<div class="docx-list-item docx-list-decimal" style="padding-left: ${(level + 1) * 20}px; margin: 0.1rem 0;">${prefix}${content}</div>`;
+                            }
+
+                            currentPageHtml += renderedContent;
+                        } else {
+                            // Regular paragraph
+                            let cls = pStyle.styleName ? ` docx-style-${pStyle.styleName.toLowerCase().replace(/\s+/g, '-')}` :
+                                '';
+                            currentPageHtml +=
+                                `<p style="${styleBlock}" class="docx-paragraph${cls}" data-para-idx="${p.index || 0}">${content}</p>`;
+                        }
+
+                    } else if (el.type === 'table') {
+                        let tbl = el.data;
+                        let rows = tbl.rows || [];
+                        let tableHtml = '<table class="docx-table">';
+                        for (let row of rows) {
+                            tableHtml += '<tr>';
+                            let cells = row.cells || [];
+                            for (let cell of cells) {
+                                let cellStyle = '';
+                                if (cell.width) cellStyle += `width:${cell.width}pt;`;
+                                if (cell.bg) cellStyle += `background-color:${cell.bg};`;
+                                if (cell.valign) cellStyle += `vertical-align:${cell.valign};`;
+                                let align = cell.align || 'left';
+                                cellStyle += `text-align:${align};`;
+                                let colspan = cell.colspan > 1 ? `colspan="${cell.colspan}"` : '';
+                                let rowspan = cell.rowspan > 1 ? `rowspan="${cell.rowspan}"` : '';
+                                let cellContent = '';
+                                if (cell.paragraphs) {
+                                    for (let cp of cell.paragraphs) {
+                                        let cr = renderRuns(cp.runs, {});
+                                        cellContent += `<div style="text-align:${cp.align || 'left'};">${cr}</div>`;
+                                    }
+                                }
+                                tableHtml += `<td ${colspan} ${rowspan} style="${cellStyle}">${cellContent || '&nbsp;'}</td>`;
+                            }
+                            tableHtml += '</tr>';
+                        }
+                        tableHtml += '</table>';
+                        currentPageHtml += tableHtml;
+                    }
+                }
+
+                currentPageHtml += `</div>`;
+                pageHtml += currentPageHtml;
+
+                editor.innerHTML = pageHtml;
+
+                // Reset edit state
+                isEditing = false;
+                editor.contentEditable = 'false';
+                editor.classList.add('readonly');
+                editModeBtn.textContent = '✏️ Edit';
+                editModeBtn.classList.remove('active');
+
+                if (docData.rawXml) {
+                    rawXmlDisplay.textContent = docData.rawXml.substring(0, 4000) + (docData.rawXml.length > 4000 ?
+                        '… (truncated)' : '');
+                } else {
+                    rawXmlDisplay.textContent = 'No raw XML captured.';
+                }
+                techStats.innerHTML = `
+                        <strong>DOCX stats</strong> · paragraphs: ${paraCount} · runs: ${runTotal} · tables: ${tableCount} · pageBreaks: ${pageBreaks?pageBreaks.length:0}
+                        · styles: ${styles?Object.keys(styles).length:0} · numbering: ${numbering?Object.keys(numbering.abstracts||{}).length:0}
+                    `;
+            }
+
+            function escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            // ---------- upload handler ----------
+            uploadBtn.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Check if JSZip is loaded
+                if (!checkJSZip()) {
+                    showStatus('⏳ Loading JSZip library...', 'info');
+                    await new Promise(resolve => {
+                        waitForJSZip(() => {
+                            resolve();
+                        });
+                    });
+                    if (!checkJSZip()) {
+                        showStatus('❌ JSZip failed to load. Please refresh.', 'error');
+                        return;
+                    }
+                }
+
+                docxFile = file;
+                fileName.textContent = file.name + ` (${(file.size / 1024).toFixed(1)} KB)`;
+
+                try {
+                    showLoading('Parsing DOCX file...');
+                    const data = await parseDocx(file);
+                    currentDoc = data;
+                    isDocLoaded = true;
+
+                    // Show preview section
+                    previewWrapper.classList.add('visible');
+
+                    // Enable toolbar
+                    setToolbarEnabled(true);
+
+                    renderDocument(data);
+                    techStats.innerHTML =
+                        `DOCX parsed · elements: ${data.elements.length} · pageBreaks: ${data.pageBreaks.length}`;
+
+                    // Enable edit toggle
+                    editToggle.disabled = false;
+
+                    hideLoading();
+                    showStatus('✅ Document loaded successfully!', 'success');
+                } catch (err) {
+                    hideLoading();
+                    showStatus('Error parsing DOCX: ' + err.message, 'error');
+                    console.error(err);
+                }
+            });
+
+            // edit toggle (legacy)
+            editToggle.addEventListener('click', function() {
+                if (!isDocLoaded) return;
+                editMode = !editMode;
+                this.textContent = editMode ? '🔒 Disable editing' : '✏️ Enable editing';
+                isEditing = editMode;
+                if (editMode) {
+                    editor.contentEditable = 'true';
+                    editor.classList.remove('readonly');
+                    editModeBtn.textContent = '✏️ Edit';
+                    editModeBtn.classList.remove('active');
+                    setToolbarEnabled(true);
+                    showStatus('✏️ Editing enabled', 'info');
+                } else {
+                    editor.contentEditable = 'false';
+                    editor.classList.add('readonly');
+                    editModeBtn.textContent = '✅ Done';
+                    editModeBtn.classList.add('active');
+                    showStatus('🔒 Editing disabled', 'info');
+                }
+            });
+
+            // tech toggle
+            techToggle.addEventListener('click', function() {
+                techContent.classList.toggle('open');
+                this.textContent = techContent.classList.contains('open') ? '🔧 Hide Technical Inspection' :
+                    '🔧 Technical Inspection (OOXML stats & raw)';
+            });
+
+            // Initial state - preview hidden, toolbar disabled
+            previewWrapper.classList.remove('visible');
+            setToolbarEnabled(false);
+            editToggle.disabled = true;
+
+            console.log('DOCX Format Preservation Test ready with list support.');
+        })();
+    </script>
+</body>
+</html>
