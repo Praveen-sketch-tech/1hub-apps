@@ -171,20 +171,8 @@ async function selectDocument(docId) {
                 bytes[i] = binaryString.charCodeAt(i);
             }
             const arrayBuffer = bytes.buffer;
-            // Keep plain text for field discovery / existing form logic.
             const result = await mammoth.extractRawText({ arrayBuffer });
             content = result.value;
-
-            // Build preview directly from the original WordprocessingML.
-            // This preserves run-level formatting instead of asking Mammoth
-            // to reinterpret the document.
-            try {
-                const { readZipUniversal } = await import('/turbodocx-test/docx-postprocess.js');
-                doc._formattedHtml = await buildOriginalDocxPreview(arrayBuffer, readZipUniversal);
-            } catch (previewError) {
-                console.warn('DOCX formatting preview failed:', previewError);
-                doc._formattedHtml = '';
-            }
         } else if (isTxt && docData.textContent) {
             doc._isOriginalDocx = false;
             content = docData.textContent;
@@ -203,6 +191,7 @@ async function selectDocument(docId) {
         }
         doc._content = content;
         generateForm(doc, content);
+        toggleOriginalFormatButton(doc);
         showStatus('✅ Document loaded successfully!', 'success');
     } catch (error) {
         showStatus('❌ Failed to load document: ' + error.message, 'error');
@@ -246,335 +235,34 @@ function generateForm(doc, content) {
     }).join('') + `<button class="btn btn-primary" onclick="updatePreview()">👁️ Preview</button>`;
 }
 
-
-/* -------------------------------------------------------------------------
- * Original DOCX -> Preview HTML
- *
- * Reads the original WordprocessingML instead of DOCX -> plain text -> HTML.
- * The generated HTML uses explicit inline formatting for every run.
- * ---------------------------------------------------------------------- */
-
-async function buildOriginalDocxPreview(arrayBuffer, readZipUniversal) {
-    const bytes = new Uint8Array(arrayBuffer);
-    const entries = await readZipUniversal(bytes);
-    const entry = entries.find(e => e.name === 'word/document.xml');
-
-    if (!entry) throw new Error('word/document.xml not found');
-
-    const xml = new TextDecoder('utf-8').decode(entry.data);
-    const parser = new DOMParser();
-    const docXml = parser.parseFromString(xml, 'application/xml');
-
-    if (docXml.querySelector('parsererror')) {
-        throw new Error('Invalid Word document XML');
-    }
-
-    const body = docXml.getElementsByTagNameNS(
-        'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
-        'body'
-    )[0];
-
-    if (!body) throw new Error('Word document body not found');
-
-    const html = [];
-
-    for (const child of Array.from(body.children)) {
-        const name = child.localName;
-
-        if (name === 'p') {
-            html.push(renderDocxParagraph(child));
-        } else if (name === 'tbl') {
-            html.push(renderDocxTable(child));
-        }
-    }
-
-    return html.join('');
-}
-
-function docxAttr(el, name) {
-    if (!el) return '';
-    return el.getAttributeNS(
-        'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
-        name
-    ) || el.getAttribute('w:' + name) || '';
-}
-
-function docxChild(el, name) {
-    if (!el) return null;
-
-    for (const child of Array.from(el.children)) {
-        if (child.localName === name) return child;
-    }
-
-    return null;
-}
-
-function docxChildren(el, name) {
-    if (!el) return [];
-    return Array.from(el.children).filter(x => x.localName === name);
-}
-
-function docxBool(el) {
-    if (!el) return false;
-    const v = docxAttr(el, 'val');
-    return !(v === '0' || v === 'false' || v === 'off' || v === 'none');
-}
-
-function docxEscape(text) {
-    return String(text ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
-function renderDocxParagraph(p) {
-    const pPr = docxChild(p, 'pPr');
-    const style = [];
-
-    const jc = docxChild(pPr, 'jc');
-    const alignment = jc ? docxAttr(jc, 'val') : '';
-
-    if (alignment === 'center') style.push('text-align:center');
-    else if (alignment === 'right') style.push('text-align:right');
-    else if (alignment === 'both' || alignment === 'justify')
-        style.push('text-align:justify');
-    else style.push('text-align:left');
-
-    const ind = docxChild(pPr, 'ind');
-    if (ind) {
-        const left = parseInt(docxAttr(ind, 'left') || '0', 10);
-        const right = parseInt(docxAttr(ind, 'right') || '0', 10);
-        const first = parseInt(docxAttr(ind, 'firstLine') || '0', 10);
-        const hanging = parseInt(docxAttr(ind, 'hanging') || '0', 10);
-
-        if (left) style.push(`margin-left:${left / 15}px`);
-        if (right) style.push(`margin-right:${right / 15}px`);
-        if (first) style.push(`text-indent:${first / 15}px`);
-        if (hanging) style.push(`text-indent:-${hanging / 15}px`);
-    }
-
-    const spacing = docxChild(pPr, 'spacing');
-    if (spacing) {
-        const before = parseInt(docxAttr(spacing, 'before') || '0', 10);
-        const after = parseInt(docxAttr(spacing, 'after') || '0', 10);
-        const line = parseInt(docxAttr(spacing, 'line') || '0', 10);
-
-        if (before) style.push(`margin-top:${before / 20}pt`);
-        if (after) style.push(`margin-bottom:${after / 20}pt`);
-        if (line) style.push(`line-height:${Math.max(1, line / 240)}`);
-    }
-
-    const runs = [];
-    for (const child of Array.from(p.children)) {
-        if (child.localName === 'r') {
-            runs.push(renderDocxRun(child));
-        } else if (child.localName === 'hyperlink') {
-            for (const r of docxChildren(child, 'r')) {
-                runs.push(renderDocxRun(r));
-            }
-        }
-    }
-
-    // Explicit paragraph break/page-break handling.
-    const hasPageBreak = p.querySelector('br[type="page"]') ||
-                         p.querySelector('lastRenderedPageBreak');
-
-    if (hasPageBreak) {
-        style.push('page-break-before:always');
-    }
-
-    return `<p style="${style.join(';')};margin-top:0">${runs.join('')}</p>`;
-}
-
-function renderDocxRun(r) {
-    const rPr = docxChild(r, 'rPr');
-    const style = [];
-
-    const bold = docxChild(rPr, 'b');
-    const boldCs = docxChild(rPr, 'bCs');
-    const italic = docxChild(rPr, 'i');
-    const italicCs = docxChild(rPr, 'iCs');
-    const underline = docxChild(rPr, 'u');
-    const strike = docxChild(rPr, 'strike');
-
-    style.push(`font-weight:${(docxBool(bold) || docxBool(boldCs)) ? '700' : '400'}`);
-    style.push(`font-style:${(docxBool(italic) || docxBool(italicCs)) ? 'italic' : 'normal'}`);
-
-    if (underline && docxAttr(underline, 'val') !== 'none') {
-        style.push('text-decoration:underline');
-    } else if (strike && docxBool(strike)) {
-        style.push('text-decoration:line-through');
-    } else {
-        style.push('text-decoration:none');
-    }
-
-    const color = docxChild(rPr, 'color');
-    const colorValue = color ? docxAttr(color, 'val') : '';
-    if (colorValue && colorValue !== 'auto') {
-        style.push(`color:#${colorValue}`);
-    }
-
-    const sz = docxChild(rPr, 'sz');
-    const size = sz ? parseInt(docxAttr(sz, 'val') || '0', 10) : 0;
-    if (size) style.push(`font-size:${size / 2}pt`);
-
-    const fonts = docxChild(rPr, 'rFonts');
-    if (fonts) {
-        const font =
-            docxAttr(fonts, 'ascii') ||
-            docxAttr(fonts, 'hAnsi') ||
-            docxAttr(fonts, 'cs') ||
-            docxAttr(fonts, 'eastAsia');
-
-        if (font) {
-            style.push(`font-family:${JSON.stringify(font)}`);
-        }
-    }
-
-    const vert = docxChild(rPr, 'vertAlign');
-    if (vert) {
-        const v = docxAttr(vert, 'val');
-        if (v === 'superscript') style.push('vertical-align:super');
-        if (v === 'subscript') style.push('vertical-align:sub');
-    }
-
-    const text = [];
-
-    for (const child of Array.from(r.children)) {
-        if (child.localName === 't') {
-            text.push(docxEscape(child.textContent || ''));
-        } else if (child.localName === 'tab') {
-            text.push('&emsp;');
-        } else if (child.localName === 'br') {
-            const type = docxAttr(child, 'type');
-            text.push(type === 'page'
-                ? '<br style="page-break-after:always">'
-                : '<br>');
-        } else if (child.localName === 'noBreakHyphen') {
-            text.push('-');
-        }
-    }
-
-    if (!text.length) return '';
-
-    return `<span style="${style.join(';')}">${text.join('')}</span>`;
-}
-
-function renderDocxTable(tbl) {
-    const rows = [];
-
-    for (const tr of docxChildren(tbl, 'tr')) {
-        const cells = [];
-
-        for (const tc of docxChildren(tr, 'tc')) {
-            const tcPr = docxChild(tc, 'tcPr');
-            const width = docxChild(tcPr, 'tcW');
-            const cellStyle = [];
-
-            const widthValue = width ? parseInt(docxAttr(width, 'w') || '0', 10) : 0;
-            if (widthValue) cellStyle.push(`width:${widthValue / 15}px`);
-
-            const vAlign = docxChild(tcPr, 'vAlign');
-            if (vAlign) {
-                const v = docxAttr(vAlign, 'val');
-                if (v === 'center') cellStyle.push('vertical-align:middle');
-                else if (v === 'bottom') cellStyle.push('vertical-align:bottom');
-                else cellStyle.push('vertical-align:top');
-            }
-
-            const paragraphs = [];
-            for (const p of docxChildren(tc, 'p')) {
-                paragraphs.push(renderDocxParagraph(p));
-            }
-
-            cells.push(
-                `<td style="${cellStyle.join(';')}">${paragraphs.join('')}</td>`
-            );
-        }
-
-        rows.push(`<tr>${cells.join('')}</tr>`);
-    }
-
-    return `<table style="border-collapse:collapse;width:100%"><tbody>${rows.join('')}</tbody></table>`;
-}
-
 function updatePreview() {
     const doc = currentDocument;
     if (!doc || !doc._content) {
         showStatus('Please select a document first', 'error');
         return;
     }
-
-    const values = {};
-
+    let filledContent = doc._content;
     doc.fields.forEach(field => {
         const el = document.getElementById(`field_${field.key}`);
-        values[field.key] = el?.value || '';
+        const value = el?.value || '';
+        if (value) {
+            const key = field.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            // ROOT CAUSE FIX (Issue #3 - stray braces / "original doc shows"):
+            // Templates may use either {key} or {{key}} style placeholders.
+            // The old pattern only matched a single pair of braces, so a
+            // {{key}} template left one stray brace on each side after
+            // replacement (e.g. "{Ravi}" instead of "Ravi"). Matching 1-2
+            // braces on both sides consumes the whole placeholder token
+            // regardless of which style the template author used.
+            filledContent = filledContent.replace(new RegExp(`\\{{1,2}${key}\\}{1,2}`, 'g'), value);
+        }
     });
-
-    // DOCX preview uses HTML generated directly from the original
-    // WordprocessingML. Every run gets explicit formatting so a bold run
-    // cannot accidentally make the following normal run bold.
-    if (doc._isOriginalDocx && doc._formattedHtml) {
-        let html = doc._formattedHtml;
-
-        doc.fields.forEach(field => {
-            const value = values[field.key];
-            if (!value) return;
-
-            const key = field.key.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
-            const placeholderRegex = new RegExp(
-                `\\{\\{${key}\\}\\}|\\{${key}\\}`,
-                'g'
-            );
-
-            html = html.replace(
-                placeholderRegex,
-                () => escapeHtml(value).replace(/\\n/g, '<br>')
-            );
-        });
-
-        const previewEl = document.getElementById('previewContent');
-        previewEl.innerHTML = html;
-        document.getElementById('previewArea').style.display = 'block';
-
-        let filledContent = doc._content;
-        doc.fields.forEach(field => {
-            const value = values[field.key];
-            if (!value) return;
-
-            const key = field.key.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
-            filledContent = filledContent.replace(
-                new RegExp(`\\{{1,2}${key}\\}{1,2}`, 'g'),
-                value
-            );
-        });
-
-        window.currentPreviewContent = filledContent;
-        return;
-    }
-
-    // Existing TXT / legacy fallback path.
-    let filledContent = doc._content;
-
-    doc.fields.forEach(field => {
-        const value = values[field.key];
-        if (!value) return;
-
-        const key = field.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        filledContent = filledContent.replace(
-            new RegExp(`\\{{1,2}${key}\\}{1,2}`, 'g'),
-            value
-        );
-    });
-
     const previewEl = document.getElementById('previewContent');
     previewEl.innerHTML = formatDocumentContent(filledContent);
     document.getElementById('previewArea').style.display = 'block';
     window.currentPreviewContent = filledContent;
 }
+
 function formatDocumentContent(text) {
     let html = escapeHtml(text)
         .replace(/^([A-Z][A-Z\s]{4,})$/gm, '<h2>$1</h2>')
