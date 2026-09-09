@@ -108,8 +108,8 @@ function searchDocuments() {
     const grid = document.getElementById('documentsGrid');
     let filtered = allDocuments.filter(d => d.status !== 'inactive');
     if (query) {
-        filtered = filtered.filter(d => 
-            d.name.toLowerCase().includes(query) || 
+        filtered = filtered.filter(d =>
+            d.name.toLowerCase().includes(query) ||
             (d.description && d.description.toLowerCase().includes(query))
         );
     }
@@ -155,14 +155,8 @@ async function selectDocument(docId) {
         let content = '';
         const isDocx = doc.filename && doc.filename.endsWith('.docx');
         const isTxt = doc.filename && doc.filename.endsWith('.txt');
+        
         if (isDocx && docData.contentBase64) {
-            // Keep the ORIGINAL, unmodified DOCX bytes around. mammoth's
-            // extractRawText() below is used only for the live preview/field
-            // discovery text - it is plain text and cannot be turned back
-            // into a formatted DOCX. The separate "Original Formatting"
-            // download path (downloadOriginalFormatWord) works directly on
-            // these original bytes instead, so it never goes through the
-            // lossy DOCX -> plain text -> HTML -> DOCX round trip.
             doc._originalDocxBase64 = docData.contentBase64;
             doc._isOriginalDocx = true;
             const binaryString = atob(docData.contentBase64);
@@ -171,13 +165,22 @@ async function selectDocument(docId) {
                 bytes[i] = binaryString.charCodeAt(i);
             }
             const arrayBuffer = bytes.buffer;
-            const result = await mammoth.extractRawText({ arrayBuffer });
-            content = result.value;
+            
+            // ============================================================
+            // FIX: Use convertToHtml instead of extractRawText to preserve formatting
+            // ============================================================
+            const result = await mammoth.convertToHtml({ arrayBuffer });
+            doc._htmlContent = result.value; // Store HTML with formatting
+            content = result.value; // HTML content with formatting preserved
+            doc._isHtmlContent = true;
+            
         } else if (isTxt && docData.textContent) {
             doc._isOriginalDocx = false;
+            doc._isHtmlContent = false;
             content = docData.textContent;
         } else if (docData.contentBase64) {
             doc._isOriginalDocx = false;
+            doc._isHtmlContent = false;
             try {
                 content = atob(docData.contentBase64);
             } catch (e) {
@@ -186,6 +189,7 @@ async function selectDocument(docId) {
         } else {
             throw new Error('No content available for this document');
         }
+        
         if (!content || content.trim() === '') {
             throw new Error('Document content is empty');
         }
@@ -235,69 +239,111 @@ function generateForm(doc, content) {
     }).join('') + `<button class="btn btn-primary" onclick="updatePreview()">👁️ Preview</button>`;
 }
 
+// ============================================================
+// FIXED: updatePreview - Preserves original formatting
+// ============================================================
 function updatePreview() {
     const doc = currentDocument;
     if (!doc || !doc._content) {
         showStatus('Please select a document first', 'error');
         return;
     }
-    let filledContent = doc._content;
-    doc.fields.forEach(field => {
-        const el = document.getElementById(`field_${field.key}`);
-        const value = el?.value || '';
-        if (value) {
-            const key = field.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            // ROOT CAUSE FIX (Issue #3 - stray braces / "original doc shows"):
-            // Templates may use either {key} or {{key}} style placeholders.
-            // The old pattern only matched a single pair of braces, so a
-            // {{key}} template left one stray brace on each side after
-            // replacement (e.g. "{Ravi}" instead of "Ravi"). Matching 1-2
-            // braces on both sides consumes the whole placeholder token
-            // regardless of which style the template author used.
-            filledContent = filledContent.replace(new RegExp(`\\{{1,2}${key}\\}{1,2}`, 'g'), value);
-        }
-    });
+    
     const previewEl = document.getElementById('previewContent');
-    previewEl.innerHTML = formatDocumentContent(filledContent);
+    
+    // Check if we have HTML content from mammoth (formatting preserved)
+    if (doc._isHtmlContent && doc._htmlContent) {
+        let html = doc._htmlContent;
+        
+        // Replace placeholders in HTML content
+        doc.fields.forEach(field => {
+            const el = document.getElementById(`field_${field.key}`);
+            const value = el?.value || '';
+            if (value) {
+                const key = field.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                // Replace both {key} and {{key}} styles
+                html = html.replace(new RegExp(`\\{{1,2}${key}\\}{1,2}`, 'g'), value);
+            }
+        });
+        
+        previewEl.innerHTML = html;
+        
+    } else {
+        // Fallback for plain text documents - use simple formatting
+        let filledContent = doc._content;
+        doc.fields.forEach(field => {
+            const el = document.getElementById(`field_${field.key}`);
+            const value = el?.value || '';
+            if (value) {
+                const key = field.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                filledContent = filledContent.replace(new RegExp(`\\{{1,2}${key}\\}{1,2}`, 'g'), value);
+            }
+        });
+        previewEl.innerHTML = formatPlainText(filledContent);
+    }
+    
     document.getElementById('previewArea').style.display = 'block';
-    window.currentPreviewContent = filledContent;
+    window.currentPreviewContent = previewEl.innerHTML;
 }
 
-function formatDocumentContent(text) {
-    let html = escapeHtml(text)
-        .replace(/^([A-Z][A-Z\s]{4,})$/gm, '<h2>$1</h2>')
-        .replace(/^([A-Z][A-Z\s]{2,}):/gm, '<h3>$1:</h3>')
+// ============================================================
+// FIXED: formatPlainText - Minimal formatting for plain text only
+// ============================================================
+function formatPlainText(text) {
+    if (!text) return '';
+    
+    // Escape HTML
+    let html = escapeHtml(text);
+    
+    // Simple formatting for plain text
+    html = html
+        // Bold: **text** or __text__
         .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
         .replace(/__(.+?)__/g, '<b>$1</b>')
+        // Italic: *text* or _text_
         .replace(/\*(.+?)\*/g, '<i>$1</i>')
         .replace(/_(.+?)_/g, '<i>$1</i>')
+        // Underline: ++text++
         .replace(/\+\+(.+?)\+\+/g, '<u>$1</u>')
-        .replace(/^(\d+\.)\s(.+)$/gm, '<li>$1 $2</li>')
-        .replace(/^[-*]\s(.+)$/gm, '<li>• $1</li>')
+        // Headings: ALL CAPS lines
+        .replace(/^([A-Z][A-Z\s]{4,})$/gm, '<h2>$1</h2>')
+        // Horizontal rule: ---
         .replace(/^[-]{3,}$/gm, '<hr>')
+        // Convert line breaks to paragraphs
         .split('\n\n')
         .map(p => p.trim())
         .filter(p => p)
         .map(p => {
-            if (p.includes('<li>')) return `<ul>${p}</ul>`;
-            if (p.startsWith('<h')) return p;
+            if (p.match(/^\d+\.\s/)) {
+                // Numbered list items
+                return p.replace(/^(\d+\.\s)(.+)$/gm, '<li>$1 $2</li>');
+            }
+            if (p.match(/^[•\-*]\s/)) {
+                // Bullet list items
+                return p.replace(/^[•\-*]\s(.+)$/gm, '<li>• $1</li>');
+            }
+            if (p.startsWith('<h') || p.startsWith('<hr>')) return p;
             return `<p>${p}</p>`;
         })
         .join('\n');
-    html = html.replace(/<p>(<li>.*?<\/li>)<\/p>/g, '<ul>$1</ul>');
-    html = html.replace(/<ul>\s*<ul>/g, '<ul>');
+    
+    // Wrap list items
+    html = html.replace(/(<li>.*?<\/li>)/g, (match) => {
+        if (match.includes('•')) {
+            return `<ul>${match}</ul>`;
+        }
+        return `<ol>${match}</ol>`;
+    });
+    
+    // Clean up nested lists
+    html = html.replace(/<\/ul>\s*<ul>/g, '');
+    html = html.replace(/<\/ol>\s*<ol>/g, '');
+    
     return html;
 }
 
 // ============================================================
 // ROOT CAUSE FIX (Issue #5 - Hindi/Devanagari PDF blank/garbled):
-// jsPDF's built-in fonts (Helvetica/Times etc.) have NO Devanagari glyphs,
-// so any Hindi text rendered with doc.text() using the default font comes
-// out blank or as garbled boxes. We lazily fetch the Devanagari-capable
-// Noto font already shipped at public/shared/fonts/, embed it into the
-// jsPDF virtual filesystem, and switch to it only when the content being
-// printed actually contains Devanagari characters (U+0900-U+097F) - plain
-// English documents keep using the default font untouched.
 // ============================================================
 const DEVANAGARI_REGEX = /[\u0900-\u097F]/;
 const DEVANAGARI_FONT_URL = '/shared/fonts/noto-sans-devanagari-regular.ttf';
@@ -333,6 +379,9 @@ async function ensureDevanagariFont(doc) {
     doc.addFont(DEVANAGARI_FONT_VFS_NAME, DEVANAGARI_FONT_ALIAS, 'normal');
 }
 
+// ============================================================
+// FIXED: downloadWord - Uses HTML content with formatting
+// ============================================================
 async function downloadWord() {
     const content = document.getElementById('previewContent').innerHTML;
 
@@ -422,13 +471,6 @@ function toggleOriginalFormatButton(doc) {
 
 // ============================================================
 // SECOND, INDEPENDENT DOCX PATH (OOXML-preserving):
-// Original uploaded .docx -> ZIP/OOXML -> targeted placeholder text
-// replacement inside word/document.xml (+ headers/footers) -> re-zipped
-// DOCX. Bold/italic/underline/colour/tables/numbering/headings/page
-// layout/margins etc. all come from the original file untouched - only the
-// placeholder text itself changes. This does NOT go through TurboDocx and
-// does NOT touch/replace window.generateDocx() / downloadWord() above,
-// which remains the existing HTML -> TurboDocx -> DOCX path unchanged.
 // ============================================================
 async function downloadOriginalFormatWord() {
     const doc = currentDocument;
@@ -481,6 +523,9 @@ async function downloadOriginalFormatWord() {
     }
 }
 
+// ============================================================
+// FIXED: downloadPDF - Uses HTML content with formatting
+// ============================================================
 async function downloadPDF() {
     const content = document.getElementById('previewContent').innerHTML;
     if (!content || content.trim() === '') {
@@ -494,37 +539,69 @@ async function downloadPDF() {
         const pageHeight = doc.internal.pageSize.getHeight();
         const margin = 15;
         const maxWidth = pageWidth - 2 * margin;
-        const lineHeight = 6;
+        const lineHeight = 7;
         let y = margin;
+        
+        // Create a temporary div to extract text with formatting
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = content;
         let textToSplit = '';
         const children = tempDiv.childNodes;
+        
         for (const node of children) {
-            if (node.nodeType === 3) textToSplit += node.textContent;
-            else if (node.tagName === 'P') textToSplit += node.textContent + '\n\n';
-            else if (node.tagName === 'H2') textToSplit += node.textContent + '\n\n';
-            else if (node.tagName === 'H3') textToSplit += node.textContent + '\n\n';
-            else if (node.tagName === 'UL') {
+            if (node.nodeType === 3) {
+                // Text node
+                textToSplit += node.textContent + '\n';
+            } else if (node.tagName === 'P') {
+                textToSplit += node.textContent + '\n\n';
+            } else if (node.tagName === 'H2' || node.tagName === 'H3') {
+                textToSplit += node.textContent + '\n\n';
+            } else if (node.tagName === 'H1') {
+                textToSplit += node.textContent + '\n\n';
+            } else if (node.tagName === 'UL' || node.tagName === 'OL') {
                 const items = node.querySelectorAll('li');
-                items.forEach(li => textToSplit += '  • ' + li.textContent + '\n');
+                items.forEach(li => {
+                    const bullet = node.tagName === 'UL' ? '  • ' : '  ' + (items.length > 1 ? (Array.from(items).indexOf(li) + 1) + '. ' : '• ');
+                    textToSplit += bullet + li.textContent + '\n';
+                });
                 textToSplit += '\n';
+            } else if (node.tagName === 'TABLE') {
+                // Handle tables
+                const rows = node.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td, th');
+                    const rowText = Array.from(cells).map(cell => cell.textContent.trim()).join(' | ');
+                    textToSplit += rowText + '\n';
+                });
+                textToSplit += '\n';
+            } else if (node.tagName === 'HR') {
+                textToSplit += '---\n\n';
+            } else if (node.tagName === 'DIV') {
+                // Handle nested divs (like page breaks)
+                if (node.className === 'page-break') {
+                    textToSplit += '\n--- PAGE BREAK ---\n\n';
+                } else {
+                    textToSplit += node.textContent + '\n\n';
+                }
+            } else {
+                textToSplit += node.textContent + '\n';
             }
         }
+        
+        // Check for Devanagari text
         if (DEVANAGARI_REGEX.test(textToSplit)) {
             try {
                 await ensureDevanagariFont(doc);
                 doc.setFont(DEVANAGARI_FONT_ALIAS, 'normal');
             } catch (fontError) {
-                console.error('Devanagari font load failed, Hindi text may not render:', fontError);
+                console.error('Devanagari font load failed:', fontError);
                 showStatus('⚠️ Hindi font failed to load, PDF text may be garbled', 'error');
             }
         }
-        // splitTextToSize is measured AFTER the font is switched, so line
-        // wrapping uses the correct glyph widths for whichever font will
-        // actually render the text (Devanagari fonts wrap differently than
-        // Helvetica).
+        
+        // Split text into lines
         const splitLines = doc.splitTextToSize(textToSplit, maxWidth);
+        
         for (let i = 0; i < splitLines.length; i++) {
             const line = splitLines[i];
             if (y + lineHeight > pageHeight - margin) {
@@ -534,12 +611,14 @@ async function downloadPDF() {
             doc.text(line, margin, y);
             y += lineHeight;
         }
-        const filename = currentDocument ? 
-            `${currentDocument.name}_${new Date().toISOString().split('T')[0]}.pdf` : 
+        
+        const filename = currentDocument ?
+            `${currentDocument.name}_${new Date().toISOString().split('T')[0]}.pdf` :
             'document.pdf';
         doc.save(filename);
         showStatus('✅ PDF downloaded successfully!', 'success');
     } catch (error) {
+        console.error('PDF generation error:', error);
         showStatus('❌ Error generating PDF: ' + error.message, 'error');
     }
 }
