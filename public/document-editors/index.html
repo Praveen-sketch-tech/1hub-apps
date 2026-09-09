@@ -563,6 +563,7 @@
             list-style-type: decimal;
         }
     </style>
+    <script src="/shared/docx-generator.js"></script>
 </head>
 <body>
     <div class="container">
@@ -1561,16 +1562,25 @@
             // DOWNLOAD DOCX FUNCTION
             // ============================================================
             async function downloadDocx() {
-                if (typeof JSZip === 'undefined') {
-                    showStatus('DOCX library not loaded. Please refresh the page.', 'error');
+                if (typeof window.generateDocx !== 'function') {
+                    showStatus('❌ Word generator is not loaded. Please refresh the page.', 'error');
                     return;
                 }
-                if (!originalDocxArrayBuffer) {
+
+                if (!isDocLoaded) {
                     showStatus('No document loaded', 'error');
                     return;
                 }
+
                 if (isGenerating) {
                     showStatus('⏳ A generation is already in progress — please wait.', 'info');
+                    return;
+                }
+
+                const content = editor ? editor.innerHTML : '';
+
+                if (!content || content.trim() === '') {
+                    showStatus('No document content available', 'error');
                     return;
                 }
 
@@ -1581,69 +1591,41 @@
                     showLoading('Generating DOCX file...');
                     showStatus('Generating DOCX file...', 'info');
 
-                    const zip = await JSZip.loadAsync(originalDocxArrayBuffer);
-                    const docFile = zip.file('word/document.xml');
-                    if (!docFile) throw new Error('word/document.xml not found');
+                    const filename = 'edited_document.docx';
 
-                    const docXml = await docFile.async('string');
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(docXml, 'application/xml');
-                    if (xmlDoc.querySelector('parsererror')) throw new Error('Invalid DOCX document.xml');
+                    const result = await window.generateDocx(
+                        content,
+                        filename
+                    );
 
-                    // If in edit mode, update the content
-                    if (isEditing) {
-                        const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
-                        const body = xmlDoc.getElementsByTagNameNS(W_NS, 'body')[0];
-                        const originalParagraphs = body ?
-                            Array.from(body.children).filter(n => n.localName === 'p' || n.tagName === 'p' || n
-                                .tagName === 'w:p') :
-                            [];
-                        const previewParagraphs = Array.from(editor.querySelectorAll('.docx-paragraph, .docx-list-item'));
-                        let editedIndex = 0;
-
-                        for (const pNode of originalParagraphs) {
-                            const hasPageBreak = Array.from(pNode.getElementsByTagNameNS(W_NS, 'br'))
-                                .some(br => (br.getAttributeNS(W_NS, 'type') || br.getAttribute('w:type')) ===
-                                    'page');
-                            if (hasPageBreak) continue;
-                            if (editedIndex >= previewParagraphs.length) break;
-
-                            const textNodes = Array.from(pNode.getElementsByTagNameNS(W_NS, 't'));
-                            if (!textNodes.length) {
-                                editedIndex++;
-                                continue;
-                            }
-
-                            const value = previewParagraphs[editedIndex++].innerText.replace(/\r/g, '');
-                            textNodes[0].textContent = value;
-                            if (value.startsWith(' ') || value.endsWith(' ') || /\s{2,}/.test(value)) {
-                                textNodes[0].setAttribute('xml:space', 'preserve');
-                            } else {
-                                textNodes[0].removeAttribute('xml:space');
-                            }
-                            for (let i = 1; i < textNodes.length; i++) textNodes[i].textContent = '';
-                        }
-
-                        zip.file('word/document.xml', new XMLSerializer().serializeToString(xmlDoc));
+                    if (!result || !result.filename) {
+                        throw new Error('DOCX was generated but is not ready for download.');
                     }
 
-                    const blob = await zip.generateAsync({ type: 'blob' });
-                    const docBlob = new Blob([blob], {
-                        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                    });
+                    if (typeof window.downloadPendingDocx === 'function') {
+                        window.downloadPendingDocx();
+                    } else {
+                        throw new Error('DOCX download system is not loaded.');
+                    }
 
-                    console.log('DOCX generated:', docBlob.size, 'bytes');
                     hideLoading();
-                    downloadBlob(docBlob, 'edited_document.docx');
-                    showStatus('✅ DOCX file ready!', 'success');
+                    showStatus(
+                        '✅ DOCX downloaded successfully!',
+                        'success'
+                    );
                     downloadDocxBtn.textContent = '✅ Ready!';
+
                 } catch (error) {
-                    console.error('DOCX download error:', error);
+                    console.error('DOCX generation error:', error);
                     hideLoading();
-                    showStatus('Error generating DOCX: ' + error.message, 'error');
+                    showStatus(
+                        'Error generating DOCX: ' + error.message,
+                        'error'
+                    );
                     downloadDocxBtn.textContent = '📄 Download DOCX';
                 } finally {
                     isGenerating = false;
+
                     setTimeout(() => {
                         downloadDocxBtn.textContent = '📄 Download DOCX';
                         downloadDocxBtn.disabled = false;
