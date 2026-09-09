@@ -7,6 +7,9 @@
     <!-- JSZip for DOCX extraction -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js">
     </script>
+    <!-- html2pdf for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">
+    </script>
     <style>
         * {
             box-sizing: border-box;
@@ -83,6 +86,20 @@
         }
         .btn-primary:hover {
             background: #0f172a;
+        }
+        .btn-success {
+            background: #22c55e;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #16a34a;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
         }
         .btn-outline {
             background: transparent;
@@ -443,40 +460,114 @@
         .preview-section-wrapper.visible {
             display: block;
         }
-        /* List item indentation levels */
-        .docx-list-level-0 {
-            padding-left: 28px;
+        .download-section {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1.2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
         }
-        .docx-list-level-1 {
-            padding-left: 56px;
+        .download-section .btn {
+            flex: 0 1 auto;
+            min-width: 160px;
+            justify-content: center;
         }
-        .docx-list-level-2 {
-            padding-left: 84px;
+        .download-section-hidden {
+            display: none !important;
         }
-        .docx-list-level-3 {
-            padding-left: 112px;
+        .download-section-visible {
+            display: flex !important;
         }
-        .docx-list-level-4 {
-            padding-left: 140px;
+        .download-fallback-box {
+            margin-top: 12px;
+            padding: 12px 14px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 10px;
+            display: block;
+            animation: fadeIn 0.3s ease;
         }
-        .docx-list-level-5 {
-            padding-left: 168px;
+        .download-fallback-box a {
+            font-weight: 700;
+            color: #1d4ed8;
+            text-decoration: underline;
+            cursor: pointer;
         }
-        .docx-list-level-6 {
-            padding-left: 196px;
+        .download-fallback-box a:hover {
+            color: #1e40af;
         }
-        .docx-list-level-7 {
-            padding-left: 224px;
+        .download-fallback-box .close-fallback {
+            float: right;
+            cursor: pointer;
+            color: #64748b;
+            font-size: 1.2rem;
+            line-height: 1;
+            margin-left: 12px;
         }
-        .docx-list-level-8 {
-            padding-left: 252px;
+        .download-fallback-box .close-fallback:hover {
+            color: #1e293b;
+        }
+        #pdfContainer {
+            position: absolute;
+            left: -99999px;
+            top: 0;
+            width: 794px;
+            background: #ffffff;
+            z-index: -1;
+        }
+        /* PDF Export Styles */
+        .pdf-page {
+            width: 100%;
+            max-width: 794px;
+            min-height: 1123px;
+            padding: 40px 50px;
+            margin: 0 auto;
+            background: #ffffff;
+            color: #000000;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            box-sizing: border-box;
+            page-break-after: always;
+            break-after: page;
+            border: none;
+            box-shadow: none;
+        }
+        .pdf-page:last-child {
+            page-break-after: avoid;
+            break-after: avoid;
+        }
+        .pdf-page .docx-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 0.5rem 0;
+            border: 1px solid #000;
+        }
+        .pdf-page .docx-table td,
+        .pdf-page .docx-table th {
+            border: 1px solid #000;
+            padding: 4px 8px;
+            vertical-align: top;
+        }
+        .pdf-page .docx-paragraph {
+            margin: 0.2rem 0;
+        }
+        .pdf-page .docx-list-item {
+            margin: 0.1rem 0;
+        }
+        .pdf-page .docx-list-bullet {
+            list-style-type: disc;
+        }
+        .pdf-page .docx-list-decimal {
+            list-style-type: decimal;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap;">
-            <h1>📄 Document Editor <span class="sub">preview · edit</span></h1>
+            <h1>📄 Document Editor <span class="sub">preview · edit · export</span></h1>
             <span class="badge">Stage 10 · Lists & Numbering Fixed</span>
         </div>
 
@@ -489,13 +580,19 @@
                 </div>
                 <span id="fileName" style="color:#475569;">no file loaded</span>
                 <button class="btn btn-outline" id="editToggle" disabled>✏️ Enable editing</button>
-                <span style="margin-left: auto; font-size:0.8rem; color:#64748b;">Online Editor without any claud upload</span>
+                <span style="margin-left: auto; font-size:0.8rem; color:#64748b;">Online Editor</span>
             </div>
             <div style="margin-top: 1.2rem; display: flex; gap: 1.5rem; flex-wrap: wrap;">
                 <div><span class="badge" id="pageCount">pages: 0</span></div>
                 <div><span class="badge" id="paraCount">paragraphs: 0</span></div>
                 <div><span class="badge" id="runCount">runs: 0</span></div>
                 <div><span class="badge" id="tableCount">tables: 0</span></div>
+            </div>
+            <!-- Download Section -->
+            <div class="download-section download-section-hidden" id="downloadSection">
+                <button class="btn btn-success" id="downloadDocxBtn">📄 Download DOCX</button>
+                <button class="btn btn-danger" id="downloadPdfBtn">📑 Download PDF</button>
+                <span style="font-size:0.8rem; color:#64748b; align-self:center;">Downloads include your edited content</span>
             </div>
             <div id="statusMessage" class="status-message" style="display:none;"></div>
         </div>
@@ -526,7 +623,7 @@
             </div>
         </div>
 
-        <!-- PREVIEW with Editor - Hidden until DOCX loaded -->
+        <!-- PREVIEW with Editor -->
         <div class="preview-section-wrapper" id="previewWrapper">
             <div class="card" style="padding: 0; overflow: hidden;">
                 <div style="padding: 1.2rem 2rem 0.5rem 2rem; display: flex; justify-content: space-between;">
@@ -610,6 +707,9 @@
         </div>
     </div>
 
+    <!-- Hidden PDF Container -->
+    <div id="pdfContainer"></div>
+
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-box">
@@ -624,6 +724,15 @@
             function checkJSZip() {
                 if (typeof JSZip === 'undefined') {
                     console.warn('JSZip not loaded, retrying...');
+                    return false;
+                }
+                return true;
+            }
+
+            // Check if html2pdf is loaded
+            function checkHtml2pdf() {
+                if (typeof html2pdf === 'undefined') {
+                    console.warn('html2pdf not loaded, retrying...');
                     return false;
                 }
                 return true;
@@ -657,6 +766,10 @@
             const loadingOverlay = document.getElementById('loadingOverlay');
             const loadingText = document.getElementById('loadingText');
             const previewWrapper = document.getElementById('previewWrapper');
+            const downloadSection = document.getElementById('downloadSection');
+            const downloadDocxBtn = document.getElementById('downloadDocxBtn');
+            const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+            const pdfContainer = document.getElementById('pdfContainer');
 
             const pageCountEl = document.getElementById('pageCount');
             const paraCountEl = document.getElementById('paraCount');
@@ -672,6 +785,7 @@
             let originalDocxArrayBuffer = null;
             let isEditing = false;
             let isDocLoaded = false;
+            let isGenerating = false;
 
             // Get all toolbar buttons and selects
             const toolbarButtons = document.querySelectorAll('#toolbar button, #toolbar select');
@@ -715,6 +829,71 @@
                 }, 8000);
             }
 
+            // ---------- Fallback Download Box ----------
+            function showFallbackBox(blobUrl, filename) {
+                const existingBox = document.getElementById('download-fallback-box');
+                if (existingBox) existingBox.remove();
+
+                const box = document.createElement('div');
+                box.id = 'download-fallback-box';
+                box.className = 'download-fallback-box';
+
+                const closeBtn = document.createElement('span');
+                closeBtn.className = 'close-fallback';
+                closeBtn.textContent = '✕';
+                closeBtn.title = 'Close';
+                closeBtn.addEventListener('click', function() {
+                    box.remove();
+                    URL.revokeObjectURL(blobUrl);
+                });
+
+                const label = document.createElement('span');
+                label.textContent = '📎 File ready: ';
+
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = filename;
+                link.textContent = `Click here to download ${filename}`;
+                link.addEventListener('click', function(e) {
+                    setTimeout(() => {
+                        if (box.parentNode) {
+                            box.remove();
+                            URL.revokeObjectURL(blobUrl);
+                        }
+                    }, 2000);
+                });
+
+                box.appendChild(closeBtn);
+                box.appendChild(label);
+                box.appendChild(link);
+                statusMessage.parentNode.insertBefore(box, statusMessage.nextSibling);
+            }
+
+            // ---------- Download Helper ----------
+            function downloadBlob(blob, filename) {
+                if (!(blob instanceof Blob)) throw new Error('Generated file is not a valid Blob');
+                if (!blob.size) throw new Error('Generated file is empty');
+
+                const url = URL.createObjectURL(blob);
+                try {
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    setTimeout(() => URL.revokeObjectURL(url), 5000);
+                    setTimeout(() => {
+                        showFallbackBox(url, filename);
+                    }, 1000);
+                    return url;
+                } catch (e) {
+                    console.warn('Automatic download blocked, showing fallback link', e);
+                    showFallbackBox(url, filename);
+                    return url;
+                }
+            }
+
             // ---------- Editor Helpers ----------
             function execCommand(cmd, value = null) {
                 if (!isEditing || !isDocLoaded) {
@@ -747,7 +926,6 @@
 
             document.getElementById('indentBtn').addEventListener('click', () => execCommand('indent'));
             document.getElementById('outdentBtn').addEventListener('click', () => execCommand('outdent'));
-
             document.getElementById('undoBtn').addEventListener('click', () => execCommand('undo'));
             document.getElementById('redoBtn').addEventListener('click', () => execCommand('redo'));
 
@@ -915,7 +1093,6 @@
                     if (numXml) {
                         const numDoc = parser.parseFromString(numXml, "text/xml");
 
-                        // Parse abstractNum elements
                         const absList = numDoc.querySelectorAll('w\\:abstractNum, abstractNum');
                         for (let abs of absList) {
                             let id = abs.getAttribute('w:abstractNumId') || abs.getAttribute('abstractNumId') || '';
@@ -938,7 +1115,6 @@
                             }
                         }
 
-                        // Parse num elements (map numId to abstractNumId)
                         const numEls = numDoc.querySelectorAll('w\\:num, num');
                         for (let n of numEls) {
                             let id = n.getAttribute('w:numId') || n.getAttribute('numId') || '';
@@ -956,15 +1132,7 @@
                 let elements = [];
                 let pageBreaks = [];
                 let pIndex = 0;
-                let listCounters = {};
-
-                function getListLevel(numId, level) {
-                    const absId = numbering.numToAbstract[numId];
-                    if (!absId) return null;
-                    const abs = numbering.abstracts[absId];
-                    if (!abs) return null;
-                    return abs.levels[level] || null;
-                }
+                let listCountersMap = {};
 
                 function getNumberingText(numId, level, counter) {
                     const absId = numbering.numToAbstract[numId];
@@ -977,7 +1145,6 @@
                     const numFmt = lvlDef.numFmt || 'decimal';
                     const lvlText = lvlDef.lvlText || '%1';
 
-                    // Build the number based on format
                     let numStr = '';
                     if (numFmt === 'bullet') {
                         return '•';
@@ -995,13 +1162,10 @@
                         numStr = String(counter || 1);
                     }
 
-                    // Replace %1, %2, etc. with actual numbers
                     let result = lvlText;
                     for (let i = 1; i <= 9; i++) {
                         const pattern = '%' + i;
                         if (result.includes(pattern)) {
-                            // For nested levels, we'd need to track parent counters
-                            // For now, use the current counter for all levels
                             result = result.replace(pattern, numStr);
                         }
                     }
@@ -1034,9 +1198,6 @@
                     return result;
                 }
 
-                // Track list counters per numId and level
-                let listCountersMap = {};
-
                 function getNextCounter(numId, level) {
                     const key = numId + '_' + level;
                     if (!listCountersMap[key]) {
@@ -1044,16 +1205,6 @@
                     }
                     listCountersMap[key]++;
                     return listCountersMap[key];
-                }
-
-                function resetCountersForLevel(numId, level) {
-                    const key = numId + '_' + level;
-                    listCountersMap[key] = 0;
-                    // Reset higher levels
-                    for (let i = level + 1; i <= 8; i++) {
-                        const k = numId + '_' + i;
-                        listCountersMap[k] = 0;
-                    }
                 }
 
                 for (let node of children) {
@@ -1092,7 +1243,6 @@
                             }
                         }
 
-                        // Parse runs
                         let runs = [];
                         const rNodes = node.querySelectorAll('w\\:r, r');
                         for (let rn of rNodes) {
@@ -1130,7 +1280,6 @@
                             if (text) runs.push({ text, style: rStyle });
                         }
 
-                        // Parse numbering
                         let numPr = null;
                         let listLevel = -1;
                         let listNumId = null;
@@ -1147,11 +1296,8 @@
                                     if (abs) {
                                         const lvlDef = abs.levels[listLevel];
                                         if (lvlDef) {
-                                            // Check if this is a bullet or numbered list
                                             const isBullet = lvlDef.numFmt === 'bullet';
-                                            // Get counter
                                             const counter = getNextCounter(numId, listLevel);
-                                            // Get the list marker text
                                             let markerText = '';
                                             if (isBullet) {
                                                 markerText = '•';
@@ -1174,14 +1320,7 @@
                             }
                         }
 
-                        // If this is a list item, reset counters for higher levels
                         if (numPr) {
-                            // Reset counters for deeper levels when this level increments
-                            const key = listNumId + '_' + (listLevel + 1);
-                            if (listCountersMap[key]) {
-                                listCountersMap[key] = 0;
-                            }
-                            // Reset all higher levels
                             for (let i = listLevel + 1; i <= 8; i++) {
                                 const k = listNumId + '_' + i;
                                 listCountersMap[k] = 0;
@@ -1256,7 +1395,8 @@
             // ---------- render core ----------
             function renderDocument(docData) {
                 if (!docData) {
-                    editor.innerHTML = `<div style="color:#94a3b8; text-align:center; padding:3rem 0;">No document loaded</div>`;
+                    editor.innerHTML =
+                    `<div style="color:#94a3b8; text-align:center; padding:3rem 0;">No document loaded</div>`;
                     return;
                 }
                 const { elements, styles, numbering, pageBreaks } = docData;
@@ -1308,10 +1448,6 @@
                     return out;
                 }
 
-                // Track current list context for proper nesting
-                let currentListContext = null;
-                let listStack = [];
-
                 for (let el of elements) {
                     if (el.type === 'pageBreak') {
                         currentPageHtml += `</div>`;
@@ -1334,61 +1470,22 @@
                             `text-align:${align};${marginTop}${marginBottom}${lineHeight}${indent}${firstLine}`;
 
                         let content = renderRuns(p.runs, pStyle);
-                        let prefix = '';
-                        let listClass = '';
 
-                        // Handle list items
                         if (p.numPr) {
                             const marker = p.numPr.marker || '';
                             const isBullet = p.numPr.isBullet || false;
                             const level = p.numPr.level || 0;
 
-                            // Build list marker with proper indentation
-                            if (isBullet) {
-                                prefix = marker + ' ';
-                                listClass = 'docx-list-bullet';
-                            } else {
-                                prefix = marker + ' ';
-                                listClass = 'docx-list-decimal';
-                            }
-
-                            // Add level-based indentation
-                            const levelClass = `docx-list-level-${Math.min(level, 8)}`;
-                            listClass += ' ' + levelClass;
-
-                            // Wrap in list container with proper styling
-                            const listTag = isBullet ? 'ul' : 'ol';
-                            const listStyle = isBullet ? 'list-style-type: disc;' :
-                                `list-style-type: decimal;`;
-
-                            // We need to wrap in list structure
-                            // Check if we're continuing a list or starting a new one
-                            const key = p.numPr.numId + '_' + level;
-
-                            // Create list item with proper marker
-                            let listItemHtml =
-                                `<li style="margin: 0.1rem 0; display: list-item; ${listStyle}">${content}</li>`;
-
-                            // Wrap in appropriate list tag with classes
-                            const wrapperClass = isBullet ? 'docx-list docx-list-bullet' :
-                                'docx-list docx-list-decimal';
-                            const wrapperStyle =
-                                `margin: 0.2rem 0; padding-left: ${(level + 1) * 28}px; list-style-type: ${isBullet ? 'disc' : 'decimal'};`;
-
-                            // For simplicity, we'll render as a list item with proper indentation
-                            // This avoids complex nesting issues
                             let renderedContent = '';
                             if (isBullet) {
                                 renderedContent =
                                     `<div class="docx-list-item docx-list-bullet" style="padding-left: ${(level + 1) * 20}px; margin: 0.1rem 0;">• ${content}</div>`;
                             } else {
                                 renderedContent =
-                                    `<div class="docx-list-item docx-list-decimal" style="padding-left: ${(level + 1) * 20}px; margin: 0.1rem 0;">${prefix}${content}</div>`;
+                                    `<div class="docx-list-item docx-list-decimal" style="padding-left: ${(level + 1) * 20}px; margin: 0.1rem 0;">${marker} ${content}</div>`;
                             }
-
                             currentPageHtml += renderedContent;
                         } else {
-                            // Regular paragraph
                             let cls = pStyle.styleName ? ` docx-style-${pStyle.styleName.toLowerCase().replace(/\s+/g, '-')}` :
                                 '';
                             currentPageHtml +=
@@ -1432,7 +1529,6 @@
 
                 editor.innerHTML = pageHtml;
 
-                // Reset edit state
                 isEditing = false;
                 editor.contentEditable = 'false';
                 editor.classList.add('readonly');
@@ -1446,9 +1542,12 @@
                     rawXmlDisplay.textContent = 'No raw XML captured.';
                 }
                 techStats.innerHTML = `
-                        <strong>DOCX stats</strong> · paragraphs: ${paraCount} · runs: ${runTotal} · tables: ${tableCount} · pageBreaks: ${pageBreaks?pageBreaks.length:0}
-                        · styles: ${styles?Object.keys(styles).length:0} · numbering: ${numbering?Object.keys(numbering.abstracts||{}).length:0}
-                    `;
+                    <strong>DOCX stats</strong> · paragraphs: ${paraCount} · runs: ${runTotal} · tables: ${tableCount} · pageBreaks: ${pageBreaks?pageBreaks.length:0}
+                    · styles: ${styles?Object.keys(styles).length:0} · numbering: ${numbering?Object.keys(numbering.abstracts||{}).length:0}
+                `;
+
+                // Show download section
+                downloadSection.className = 'download-section download-section-visible';
             }
 
             function escapeHtml(text) {
@@ -1458,6 +1557,305 @@
                 return div.innerHTML;
             }
 
+            // ============================================================
+            // DOWNLOAD DOCX FUNCTION
+            // ============================================================
+            async function downloadDocx() {
+                if (typeof JSZip === 'undefined') {
+                    showStatus('DOCX library not loaded. Please refresh the page.', 'error');
+                    return;
+                }
+                if (!originalDocxArrayBuffer) {
+                    showStatus('No document loaded', 'error');
+                    return;
+                }
+                if (isGenerating) {
+                    showStatus('⏳ A generation is already in progress — please wait.', 'info');
+                    return;
+                }
+
+                try {
+                    isGenerating = true;
+                    downloadDocxBtn.textContent = '⏳ Generating...';
+                    downloadDocxBtn.disabled = true;
+                    showLoading('Generating DOCX file...');
+                    showStatus('Generating DOCX file...', 'info');
+
+                    const zip = await JSZip.loadAsync(originalDocxArrayBuffer);
+                    const docFile = zip.file('word/document.xml');
+                    if (!docFile) throw new Error('word/document.xml not found');
+
+                    const docXml = await docFile.async('string');
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(docXml, 'application/xml');
+                    if (xmlDoc.querySelector('parsererror')) throw new Error('Invalid DOCX document.xml');
+
+                    // If in edit mode, update the content
+                    if (isEditing) {
+                        const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+                        const body = xmlDoc.getElementsByTagNameNS(W_NS, 'body')[0];
+                        const originalParagraphs = body ?
+                            Array.from(body.children).filter(n => n.localName === 'p' || n.tagName === 'p' || n
+                                .tagName === 'w:p') :
+                            [];
+                        const previewParagraphs = Array.from(editor.querySelectorAll('.docx-paragraph, .docx-list-item'));
+                        let editedIndex = 0;
+
+                        for (const pNode of originalParagraphs) {
+                            const hasPageBreak = Array.from(pNode.getElementsByTagNameNS(W_NS, 'br'))
+                                .some(br => (br.getAttributeNS(W_NS, 'type') || br.getAttribute('w:type')) ===
+                                    'page');
+                            if (hasPageBreak) continue;
+                            if (editedIndex >= previewParagraphs.length) break;
+
+                            const textNodes = Array.from(pNode.getElementsByTagNameNS(W_NS, 't'));
+                            if (!textNodes.length) {
+                                editedIndex++;
+                                continue;
+                            }
+
+                            const value = previewParagraphs[editedIndex++].innerText.replace(/\r/g, '');
+                            textNodes[0].textContent = value;
+                            if (value.startsWith(' ') || value.endsWith(' ') || /\s{2,}/.test(value)) {
+                                textNodes[0].setAttribute('xml:space', 'preserve');
+                            } else {
+                                textNodes[0].removeAttribute('xml:space');
+                            }
+                            for (let i = 1; i < textNodes.length; i++) textNodes[i].textContent = '';
+                        }
+
+                        zip.file('word/document.xml', new XMLSerializer().serializeToString(xmlDoc));
+                    }
+
+                    const blob = await zip.generateAsync({ type: 'blob' });
+                    const docBlob = new Blob([blob], {
+                        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                    });
+
+                    console.log('DOCX generated:', docBlob.size, 'bytes');
+                    hideLoading();
+                    downloadBlob(docBlob, 'edited_document.docx');
+                    showStatus('✅ DOCX file ready!', 'success');
+                    downloadDocxBtn.textContent = '✅ Ready!';
+                } catch (error) {
+                    console.error('DOCX download error:', error);
+                    hideLoading();
+                    showStatus('Error generating DOCX: ' + error.message, 'error');
+                    downloadDocxBtn.textContent = '📄 Download DOCX';
+                } finally {
+                    isGenerating = false;
+                    setTimeout(() => {
+                        downloadDocxBtn.textContent = '📄 Download DOCX';
+                        downloadDocxBtn.disabled = false;
+                    }, 3000);
+                }
+            }
+
+            // ============================================================
+            // DOWNLOAD PDF FUNCTION
+            // ============================================================
+            async function downloadPdf() {
+                if (typeof html2pdf === 'undefined') {
+                    showStatus('PDF library not loaded. Please refresh the page.', 'error');
+                    return;
+                }
+
+                if (!isDocLoaded) {
+                    showStatus('No document loaded', 'error');
+                    return;
+                }
+
+                if (isGenerating) {
+                    showStatus('⏳ A generation is already in progress — please wait.', 'info');
+                    return;
+                }
+
+                try {
+                    isGenerating = true;
+                    downloadPdfBtn.textContent = '⏳ Generating...';
+                    downloadPdfBtn.disabled = true;
+                    showLoading('Generating PDF file...');
+                    showStatus('Generating PDF file...', 'info');
+
+                    // Get all page-sim elements from editor
+                    const originalPages = editor.querySelectorAll('.page-sim');
+
+                    if (!originalPages.length) {
+                        // If no page-sim elements, wrap the entire editor content
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'page-sim';
+                        wrapper.innerHTML = editor.innerHTML;
+                        editor.innerHTML = '';
+                        editor.appendChild(wrapper);
+                        // Re-query
+                        const newPages = editor.querySelectorAll('.page-sim');
+                        if (!newPages.length) {
+                            throw new Error('No content to export');
+                        }
+                        // Use newPages for rendering
+                        pdfContainer.innerHTML = '';
+                        pdfContainer.style.display = 'block';
+
+                        newPages.forEach((page, index) => {
+                            const clone = page.cloneNode(true);
+                            clone.className = 'pdf-page';
+                            clone.style.cssText = `
+                                display: block;
+                                width: 100%;
+                                max-width: 794px;
+                                min-height: 1123px;
+                                padding: 40px 50px;
+                                margin: 0 auto;
+                                background: #ffffff;
+                                color: #000000;
+                                font-family: 'Times New Roman', Times, serif;
+                                font-size: 12pt;
+                                line-height: 1.5;
+                                box-sizing: border-box;
+                                page-break-after: always;
+                                break-after: page;
+                                border: none;
+                                box-shadow: none;
+                            `;
+                            clone.querySelectorAll('[contenteditable]').forEach(el => {
+                                el.removeAttribute('contenteditable');
+                                el.style.outline = 'none';
+                            });
+                            clone.querySelectorAll('.page-break-sim').forEach(el => el.remove());
+                            clone.querySelectorAll('.docx-table').forEach(table => {
+                                table.style.borderCollapse = 'collapse';
+                                table.style.width = '100%';
+                                table.style.border = '1px solid #000';
+                                table.querySelectorAll('td, th').forEach(cell => {
+                                    cell.style.border = '1px solid #000';
+                                    cell.style.padding = '4px 8px';
+                                    cell.style.verticalAlign = 'top';
+                                });
+                            });
+                            pdfContainer.appendChild(clone);
+                        });
+                    } else {
+                        // Use existing page-sim elements
+                        pdfContainer.innerHTML = '';
+                        pdfContainer.style.display = 'block';
+
+                        originalPages.forEach((page, index) => {
+                            const clone = page.cloneNode(true);
+                            clone.className = 'pdf-page';
+                            clone.style.cssText = `
+                                display: block;
+                                width: 100%;
+                                max-width: 794px;
+                                min-height: 1123px;
+                                padding: 40px 50px;
+                                margin: 0 auto;
+                                background: #ffffff;
+                                color: #000000;
+                                font-family: 'Times New Roman', Times, serif;
+                                font-size: 12pt;
+                                line-height: 1.5;
+                                box-sizing: border-box;
+                                page-break-after: always;
+                                break-after: page;
+                                border: none;
+                                box-shadow: none;
+                            `;
+                            clone.querySelectorAll('[contenteditable]').forEach(el => {
+                                el.removeAttribute('contenteditable');
+                                el.style.outline = 'none';
+                            });
+                            clone.querySelectorAll('.page-break-sim').forEach(el => el.remove());
+                            clone.querySelectorAll('.docx-table').forEach(table => {
+                                table.style.borderCollapse = 'collapse';
+                                table.style.width = '100%';
+                                table.style.border = '1px solid #000';
+                                table.querySelectorAll('td, th').forEach(cell => {
+                                    cell.style.border = '1px solid #000';
+                                    cell.style.padding = '4px 8px';
+                                    cell.style.verticalAlign = 'top';
+                                });
+                            });
+                            pdfContainer.appendChild(clone);
+                        });
+                    }
+
+                    // Wait for DOM update
+                    await new Promise(resolve => setTimeout(resolve, 300));
+
+                    // Generate PDF
+                    const opt = {
+                        margin: 0,
+                        filename: 'document.pdf',
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: {
+                            scale: 2,
+                            useCORS: true,
+                            allowTaint: false,
+                            backgroundColor: '#ffffff',
+                            logging: false,
+                            letterRendering: true,
+                            width: 794,
+                            onclone: function(clonedDoc) {
+                                const container = clonedDoc.getElementById('pdfContainer');
+                                if (container) {
+                                    container.style.position = 'relative';
+                                    container.style.left = 'auto';
+                                    container.style.top = 'auto';
+                                    container.style.display = 'block';
+                                    container.style.width = '794px';
+                                    container.style.margin = '0 auto';
+                                }
+                            }
+                        },
+                        pagebreak: {
+                            mode: ['css', 'legacy'],
+                            before: '.pdf-page:not(:first-child)'
+                        },
+                        jsPDF: {
+                            unit: 'in',
+                            format: 'a4',
+                            orientation: 'portrait',
+                            compress: true
+                        }
+                    };
+
+                    const pdfBlob = await html2pdf()
+                        .set(opt)
+                        .from(pdfContainer)
+                        .toPdf()
+                        .outputPdf('blob');
+
+                    // Clear container
+                    pdfContainer.innerHTML = '';
+                    pdfContainer.style.display = 'none';
+
+                    if (!(pdfBlob instanceof Blob) || pdfBlob.size < 1000) {
+                        throw new Error('PDF generation failed - file is empty or invalid');
+                    }
+
+                    console.log('PDF generated:', pdfBlob.size, 'bytes');
+
+                    hideLoading();
+                    downloadBlob(pdfBlob, 'document.pdf');
+                    showStatus('✅ PDF file ready!', 'success');
+                    downloadPdfBtn.textContent = '✅ Ready!';
+
+                } catch (error) {
+                    console.error('PDF error:', error);
+                    pdfContainer.innerHTML = '';
+                    pdfContainer.style.display = 'none';
+                    hideLoading();
+                    showStatus('Error: ' + (error.message || error), 'error');
+                    downloadPdfBtn.textContent = '📑 Download PDF';
+                } finally {
+                    isGenerating = false;
+                    setTimeout(() => {
+                        downloadPdfBtn.textContent = '📑 Download PDF';
+                        downloadPdfBtn.disabled = false;
+                    }, 3000);
+                }
+            }
+
             // ---------- upload handler ----------
             uploadBtn.addEventListener('click', () => fileInput.click());
 
@@ -1465,7 +1863,6 @@
                 const file = e.target.files[0];
                 if (!file) return;
 
-                // Check if JSZip is loaded
                 if (!checkJSZip()) {
                     showStatus('⏳ Loading JSZip library...', 'info');
                     await new Promise(resolve => {
@@ -1488,19 +1885,14 @@
                     currentDoc = data;
                     isDocLoaded = true;
 
-                    // Show preview section
                     previewWrapper.classList.add('visible');
-
-                    // Enable toolbar
                     setToolbarEnabled(true);
 
                     renderDocument(data);
                     techStats.innerHTML =
                         `DOCX parsed · elements: ${data.elements.length} · pageBreaks: ${data.pageBreaks.length}`;
 
-                    // Enable edit toggle
                     editToggle.disabled = false;
-
                     hideLoading();
                     showStatus('✅ Document loaded successfully!', 'success');
                 } catch (err) {
@@ -1539,12 +1931,17 @@
                     '🔧 Technical Inspection (OOXML stats & raw)';
             });
 
-            // Initial state - preview hidden, toolbar disabled
+            // Download button event listeners
+            downloadDocxBtn.addEventListener('click', downloadDocx);
+            downloadPdfBtn.addEventListener('click', downloadPdf);
+
+            // Initial state
             previewWrapper.classList.remove('visible');
             setToolbarEnabled(false);
             editToggle.disabled = true;
+            downloadSection.className = 'download-section download-section-hidden';
 
-            console.log('DOCX Format Preservation Test ready with list support.');
+            console.log('DOCX Format Preservation Test ready with download support.');
         })();
     </script>
 </body>
