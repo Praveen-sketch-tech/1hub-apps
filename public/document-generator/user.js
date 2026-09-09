@@ -155,7 +155,7 @@ async function selectDocument(docId) {
         let content = '';
         const isDocx = doc.filename && doc.filename.endsWith('.docx');
         const isTxt = doc.filename && doc.filename.endsWith('.txt');
-        
+
         if (isDocx && docData.contentBase64) {
             doc._originalDocxBase64 = docData.contentBase64;
             doc._isOriginalDocx = true;
@@ -165,15 +165,12 @@ async function selectDocument(docId) {
                 bytes[i] = binaryString.charCodeAt(i);
             }
             const arrayBuffer = bytes.buffer;
-            
-            // ============================================================
-            // FIX: Use convertToHtml instead of extractRawText to preserve formatting
-            // ============================================================
+
             const result = await mammoth.convertToHtml({ arrayBuffer });
-            doc._htmlContent = result.value; // Store HTML with formatting
-            content = result.value; // HTML content with formatting preserved
+            doc._htmlContent = result.value;
+            content = result.value;
             doc._isHtmlContent = true;
-            
+
         } else if (isTxt && docData.textContent) {
             doc._isOriginalDocx = false;
             doc._isHtmlContent = false;
@@ -189,7 +186,7 @@ async function selectDocument(docId) {
         } else {
             throw new Error('No content available for this document');
         }
-        
+
         if (!content || content.trim() === '') {
             throw new Error('Document content is empty');
         }
@@ -239,37 +236,30 @@ function generateForm(doc, content) {
     }).join('') + `<button class="btn btn-primary" onclick="updatePreview()">👁️ Preview</button>`;
 }
 
-// ============================================================
-// FIXED: updatePreview - Preserves original formatting
-// ============================================================
 function updatePreview() {
     const doc = currentDocument;
     if (!doc || !doc._content) {
         showStatus('Please select a document first', 'error');
         return;
     }
-    
+
     const previewEl = document.getElementById('previewContent');
-    
-    // Check if we have HTML content from mammoth (formatting preserved)
+
     if (doc._isHtmlContent && doc._htmlContent) {
         let html = doc._htmlContent;
-        
-        // Replace placeholders in HTML content
+
         doc.fields.forEach(field => {
             const el = document.getElementById(`field_${field.key}`);
             const value = el?.value || '';
             if (value) {
                 const key = field.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                // Replace both {key} and {{key}} styles
                 html = html.replace(new RegExp(`\\{{1,2}${key}\\}{1,2}`, 'g'), value);
             }
         });
-        
+
         previewEl.innerHTML = html;
-        
+
     } else {
-        // Fallback for plain text documents - use simple formatting
         let filledContent = doc._content;
         doc.fields.forEach(field => {
             const el = document.getElementById(`field_${field.key}`);
@@ -281,70 +271,52 @@ function updatePreview() {
         });
         previewEl.innerHTML = formatPlainText(filledContent);
     }
-    
+
     document.getElementById('previewArea').style.display = 'block';
     window.currentPreviewContent = previewEl.innerHTML;
 }
 
-// ============================================================
-// FIXED: formatPlainText - Minimal formatting for plain text only
-// ============================================================
 function formatPlainText(text) {
     if (!text) return '';
-    
-    // Escape HTML
+
     let html = escapeHtml(text);
-    
-    // Simple formatting for plain text
+
     html = html
-        // Bold: **text** or __text__
         .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
         .replace(/__(.+?)__/g, '<b>$1</b>')
-        // Italic: *text* or _text_
         .replace(/\*(.+?)\*/g, '<i>$1</i>')
         .replace(/_(.+?)_/g, '<i>$1</i>')
-        // Underline: ++text++
         .replace(/\+\+(.+?)\+\+/g, '<u>$1</u>')
-        // Headings: ALL CAPS lines
         .replace(/^([A-Z][A-Z\s]{4,})$/gm, '<h2>$1</h2>')
-        // Horizontal rule: ---
         .replace(/^[-]{3,}$/gm, '<hr>')
-        // Convert line breaks to paragraphs
         .split('\n\n')
         .map(p => p.trim())
         .filter(p => p)
         .map(p => {
             if (p.match(/^\d+\.\s/)) {
-                // Numbered list items
                 return p.replace(/^(\d+\.\s)(.+)$/gm, '<li>$1 $2</li>');
             }
             if (p.match(/^[•\-*]\s/)) {
-                // Bullet list items
                 return p.replace(/^[•\-*]\s(.+)$/gm, '<li>• $1</li>');
             }
             if (p.startsWith('<h') || p.startsWith('<hr>')) return p;
             return `<p>${p}</p>`;
         })
         .join('\n');
-    
-    // Wrap list items
+
     html = html.replace(/(<li>.*?<\/li>)/g, (match) => {
         if (match.includes('•')) {
             return `<ul>${match}</ul>`;
         }
         return `<ol>${match}</ol>`;
     });
-    
-    // Clean up nested lists
+
     html = html.replace(/<\/ul>\s*<ul>/g, '');
     html = html.replace(/<\/ol>\s*<ol>/g, '');
-    
+
     return html;
 }
 
-// ============================================================
-// ROOT CAUSE FIX (Issue #5 - Hindi/Devanagari PDF blank/garbled):
-// ============================================================
 const DEVANAGARI_REGEX = /[\u0900-\u097F]/;
 const DEVANAGARI_FONT_URL = '/shared/fonts/noto-sans-devanagari-regular.ttf';
 const DEVANAGARI_FONT_VFS_NAME = 'NotoSansDevanagari-Regular.ttf';
@@ -379,9 +351,6 @@ async function ensureDevanagariFont(doc) {
     doc.addFont(DEVANAGARI_FONT_VFS_NAME, DEVANAGARI_FONT_ALIAS, 'normal');
 }
 
-// ============================================================
-// FIXED: downloadWord - Uses HTML content with formatting
-// ============================================================
 async function downloadWord() {
     const content = document.getElementById('previewContent').innerHTML;
 
@@ -469,9 +438,6 @@ function toggleOriginalFormatButton(doc) {
     btn.style.display = doc && doc._isOriginalDocx && doc._originalDocxBase64 ? 'inline-block' : 'none';
 }
 
-// ============================================================
-// SECOND, INDEPENDENT DOCX PATH (OOXML-preserving):
-// ============================================================
 async function downloadOriginalFormatWord() {
     const doc = currentDocument;
     if (!doc || !doc._isOriginalDocx || !doc._originalDocxBase64) {
@@ -523,9 +489,6 @@ async function downloadOriginalFormatWord() {
     }
 }
 
-// ============================================================
-// FIXED: downloadPDF - Uses HTML content with formatting
-// ============================================================
 async function downloadPDF() {
     const content = document.getElementById('previewContent').innerHTML;
     if (!content || content.trim() === '') {
@@ -541,16 +504,14 @@ async function downloadPDF() {
         const maxWidth = pageWidth - 2 * margin;
         const lineHeight = 7;
         let y = margin;
-        
-        // Create a temporary div to extract text with formatting
+
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = content;
         let textToSplit = '';
         const children = tempDiv.childNodes;
-        
+
         for (const node of children) {
             if (node.nodeType === 3) {
-                // Text node
                 textToSplit += node.textContent + '\n';
             } else if (node.tagName === 'P') {
                 textToSplit += node.textContent + '\n\n';
@@ -566,7 +527,6 @@ async function downloadPDF() {
                 });
                 textToSplit += '\n';
             } else if (node.tagName === 'TABLE') {
-                // Handle tables
                 const rows = node.querySelectorAll('tr');
                 rows.forEach(row => {
                     const cells = row.querySelectorAll('td, th');
@@ -577,7 +537,6 @@ async function downloadPDF() {
             } else if (node.tagName === 'HR') {
                 textToSplit += '---\n\n';
             } else if (node.tagName === 'DIV') {
-                // Handle nested divs (like page breaks)
                 if (node.className === 'page-break') {
                     textToSplit += '\n--- PAGE BREAK ---\n\n';
                 } else {
@@ -587,8 +546,7 @@ async function downloadPDF() {
                 textToSplit += node.textContent + '\n';
             }
         }
-        
-        // Check for Devanagari text
+
         if (DEVANAGARI_REGEX.test(textToSplit)) {
             try {
                 await ensureDevanagariFont(doc);
@@ -598,10 +556,9 @@ async function downloadPDF() {
                 showStatus('⚠️ Hindi font failed to load, PDF text may be garbled', 'error');
             }
         }
-        
-        // Split text into lines
+
         const splitLines = doc.splitTextToSize(textToSplit, maxWidth);
-        
+
         for (let i = 0; i < splitLines.length; i++) {
             const line = splitLines[i];
             if (y + lineHeight > pageHeight - margin) {
@@ -611,7 +568,7 @@ async function downloadPDF() {
             doc.text(line, margin, y);
             y += lineHeight;
         }
-        
+
         const filename = currentDocument ?
             `${currentDocument.name}_${new Date().toISOString().split('T')[0]}.pdf` :
             'document.pdf';
@@ -621,6 +578,118 @@ async function downloadPDF() {
         console.error('PDF generation error:', error);
         showStatus('❌ Error generating PDF: ' + error.message, 'error');
     }
+}
+
+// ============================================================
+// PRINT FUNCTION - Opens browser print dialog with preview content
+// ============================================================
+function printDocument() {
+    const previewContent = document.getElementById('previewContent');
+    
+    if (!previewContent || previewContent.innerHTML.trim() === '') {
+        showStatus('Please generate preview first!', 'error');
+        return;
+    }
+
+    const contentHTML = previewContent.innerHTML;
+    
+    const styles = document.querySelector('style')?.innerHTML || '';
+    
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    
+    if (!printWindow) {
+        showStatus('⚠️ Please allow popups for printing', 'error');
+        return;
+    }
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Document Print</title>
+            <meta charset="UTF-8">
+            <style>
+                ${styles}
+                
+                body {
+                    font-family: 'Times New Roman', Times, serif;
+                    padding: 40px;
+                    margin: 0;
+                    background: white;
+                    color: black;
+                }
+                
+                .preview-box {
+                    max-height: none !important;
+                    overflow: visible !important;
+                    border: none !important;
+                    padding: 20px !important;
+                    box-shadow: none !important;
+                }
+                
+                .page-break {
+                    page-break-after: always;
+                    border-top: 2px dashed #ccc;
+                    margin: 30px 0;
+                    padding: 10px 0;
+                    text-align: center;
+                    color: #999;
+                }
+                
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 12px 0;
+                }
+                
+                table td, table th {
+                    border: 1px solid #000;
+                    padding: 6px 10px;
+                    text-align: left;
+                }
+                
+                table th {
+                    background: #f0f4ff;
+                }
+                
+                .text-left { text-align: left; }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .text-justify { text-align: justify; }
+                .fw-bold { font-weight: bold; }
+                .fst-italic { font-style: italic; }
+                .text-underline { text-decoration: underline; }
+                
+                @media print {
+                    body { padding: 20px; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="preview-box">
+                ${contentHTML}
+            </div>
+            
+            <script>
+                window.onload = function() {
+                    setTimeout(function() {
+                        window.print();
+                    }, 500);
+                };
+                
+                window.onafterprint = function() {
+                    setTimeout(function() {
+                        window.close();
+                    }, 1000);
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    showStatus('🖨️ Print dialog opened. Select "Save as PDF" or print.', 'success');
 }
 
 function escapeHtml(text) {
