@@ -171,8 +171,20 @@ async function selectDocument(docId) {
                 bytes[i] = binaryString.charCodeAt(i);
             }
             const arrayBuffer = bytes.buffer;
+            // Keep plain text for field discovery / existing form logic.
             const result = await mammoth.extractRawText({ arrayBuffer });
             content = result.value;
+
+            // Also keep a formatting-preserving HTML representation for the
+            // live preview. This prevents the preview from being rebuilt from
+            // plain text and losing the original DOCX formatting.
+            try {
+                const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
+                doc._formattedHtml = htmlResult.value || '';
+            } catch (htmlError) {
+                console.warn('DOCX formatted preview conversion failed:', htmlError);
+                doc._formattedHtml = '';
+            }
         } else if (isTxt && docData.textContent) {
             doc._isOriginalDocx = false;
             content = docData.textContent;
@@ -241,28 +253,79 @@ function updatePreview() {
         showStatus('Please select a document first', 'error');
         return;
     }
-    let filledContent = doc._content;
+
+    const values = {};
+
     doc.fields.forEach(field => {
         const el = document.getElementById(`field_${field.key}`);
-        const value = el?.value || '';
-        if (value) {
-            const key = field.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            // ROOT CAUSE FIX (Issue #3 - stray braces / "original doc shows"):
-            // Templates may use either {key} or {{key}} style placeholders.
-            // The old pattern only matched a single pair of braces, so a
-            // {{key}} template left one stray brace on each side after
-            // replacement (e.g. "{Ravi}" instead of "Ravi"). Matching 1-2
-            // braces on both sides consumes the whole placeholder token
-            // regardless of which style the template author used.
-            filledContent = filledContent.replace(new RegExp(`\\{{1,2}${key}\\}{1,2}`, 'g'), value);
-        }
+        values[field.key] = el?.value || '';
     });
+
+    // DOCX preview: use Mammoth's HTML conversion so the original
+    // document's formatting (bold, italic, underline, headings, lists,
+    // tables, alignment, etc.) is retained instead of rebuilding the
+    // document from plain text.
+    if (doc._isOriginalDocx && doc._formattedHtml) {
+        let html = doc._formattedHtml;
+
+        doc.fields.forEach(field => {
+            const value = values[field.key];
+            if (!value) return;
+
+            const key = field.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            // Replace both {key} and {{key}} placeholder styles.
+            const placeholderRegex = new RegExp(
+                `\\{\\{${key}\\}\\}|\\{${key}\\}`,
+                'g'
+            );
+
+            html = html.replace(
+                placeholderRegex,
+                () => escapeHtml(value).replace(/\n/g, '<br>')
+            );
+        });
+
+        const previewEl = document.getElementById('previewContent');
+        previewEl.innerHTML = html;
+        document.getElementById('previewArea').style.display = 'block';
+
+        // Keep the plain filled content for the existing PDF/legacy path.
+        let filledContent = doc._content;
+        doc.fields.forEach(field => {
+            const value = values[field.key];
+            if (!value) return;
+
+            const key = field.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            filledContent = filledContent.replace(
+                new RegExp(`\\{{1,2}${key}\\}{1,2}`, 'g'),
+                value
+            );
+        });
+
+        window.currentPreviewContent = filledContent;
+        return;
+    }
+
+    // Existing TXT / legacy fallback path.
+    let filledContent = doc._content;
+
+    doc.fields.forEach(field => {
+        const value = values[field.key];
+        if (!value) return;
+
+        const key = field.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        filledContent = filledContent.replace(
+            new RegExp(`\\{{1,2}${key}\\}{1,2}`, 'g'),
+            value
+        );
+    });
+
     const previewEl = document.getElementById('previewContent');
     previewEl.innerHTML = formatDocumentContent(filledContent);
     document.getElementById('previewArea').style.display = 'block';
     window.currentPreviewContent = filledContent;
 }
-
 function formatDocumentContent(text) {
     let html = escapeHtml(text)
         .replace(/^([A-Z][A-Z\s]{4,})$/gm, '<h2>$1</h2>')
