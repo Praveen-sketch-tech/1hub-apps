@@ -156,6 +156,15 @@ async function selectDocument(docId) {
         const isDocx = doc.filename && doc.filename.endsWith('.docx');
         const isTxt = doc.filename && doc.filename.endsWith('.txt');
         if (isDocx && docData.contentBase64) {
+            // Keep the ORIGINAL, unmodified DOCX bytes around. mammoth's
+            // extractRawText() below is used only for the live preview/field
+            // discovery text - it is plain text and cannot be turned back
+            // into a formatted DOCX. The separate "Original Formatting"
+            // download path (downloadOriginalFormatWord) works directly on
+            // these original bytes instead, so it never goes through the
+            // lossy DOCX -> plain text -> HTML -> DOCX round trip.
+            doc._originalDocxBase64 = docData.contentBase64;
+            doc._isOriginalDocx = true;
             const binaryString = atob(docData.contentBase64);
             const bytes = new Uint8Array(binaryString.length);
             for (let i = 0; i < binaryString.length; i++) {
@@ -165,8 +174,10 @@ async function selectDocument(docId) {
             const result = await mammoth.extractRawText({ arrayBuffer });
             content = result.value;
         } else if (isTxt && docData.textContent) {
+            doc._isOriginalDocx = false;
             content = docData.textContent;
         } else if (docData.contentBase64) {
+            doc._isOriginalDocx = false;
             try {
                 content = atob(docData.contentBase64);
             } catch (e) {
@@ -180,6 +191,7 @@ async function selectDocument(docId) {
         }
         doc._content = content;
         generateForm(doc, content);
+        toggleOriginalFormatButton(doc);
         showStatus('✅ Document loaded successfully!', 'success');
     } catch (error) {
         showStatus('❌ Failed to load document: ' + error.message, 'error');
@@ -399,6 +411,73 @@ function downloadReadyWord() {
             '❌ Word download failed: ' + error.message,
             'error'
         );
+    }
+}
+
+function toggleOriginalFormatButton(doc) {
+    const btn = document.getElementById('generateOriginalWordBtn');
+    if (!btn) return;
+    btn.style.display = doc && doc._isOriginalDocx && doc._originalDocxBase64 ? 'inline-block' : 'none';
+}
+
+// ============================================================
+// SECOND, INDEPENDENT DOCX PATH (OOXML-preserving):
+// Original uploaded .docx -> ZIP/OOXML -> targeted placeholder text
+// replacement inside word/document.xml (+ headers/footers) -> re-zipped
+// DOCX. Bold/italic/underline/colour/tables/numbering/headings/page
+// layout/margins etc. all come from the original file untouched - only the
+// placeholder text itself changes. This does NOT go through TurboDocx and
+// does NOT touch/replace window.generateDocx() / downloadWord() above,
+// which remains the existing HTML -> TurboDocx -> DOCX path unchanged.
+// ============================================================
+async function downloadOriginalFormatWord() {
+    const doc = currentDocument;
+    if (!doc || !doc._isOriginalDocx || !doc._originalDocxBase64) {
+        showStatus('❌ Original formatting is only available for uploaded Word (.docx) templates.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('generateOriginalWordBtn');
+    const originalLabel = btn ? btn.textContent : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Generating...';
+    }
+
+    try {
+        const fieldValues = {};
+        (doc.fields || []).forEach(field => {
+            const el = document.getElementById(`field_${field.key}`);
+            if (el && el.value) fieldValues[field.key] = el.value;
+        });
+
+        const { generateFormatPreservingDocx } = await import('/shared/docx-format-preserve.js');
+        const blob = await generateFormatPreservingDocx({
+            originalBytes: doc._originalDocxBase64,
+            fieldValues
+        });
+
+        const filename = `${doc.name}_${new Date().toISOString().split('T')[0]}.docx`;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.rel = 'noopener';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+
+        showStatus(`✅ Word document downloaded with original formatting (${Math.round(blob.size / 1024)} KB)`, 'success');
+    } catch (error) {
+        console.error('Original-format DOCX generation failed:', error);
+        showStatus('❌ Error generating formatted Word document: ' + error.message, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalLabel || '🧩 Generate Word (Original Formatting)';
+        }
     }
 }
 

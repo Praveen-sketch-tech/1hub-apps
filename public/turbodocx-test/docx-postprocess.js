@@ -211,6 +211,112 @@ function readZip(bytes) {
 }
 
 /** Fixed DOS date/time (Jan 1 2020) — value is irrelevant to Word/LibreOffice. */
+// ---------------------------------------------------------------------------
+// Universal ZIP reader: supports STORE (0) AND DEFLATE (8).
+//
+// `readZip` above is intentionally STORE-only because it exactly matches
+// TurboDocx's own output. It is NOT safe to reuse for arbitrary uploaded
+// .docx files — real Word/LibreOffice documents are almost always DEFLATE
+// (method 8), and feeding those bytes through the STORE-only reader would
+// either throw (best case) or silently misread entry boundaries (worst
+// case). This reader shares the exact same central-directory parsing logic,
+// but decompresses DEFLATE entries with the browser's native
+// DecompressionStream — no external ZIP/inflate library required, matching
+// the dependency-free approach used everywhere else in this file.
+// ---------------------------------------------------------------------------
+export async function readZipUniversal(bytes) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+
+  const EOCD_SIG = 0x06054b50;
+  let eocdOffset = -1;
+  const maxCommentScan = Math.min(bytes.length, 65557);
+  for (let i = bytes.length - 22; i >= bytes.length - maxCommentScan && i >= 0; i--) {
+    if (readUInt32LE(view, i) === EOCD_SIG) {
+      eocdOffset = i;
+      break;
+    }
+  }
+  if (eocdOffset === -1) {
+    throw new Error('Not a valid ZIP/DOCX file: End Of Central Directory not found.');
+  }
+
+  const entryCount = readUInt16LE(view, eocdOffset + 10);
+  const centralDirOffset = readUInt32LE(view, eocdOffset + 16);
+  const CENTRAL_SIG = 0x02014b50;
+  const LOCAL_SIG = 0x04034b50;
+
+  const rawEntries = [];
+  let ptr = centralDirOffset;
+
+  for (let i = 0; i < entryCount; i++) {
+    if (readUInt32LE(view, ptr) !== CENTRAL_SIG) {
+      throw new Error('Corrupt DOCX: unexpected central directory signature.');
+    }
+    const compressionMethod = readUInt16LE(view, ptr + 10);
+    const compressedSize = readUInt32LE(view, ptr + 20);
+    const uncompressedSize = readUInt32LE(view, ptr + 24);
+    const nameLen = readUInt16LE(view, ptr + 28);
+    const extraLen = readUInt16LE(view, ptr + 30);
+    const commentLen = readUInt16LE(view, ptr + 32);
+    const localHeaderOffset = readUInt32LE(view, ptr + 42);
+    const nameBytes = bytes.subarray(ptr + 46, ptr + 46 + nameLen);
+    const name = new TextDecoder('utf-8').decode(nameBytes);
+    const isDir = name.endsWith('/');
+
+    if (!isDir) {
+      if (readUInt32LE(view, localHeaderOffset) !== LOCAL_SIG) {
+        throw new Error(`Corrupt DOCX: bad local file header for "${name}".`);
+      }
+      const localNameLen = readUInt16LE(view, localHeaderOffset + 26);
+      const localExtraLen = readUInt16LE(view, localHeaderOffset + 28);
+      const dataStart = localHeaderOffset + 30 + localNameLen + localExtraLen;
+      const dataEnd = dataStart + compressedSize;
+
+      rawEntries.push({
+        name,
+        isDir: false,
+        compressionMethod,
+        compressedBytes: bytes.slice(dataStart, dataEnd),
+        uncompressedSize,
+      });
+    } else {
+      rawEntries.push({ name, isDir: true, compressionMethod: 0, compressedBytes: new Uint8Array(0), uncompressedSize: 0 });
+    }
+
+    ptr += 46 + nameLen + extraLen + commentLen;
+  }
+
+  const entries = [];
+  for (const e of rawEntries) {
+    if (e.isDir) {
+      entries.push({ name: e.name, bytes: new Uint8Array(0), isDir: true });
+      continue;
+    }
+    if (e.compressionMethod === 0) {
+      entries.push({ name: e.name, bytes: e.compressedBytes, isDir: false });
+    } else if (e.compressionMethod === 8) {
+      if (typeof DecompressionStream === 'undefined') {
+        throw new Error(
+          `Cannot read "${e.name}": this DOCX uses DEFLATE compression and this ` +
+          'browser has no native DecompressionStream support (need Chrome/Edge 80+, ' +
+          'Firefox 113+, or Safari 16.4+).'
+        );
+      }
+      const stream = new Blob([e.compressedBytes]).stream()
+        .pipeThrough(new DecompressionStream('deflate-raw'));
+      const buffer = await new Response(stream).arrayBuffer();
+      entries.push({ name: e.name, bytes: new Uint8Array(buffer), isDir: false });
+    } else {
+      throw new Error(
+        `Unsupported ZIP compression method (${e.compressionMethod}) for "${e.name}". ` +
+        'Only STORE and DEFLATE are supported by this reader.'
+      );
+    }
+  }
+
+  return entries;
+}
+
 const DOS_TIME = 0x0000;
 const DOS_DATE = (2020 - 1980) << 9 | (1 << 5) | 1;
 
@@ -226,7 +332,7 @@ function writeUInt16LE(arr, offset, value) {
 }
 
 /** Rebuilds a STORE-method ZIP from an ordered array of {name, bytes, isDir}. */
-function writeZip(entries) {
+export function writeZip(entries) {
   const encoder = new TextEncoder();
   const localChunks = [];
   const centralChunks = [];
