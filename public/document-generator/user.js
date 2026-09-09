@@ -8,6 +8,32 @@ let currentLang = 'en';
 let currentDocId = null;
 let currentDocument = null;
 
+// ============================================================
+// CHECK JSZip IS LOADED
+// ============================================================
+function isJSZipLoaded() {
+    if (typeof JSZip === 'undefined') {
+        console.warn('JSZip not loaded yet');
+        return false;
+    }
+    return true;
+}
+
+function waitForJSZip(callback, retries) {
+    retries = retries || 0;
+    if (isJSZipLoaded()) {
+        callback();
+        return;
+    }
+    if (retries > 30) {
+        showStatus('❌ JSZip library failed to load. Please refresh the page.', 'error');
+        return;
+    }
+    setTimeout(function() {
+        waitForJSZip(callback, retries + 1);
+    }, 500);
+}
+
 async function apiCall(endpoint, options = {}) {
     const url = `/api/document-generator${endpoint}`;
     const response = await fetch(url, {
@@ -138,9 +164,14 @@ function searchDocuments() {
 }
 
 // ============================================================
-// FIXED: DOCX PARSING - Manual OOXML parsing (from prorircb.html)
+// FIXED: parseDocxManual with JSZip check
 // ============================================================
 async function parseDocxManual(arrayBuffer) {
+    // Check if JSZip is loaded
+    if (typeof JSZip === 'undefined') {
+        throw new Error('JSZip library is not loaded. Please refresh the page.');
+    }
+    
     const zip = await JSZip.loadAsync(arrayBuffer);
     let docXml = await zip.file("word/document.xml")?.async("string");
     if (!docXml) throw new Error("document.xml not found");
@@ -453,11 +484,13 @@ async function parseDocxManual(arrayBuffer) {
 }
 
 // ============================================================
-// FIXED: RENDER FUNCTION - Proper formatting preservation
+// RENDER FUNCTION - Proper formatting preservation
 // ============================================================
 function renderDocumentWithFormatting(docData) {
+    const previewEl = document.getElementById('previewContent');
+    
     if (!docData) {
-        editor.innerHTML = `<div style="color:#94a3b8; text-align:center; padding:3rem 0;">No document loaded</div>`;
+        previewEl.innerHTML = `<div style="color:#94a3b8; text-align:center; padding:3rem 0;">No document loaded</div>`;
         return;
     }
     const { elements, styles, numbering, pageBreaks } = docData;
@@ -473,10 +506,6 @@ function renderDocumentWithFormatting(docData) {
             tableCount++;
         }
     }
-    paraCountEl.textContent = `paragraphs: ${paraCount}`;
-    runCountEl.textContent = `runs: ${runTotal}`;
-    tableCountEl.textContent = `tables: ${tableCount}`;
-    pageCountEl.textContent = `pages: ${(pageBreaks ? pageBreaks.length : 0) + 1}`;
 
     let pageCounter = 1;
     let currentPageHtml = `<div class="page-sim" data-page="${pageCounter}">`;
@@ -583,25 +612,8 @@ function renderDocumentWithFormatting(docData) {
     currentPageHtml += `</div>`;
     pageHtml += currentPageHtml;
 
-    editor.innerHTML = pageHtml;
-
-    isEditing = false;
-    editor.contentEditable = 'false';
-    editor.classList.add('readonly');
-    editModeBtn.textContent = '✏️ Edit';
-    editModeBtn.classList.remove('active');
-
-    if (docData.rawXml) {
-        rawXmlDisplay.textContent = docData.rawXml.substring(0, 4000) + (docData.rawXml.length > 4000 ? '… (truncated)' : '');
-    } else {
-        rawXmlDisplay.textContent = 'No raw XML captured.';
-    }
-    techStats.innerHTML = `
-        <strong>DOCX stats</strong> · paragraphs: ${paraCount} · runs: ${runTotal} · tables: ${tableCount} · pageBreaks: ${pageBreaks?pageBreaks.length:0}
-        · styles: ${styles?Object.keys(styles).length:0} · numbering: ${numbering?Object.keys(numbering.abstracts||{}).length:0}
-    `;
-
-    downloadSection.className = 'download-section download-section-visible';
+    previewEl.innerHTML = pageHtml;
+    document.getElementById('previewArea').style.display = 'block';
 }
 
 // ============================================================
@@ -688,13 +700,15 @@ async function selectDocument(docId) {
             renderDocumentWithFormatting(doc._parsedData);
         } else {
             // Fallback for txt files
-            renderDocumentWithFormatting(null);
-            editor.innerHTML = `<pre style="white-space:pre-wrap;font-family:inherit;">${escapeHtml(content)}</pre>`;
+            const previewEl = document.getElementById('previewContent');
+            previewEl.innerHTML = `<pre style="white-space:pre-wrap;font-family:inherit;">${escapeHtml(content)}</pre>`;
+            document.getElementById('previewArea').style.display = 'block';
         }
         
         showStatus('✅ Document loaded successfully!', 'success');
     } catch (error) {
         showStatus('❌ Failed to load document: ' + error.message, 'error');
+        console.error(error);
     }
 }
 
@@ -791,9 +805,9 @@ function updatePreview() {
             }
         });
         previewEl.innerHTML = formatPlainText(filledContent);
+        document.getElementById('previewArea').style.display = 'block';
     }
 
-    document.getElementById('previewArea').style.display = 'block';
     window.currentPreviewContent = previewEl.innerHTML;
 }
 
@@ -834,7 +848,7 @@ function formatPlainText(text) {
 }
 
 // ============================================================
-// REST OF THE CODE (Unchanged from previous)
+// REST OF THE CODE (Unchanged)
 // ============================================================
 
 const DEVANAGARI_REGEX = /[\u0900-\u097F]/;
