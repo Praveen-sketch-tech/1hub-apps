@@ -68,105 +68,169 @@ function utf8Decode(bytes) {
  * @returns {{ xml: string, replacedCount: number }}
  */
 export function replacePlaceholdersInPart(xmlString, resolveValue) {
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
+  /*
+   * CRITICAL:
+   * Never parse and re-serialize the complete OOXML document.
+   * We modify only the text content inside <w:t> elements.
+   * Everything else remains byte-for-byte untouched.
+   */
 
-  const parserError = xmlDoc.getElementsByTagName('parsererror')[0];
-  if (parserError) {
-    throw new Error('Could not parse DOCX XML part: ' + parserError.textContent);
+  const textTagRegex = /(<w:t\b[^>]*>)([\s\S]*?)(<\/w:t>)/g;
+  const nodes = [];
+
+  let fullText = "";
+  let tagMatch;
+
+  while ((tagMatch = textTagRegex.exec(xmlString)) !== null) {
+    const encodedText = tagMatch[2];
+    const decodedText = decodeXmlText(encodedText);
+
+    nodes.push({
+      start: fullText.length,
+      end: fullText.length + decodedText.length,
+      contentStart: tagMatch.index + tagMatch[1].length,
+      contentEnd: tagMatch.index + tagMatch[1].length + encodedText.length,
+      text: decodedText
+    });
+
+    fullText += decodedText;
   }
 
-  const paragraphs = xmlDoc.getElementsByTagNameNS(WORD_NS, 'p');
-  let replacedCount = 0;
-
-  for (let p = 0; p < paragraphs.length; p++) {
-    replacedCount += processParagraph(paragraphs[p], resolveValue);
+  if (!nodes.length) {
+    return { xml: xmlString, replacedCount: 0 };
   }
 
-  const serialized = new XMLSerializer().serializeToString(xmlDoc);
-  // XMLSerializer implementations vary: some already emit a leading
-  // <?xml ...?> prolog, some don't. Strip any existing one first so we
-  // never end up with two declarations (which is invalid XML and would
-  // make Word treat the whole .docx as corrupt).
-  const withoutProlog = serialized.replace(/^\s*<\?xml[^?]*\?>\s*/i, '');
-  const xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n' + withoutProlog;
-
-  return { xml, replacedCount };
-}
-
-/**
- * A placeholder like {CUSTOMER_NAME} may be split across several <w:r> runs
- * by Word itself (this happens routinely from autocorrect/spellcheck/manual
- * edits), e.g.:
- *   <w:r><w:t>Dear {CUST</w:t></w:r><w:r><w:t>OMER_NAME}, ...</w:t></w:r>
- * so replacement must operate on the paragraph's full concatenated text,
- * then map each match back onto the specific <w:t> nodes/offsets it spans.
- */
-function processParagraph(paragraphEl, resolveValue) {
-  const textNodes = Array.from(paragraphEl.getElementsByTagNameNS(WORD_NS, 't'));
-  if (textNodes.length === 0) return 0;
-
-  // Build the paragraph's full text plus a map of [start, end) -> node.
-  let fullText = '';
-  const segments = []; // { node, start, end }
-  for (const node of textNodes) {
-    const text = node.textContent || '';
-    segments.push({ node, start: fullText.length, end: fullText.length + text.length });
-    fullText += text;
-  }
-
+  /*
+   * Find placeholders in the logical paragraph/text stream.
+   * Values that are undefined are intentionally left untouched.
+   */
   const matches = [];
-  let m;
   PLACEHOLDER_REGEX.lastIndex = 0;
-  while ((m = PLACEHOLDER_REGEX.exec(fullText)) !== null) {
-    const key = m[1].trim();
+
+  let placeholderMatch;
+
+  while ((placeholderMatch = PLACEHOLDER_REGEX.exec(fullText)) !== null) {
+    const key = placeholderMatch[1].trim();
     const value = resolveValue(key);
-    if (value === undefined) continue; // unknown placeholder - leave untouched
-    matches.push({ start: m.index, end: m.index + m[0].length, value: String(value) });
+
+    if (value === undefined) continue;
+
+    matches.push({
+      start: placeholderMatch.index,
+      end: placeholderMatch.index + placeholderMatch[0].length,
+      value: String(value)
+    });
   }
 
-  if (matches.length === 0) return 0;
-
-  // Apply from LAST match to FIRST so earlier offsets in `segments` stay
-  // valid while we mutate node text content in place.
-  for (let i = matches.length - 1; i >= 0; i--) {
-    applyMatchToSegments(matches[i], segments);
+  if (!matches.length) {
+    return { xml: xmlString, replacedCount: 0 };
   }
 
-  return matches.length;
-}
+  /*
+   * Calculate the final text for every affected <w:t>.
+   * A placeholder may cross multiple runs.
+   *
+   * The replacement is placed in the first run touched by the
+   * placeholder, so that run's original <w:rPr> formatting is retained.
+   */
+  const editsByNode = new Map();
 
-function applyMatchToSegments(match, segments) {
-  const touched = segments.filter((s) => s.end > match.start && s.start < match.end);
-  if (touched.length === 0) return;
+  for (const match of matches) {
+    const touched = nodes.filter(
+      node => node.end > match.start && node.start < match.end
+    );
 
-  touched.forEach((seg, idx) => {
-    const original = seg.node.textContent || '';
-    const localStart = Math.max(0, match.start - seg.start);
-    const localEnd = Math.min(original.length, match.end - seg.start);
-    const before = original.slice(0, localStart);
-    const after = original.slice(localEnd);
+    if (!touched.length) continue;
 
-    let next;
-    if (idx === 0) {
-      // First touched run: keep its own leading text, inject the full
-      // replacement value here (using THIS run's formatting), drop the
-      // placeholder portion that lived in this run.
-      next = before + match.value + (touched.length === 1 ? after : '');
-    } else if (idx === touched.length - 1) {
-      // Last touched run: drop the placeholder portion, keep trailing text.
-      next = after;
-    } else {
-      // A run entirely inside the placeholder span: nothing left to keep.
-      next = '';
+    touched.forEach((node, index) => {
+      if (!editsByNode.has(node)) {
+        editsByNode.set(node, []);
+      }
+
+      const localStart = Math.max(0, match.start - node.start);
+      const localEnd = Math.min(
+        node.text.length,
+        match.end - node.start
+      );
+
+      editsByNode.get(node).push({
+        start: localStart,
+        end: localEnd,
+        value: index === 0 ? match.value : ""
+      });
+    });
+  }
+
+  const replacements = [];
+
+  for (const [node, edits] of editsByNode.entries()) {
+    /*
+     * Process edits from left to right.
+     * Overlapping edits are skipped because they belong to the same
+     * placeholder span.
+     */
+    edits.sort((a, b) => a.start - b.start);
+
+    let result = "";
+    let cursor = 0;
+
+    for (const edit of edits) {
+      if (edit.start < cursor) continue;
+
+      result += node.text.slice(cursor, edit.start);
+      result += edit.value;
+      cursor = edit.end;
     }
 
-    seg.node.textContent = next;
-    // Force xml:space="preserve" so Word/LibreOffice never trims
-    // leading/trailing spaces that came from the injected value.
-    seg.node.setAttribute('xml:space', 'preserve');
-  });
+    result += node.text.slice(cursor);
+
+    replacements.push({
+      start: node.contentStart,
+      end: node.contentEnd,
+      text: encodeXmlText(result)
+    });
+  }
+
+  /*
+   * Apply replacements from right to left so XML offsets remain valid.
+   * No XML parsing. No XML serialization. No changes to <w:rPr>,
+   * <w:pPr>, tables, sections, numbering, margins, etc.
+   */
+  replacements.sort((a, b) => b.start - a.start);
+
+  let output = xmlString;
+
+  for (const replacement of replacements) {
+    output =
+      output.slice(0, replacement.start) +
+      replacement.text +
+      output.slice(replacement.end);
+  }
+
+  return {
+    xml: output,
+    replacedCount: matches.length
+  };
 }
+
+function decodeXmlText(text) {
+  return text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+function encodeXmlText(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 
 // ---------------------------------------------------------------------------
 // Full DOCX transform
