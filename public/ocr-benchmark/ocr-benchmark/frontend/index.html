@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OCR Benchmark & Comparison</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111827;
+      --card: #1f2937;
+      --border: #374151;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --good: #34d399;
+      --warn: #fbbf24;
+      --bad: #f87171;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #0f172a, #0b1220);
+      position: sticky; top: 0; z-index: 20;
+    }
+    header h1 { margin: 0; font-size: 1.35rem; font-weight: 700; }
+    header p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.9rem; }
+    main { max-width: 1200px; margin: 0 auto; padding: 1.25rem; }
+    .grid { display: grid; gap: 1rem; }
+    @media (min-width: 900px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem;
+    }
+    .card h2 { margin: 0 0 0.75rem; font-size: 1.05rem; }
+    .drop {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2rem 1rem;
+      text-align: center;
+      background: #0f172a;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .drop.drag { border-color: var(--accent); background: #0c1a2e; }
+    .drop input { display: none; }
+    .btn {
+      appearance: none; border: none; border-radius: 8px;
+      padding: 0.55rem 1rem; font-weight: 600; cursor: pointer;
+      background: var(--accent); color: #0b1220;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn.secondary { background: #334155; color: var(--text); }
+    .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .engine {
+      display: flex; align-items: flex-start; gap: 0.5rem;
+      padding: 0.55rem 0.65rem; border-radius: 8px; background: var(--card);
+      border: 1px solid var(--border);
+    }
+    .engine input { margin-top: 0.25rem; }
+    .badge {
+      font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 999px;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em;
+    }
+    .badge.READY { background: #064e3b; color: var(--good); }
+    .badge.SUCCESS { background: #064e3b; color: var(--good); }
+    .badge.INSTALLATION_REQUIRED, .badge.MODEL_REQUIRED, .badge.NOT_AVAILABLE { background: #3f2d0c; color: var(--warn); }
+    .badge.ERROR, .badge.FAILED, .badge.TIMEOUT { background: #3f1515; color: var(--bad); }
+    .badge.PROCESSING { background: #1e3a5f; color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; }
+    textarea, input[type=text] {
+      width: 100%; background: #0f172a; border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: 0.65rem; font-family: inherit;
+    }
+    .result-panel {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.9rem; margin-bottom: 0.75rem;
+    }
+    .result-panel pre {
+      white-space: pre-wrap; word-break: break-word; max-height: 280px;
+      overflow: auto; background: #0b1220; padding: 0.75rem; border-radius: 8px;
+      font-size: 0.85rem; margin: 0.5rem 0 0;
+    }
+    .muted { color: var(--muted); font-size: 0.85rem; }
+    .status-bar { margin: 0.75rem 0; }
+    .rank-list { list-style: none; padding: 0; margin: 0; }
+    .rank-list li {
+      display: flex; justify-content: space-between; gap: 1rem;
+      padding: 0.45rem 0; border-bottom: 1px solid var(--border);
+    }
+    .tabs { display: flex; gap: 0.35rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+    .tab {
+      padding: 0.35rem 0.7rem; border-radius: 999px; border: 1px solid var(--border);
+      background: transparent; color: var(--text); cursor: pointer; font-size: 0.85rem;
+    }
+    .tab.active { background: #1e3a5f; border-color: var(--accent); color: var(--accent); }
+    .hidden { display: none !important; }
+    .preview-img { max-width: 100%; max-height: 220px; border-radius: 8px; border: 1px solid var(--border); }
+    footer { text-align: center; color: var(--muted); padding: 2rem 1rem; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>OCR Benchmark & Comparison</h1>
+    <p>Upload once → run server-side OCR engines → compare real text, time, CER/WER (with ground truth)</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>1. Upload document</h2>
+      <div class="drop" id="dropzone">
+        <p><strong>Drag & drop</strong> image or PDF here</p>
+        <p class="muted">PNG, JPG, TIFF, WEBP, PDF · max 50 MB</p>
+        <button class="btn secondary" type="button" id="pickBtn">Select file</button>
+        <input type="file" id="fileInput" accept="image/*,.pdf,application/pdf" />
+      </div>
+      <div id="fileInfo" class="muted" style="margin-top:0.75rem"></div>
+      <div id="previewWrap" class="hidden" style="margin-top:0.75rem"></div>
+    </section>
+
+    <section class="card" style="margin-top:1rem">
+      <h2>2. Engines</h2>
+      <div class="row" style="margin-bottom:0.75rem">
+        <button class="btn ghost" type="button" data-preset="quick">Quick</button>
+        <button class="btn ghost" type="button" data-preset="full">Full</button>
+        <button class="btn ghost" type="button" data-preset="speed">Speed</button>
+        <button class="btn ghost" type="button" data-preset="accuracy">Accuracy</button>
+        <button class="btn ghost" type="button" id="selectAll">Select all available</button>
+      </div>
+      <div id="engineList" class="grid" style="gap:0.5rem"></div>
+      <label class="row" style="margin-top:0.9rem">
+        <input type="checkbox" id="preprocess" />
+        <span>Apply preprocessing (resize / grayscale / contrast / denoise)</span>
+      </label>
+    </section>
+
+    <section class="card" style="margin-top:1rem">
+      <h2>3. Ground truth (optional — required for accuracy / CER / WER)</h2>
+      <p class="muted">If empty, accuracy is shown as <strong>Not benchmarked</strong>. No fake scores.</p>
+      <textarea id="groundTruth" rows="4" placeholder="Paste expected text here for real CER/WER calculation…"></textarea>
+    </section>
+
+    <section class="card" style="margin-top:1rem">
+      <div class="row">
+        <button class="btn" id="runBtn" disabled>Run OCR</button>
+        <button class="btn secondary" id="exportBtn" disabled>Export JSON</button>
+        <span id="runStatus" class="muted"></span>
+      </div>
+    </section>
+
+    <section class="card status-bar hidden" id="dashboard" style="margin-top:1rem">
+      <h2>Processing dashboard</h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Engine</th><th>Status</th><th>Time (ms)</th><th>Accuracy</th><th>CER</th><th>WER</th><th>Conf</th>
+            </tr>
+          </thead>
+          <tbody id="dashBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="grid grid-2" style="margin-top:1rem">
+      <div class="card hidden" id="rankCard">
+        <h2>Rankings</h2>
+        <div class="tabs">
+          <button class="tab active" data-rank="overall">Overall</button>
+          <button class="tab" data-rank="accuracy">Accuracy</button>
+          <button class="tab" data-rank="speed">Speed</button>
+        </div>
+        <ol class="rank-list" id="rankList"></ol>
+        <p class="muted" id="rankNote"></p>
+      </div>
+      <div class="card hidden" id="compareCard">
+        <h2>Compare two engines</h2>
+        <div class="row">
+          <select id="cmpA"></select>
+          <select id="cmpB"></select>
+        </div>
+        <pre id="diffView" style="margin-top:0.75rem;max-height:240px;overflow:auto;background:#0b1220;padding:0.75rem;border-radius:8px;font-size:0.8rem"></pre>
+      </div>
+    </section>
+
+    <section class="card hidden" id="resultsCard" style="margin-top:1rem">
+      <h2>OCR results</h2>
+      <div class="tabs" id="resultTabs"></div>
+      <div id="resultPanels"></div>
+    </section>
+  </main>
+
+  <footer>
+    Real measured results only · Accuracy only when ground truth is provided · Modular OCR adapters
+  </footer>
+
+  <script>
+    const API = (location.port === "8000" || location.hostname === "localhost")
+      ? ""
+      : (window.OCR_API || "http://127.0.0.1:8000");
+
+    let engines = {};
+    let selectedFile = null;
+    let lastJob = null;
+    let rankMode = "overall";
+
+    const $ = (id) => document.getElementById(id);
+
+    async function loadEngines() {
+      const res = await fetch(`${API}/api/engines`);
+      engines = await res.json();
+      const list = $("engineList");
+      list.innerHTML = "";
+      Object.values(engines).forEach((e) => {
+        const div = document.createElement("div");
+        div.className = "engine";
+        const checked = e.status === "READY" ? "checked" : "";
+        const disabled = e.status !== "READY" ? "disabled" : "";
+        div.innerHTML = `
+          <input type="checkbox" data-id="${e.id}" ${checked} ${disabled} />
+          <div style="flex:1">
+            <div class="row" style="justify-content:space-between">
+              <strong>${e.name}</strong>
+              <span class="badge ${e.status}">${e.status}</span>
+            </div>
+            <div class="muted">${e.technology} · ${e.license}</div>
+            <div class="muted">${e.status_reason || ""}</div>
+          </div>`;
+        list.appendChild(div);
+      });
+    }
+
+    function selectedEngines() {
+      return [...document.querySelectorAll("#engineList input[type=checkbox]:checked")].map(
+        (el) => el.dataset.id
+      );
+    }
+
+    document.querySelectorAll("[data-preset]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const preset = btn.dataset.preset;
+        const res = await fetch(`${API}/api/presets`);
+        const presets = await res.json();
+        const ids = new Set(presets[preset] || []);
+        document.querySelectorAll("#engineList input[type=checkbox]").forEach((el) => {
+          const eng = engines[el.dataset.id];
+          el.checked = ids.has(el.dataset.id) && eng && eng.status === "READY";
+        });
+      });
+    });
+
+    $("selectAll").addEventListener("click", () => {
+      document.querySelectorAll("#engineList input[type=checkbox]").forEach((el) => {
+        const eng = engines[el.dataset.id];
+        el.checked = eng && eng.status === "READY";
+      });
+    });
+
+    const drop = $("dropzone");
+    const fileInput = $("fileInput");
+    $("pickBtn").addEventListener("click", () => fileInput.click());
+    drop.addEventListener("click", (e) => {
+      if (e.target === drop || e.target.tagName === "P") fileInput.click();
+    });
+    drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("drag"); });
+    drop.addEventListener("dragleave", () => drop.classList.remove("drag"));
+    drop.addEventListener("drop", (e) => {
+      e.preventDefault();
+      drop.classList.remove("drag");
+      if (e.dataTransfer.files?.[0]) setFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files?.[0]) setFile(fileInput.files[0]);
+    });
+
+    function setFile(file) {
+      selectedFile = file;
+      $("fileInfo").textContent = `${file.name} · ${(file.size / 1024).toFixed(1)} KB`;
+      $("runBtn").disabled = false;
+      const wrap = $("previewWrap");
+      wrap.classList.remove("hidden");
+      wrap.innerHTML = "";
+      if (file.type.startsWith("image/")) {
+        const img = document.createElement("img");
+        img.className = "preview-img";
+        img.src = URL.createObjectURL(file);
+        wrap.appendChild(img);
+      } else {
+        wrap.innerHTML = `<p class="muted">PDF selected — pages will be rasterized on the server.</p>`;
+      }
+    }
+
+    $("runBtn").addEventListener("click", async () => {
+      if (!selectedFile) return;
+      const eng = selectedEngines();
+      if (!eng.length) {
+        alert("Select at least one READY engine");
+        return;
+      }
+      $("runBtn").disabled = true;
+      $("runStatus").textContent = "Running…";
+      $("dashboard").classList.remove("hidden");
+      $("dashBody").innerHTML = eng.map(
+        (id) => `<tr><td>${engines[id]?.name || id}</td><td><span class="badge PROCESSING">PROCESSING</span></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`
+      ).join("");
+
+      const fd = new FormData();
+      fd.append("files", selectedFile);
+      fd.append("engines", eng.join(","));
+      fd.append("ground_truth", $("groundTruth").value || "");
+      fd.append("preprocess", $("preprocess").checked ? "true" : "false");
+
+      try {
+        const res = await fetch(`${API}/api/jobs`, { method: "POST", body: fd });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || res.statusText);
+        }
+        const data = await res.json();
+        lastJob = data;
+        renderResults(data);
+        $("runStatus").textContent = `Done in ${(data.result?.total_time_ms || 0).toFixed(0)} ms`;
+        $("exportBtn").disabled = false;
+      } catch (e) {
+        $("runStatus").textContent = "Failed: " + e.message;
+        alert(e.message);
+      } finally {
+        $("runBtn").disabled = false;
+      }
+    });
+
+    function fmtAcc(r) {
+      if (r.accuracy == null) return "Not benchmarked";
+      return r.accuracy.toFixed(2) + "%";
+    }
+    function fmt(v, digits = 3) {
+      if (v == null) return "—";
+      return Number(v).toFixed(digits);
+    }
+
+    function renderResults(data) {
+      const results = data.result?.results || [];
+      const rankings = data.result?.rankings || {};
+      const hasGt = data.result?.ground_truth_provided;
+
+      // dashboard
+      $("dashBody").innerHTML = results.map((r) => `
+        <tr>
+          <td>${r.engine_name}</td>
+          <td><span class="badge ${r.status}">${r.status}</span></td>
+          <td>${r.processing_time_ms != null ? r.processing_time_ms.toFixed(1) : "—"}</td>
+          <td>${fmtAcc(r)}</td>
+          <td>${fmt(r.cer)}</td>
+          <td>${fmt(r.wer)}</td>
+          <td>${r.confidence != null ? (r.confidence * 100).toFixed(1) + "%" : "—"}</td>
+        </tr>
+      `).join("");
+
+      // rankings
+      $("rankCard").classList.remove("hidden");
+      renderRank(rankings, hasGt);
+
+      // compare selects
+      $("compareCard").classList.remove("hidden");
+      const success = results.filter((r) => r.status === "SUCCESS");
+      const opts = success.map((r) => `<option value="${r.engine_id}">${r.engine_name}</option>`).join("");
+      $("cmpA").innerHTML = opts;
+      $("cmpB").innerHTML = opts;
+      if (success.length >= 2) $("cmpB").selectedIndex = 1;
+      updateDiff(results);
+
+      // result panels
+      $("resultsCard").classList.remove("hidden");
+      const tabs = $("resultTabs");
+      const panels = $("resultPanels");
+      tabs.innerHTML = "";
+      panels.innerHTML = "";
+      results.forEach((r, i) => {
+        const tab = document.createElement("button");
+        tab.className = "tab" + (i === 0 ? " active" : "");
+        tab.textContent = r.engine_name;
+        tab.addEventListener("click", () => {
+          tabs.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+          tab.classList.add("active");
+          panels.querySelectorAll(".result-panel").forEach((p) => p.classList.add("hidden"));
+          panels.querySelector(`[data-id="${r.engine_id}"]`).classList.remove("hidden");
+        });
+        tabs.appendChild(tab);
+
+        const panel = document.createElement("div");
+        panel.className = "result-panel" + (i === 0 ? "" : " hidden");
+        panel.dataset.id = r.engine_id;
+        const meta = [
+          `Status: ${r.status}`,
+          `Time: ${r.processing_time_ms?.toFixed(1) ?? "—"} ms`,
+          `Accuracy: ${fmtAcc(r)}`,
+          r.confidence != null ? `Confidence: ${(r.confidence * 100).toFixed(1)}%` : null,
+          r.language ? `Lang: ${r.language}` : null,
+        ].filter(Boolean).join(" · ");
+        panel.innerHTML = `
+          <div class="row" style="justify-content:space-between">
+            <strong>${r.engine_name}</strong>
+            <span class="badge ${r.status}">${r.status}</span>
+          </div>
+          <div class="muted">${meta}</div>
+          ${r.error ? `<p style="color:var(--bad)">${escapeHtml(r.error)}</p>` : ""}
+          <pre>${escapeHtml(r.text || "")}</pre>
+          <div class="row" style="margin-top:0.5rem">
+            <button class="btn ghost" type="button" data-copy="${r.engine_id}">Copy</button>
+            <button class="btn ghost" type="button" data-dl="${r.engine_id}">Download TXT</button>
+          </div>`;
+        panels.appendChild(panel);
+      });
+
+      panels.querySelectorAll("[data-copy]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const r = results.find((x) => x.engine_id === btn.dataset.copy);
+          navigator.clipboard.writeText(r?.text || "");
+        });
+      });
+      panels.querySelectorAll("[data-dl]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const r = results.find((x) => x.engine_id === btn.dataset.dl);
+          const blob = new Blob([r?.text || ""], { type: "text/plain" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = `${r.engine_id}.txt`;
+          a.click();
+        });
+      });
+    }
+
+    function renderRank(rankings, hasGt) {
+      const list = rankings[rankMode] || [];
+      $("rankList").innerHTML = list.map((item) => {
+        let extra = "";
+        if (item.accuracy != null) extra = `${item.accuracy.toFixed(2)}%`;
+        else if (item.time_ms != null) extra = `${item.time_ms.toFixed(1)} ms`;
+        return `<li><span>#${item.rank} ${item.name}</span><span>${extra}</span></li>`;
+      }).join("") || "<li class='muted'>No successful engines</li>";
+      $("rankNote").textContent = hasGt
+        ? "Accuracy ranking uses real CER against your ground truth."
+        : "No ground truth → overall ranking falls back to speed. Accuracy: Not benchmarked.";
+    }
+
+    document.querySelectorAll("[data-rank]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("[data-rank]").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        rankMode = btn.dataset.rank;
+        if (lastJob?.result?.rankings) {
+          renderRank(lastJob.result.rankings, lastJob.result.ground_truth_provided);
+        }
+      });
+    });
+
+    $("cmpA").addEventListener("change", () => lastJob && updateDiff(lastJob.result?.results || []));
+    $("cmpB").addEventListener("change", () => lastJob && updateDiff(lastJob.result?.results || []));
+
+    function updateDiff(results) {
+      const a = results.find((r) => r.engine_id === $("cmpA").value);
+      const b = results.find((r) => r.engine_id === $("cmpB").value);
+      if (!a || !b) {
+        $("diffView").textContent = "Select two successful engines.";
+        return;
+      }
+      const ta = (a.text || "").split(/\s+/);
+      const tb = (b.text || "").split(/\s+/);
+      const max = Math.max(ta.length, tb.length);
+      const lines = [];
+      for (let i = 0; i < max; i++) {
+        const wa = ta[i] || "";
+        const wb = tb[i] || "";
+        if (wa === wb) lines.push(`  ${wa}`);
+        else lines.push(`- ${wa}\n+ ${wb}`);
+      }
+      $("diffView").textContent =
+        `=== ${a.engine_name} vs ${b.engine_name} (word-level) ===\n` + lines.join("\n");
+    }
+
+    $("exportBtn").addEventListener("click", () => {
+      if (!lastJob) return;
+      const blob = new Blob([JSON.stringify(lastJob, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `ocr-benchmark-${lastJob.job_id || "export"}.json`;
+      a.click();
+    });
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    loadEngines().catch((e) => {
+      $("engineList").innerHTML = `<p style="color:var(--bad)">Cannot reach API at ${API}. Start backend: <code>uvicorn app.main:app --reload</code></p>`;
+      console.error(e);
+    });
+  </script>
+</body>
+</html>

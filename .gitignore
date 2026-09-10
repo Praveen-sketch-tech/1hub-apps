@@ -18,3 +18,5 @@ app*-temp/
 test-pdf-parser.ts
 .vercel
 .env*
+
+public/ocr-benchmark/ocr-benchmark/backend/.venv/
