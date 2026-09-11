@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OCR — 1 Hub</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}
+.wrap{max-width:900px;margin:auto;padding:24px 16px}
+.card{background:#fff;border:1px solid #e1e6ef;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 4px 18px #00000008}
+h1{margin:0 0 6px;font-size:25px}
+.sub{color:#667085;margin-bottom:20px}
+.drop{border:2px dashed #b8c1d1;border-radius:14px;padding:35px 20px;text-align:center;cursor:pointer}
+.drop:hover{border-color:#667085}
+input{display:none}
+button{border:0;border-radius:10px;padding:12px 20px;font-size:15px;cursor:pointer;margin-top:14px}
+#run{background:#111827;color:#fff}
+#run:disabled{opacity:.5;cursor:not-allowed}
+.status{margin-top:14px;padding:12px;border-radius:10px;background:#f1f5f9;white-space:pre-wrap}
+.preview{max-width:100%;max-height:400px;display:block;margin:15px auto;border-radius:10px}
+.small{font-size:13px;color:#667085}
+.result{white-space:pre-wrap;font-family:Arial,sans-serif;line-height:1.65;background:#fafafa;border-radius:12px;padding:18px;overflow:auto;min-height:180px}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<div class="card">
+<h1>🔎 OCR</h1>
+<div class="sub">Hindi + English AI OCR</div>
+
+<div class="drop" id="drop">
+  <div>📷 Select an image</div>
+  <div class="small">Tap here to choose JPG / PNG / WEBP</div>
+  <input id="file" type="file" accept="image/*">
+</div>
+
+<img id="preview" class="preview" hidden>
+
+<button id="run" disabled>Run OCR</button>
+
+<div id="status" class="status">Waiting for image...</div>
+</div>
+
+<div class="card">
+<h2>OCR Result</h2>
+<div id="result" class="result">OCR result will appear here...</div>
+</div>
+
+</div>
+
+<script>
+const API = "https://ahm7xmakki.com/api/imgchat";
+
+const fileInput = document.getElementById("file");
+const drop = document.getElementById("drop");
+const preview = document.getElementById("preview");
+const runBtn = document.getElementById("run");
+const statusBox = document.getElementById("status");
+const resultBox = document.getElementById("result");
+
+let selectedFile = null;
+
+drop.onclick = () => fileInput.click();
+
+fileInput.onchange = () => {
+  selectedFile = fileInput.files[0];
+
+  if (!selectedFile) return;
+
+  preview.src = URL.createObjectURL(selectedFile);
+  preview.hidden = false;
+
+  runBtn.disabled = false;
+  statusBox.textContent = "✅ Selected: " + selectedFile.name;
+  resultBox.textContent = "OCR result will appear here...";
+};
+
+runBtn.onclick = async () => {
+  if (!selectedFile) return;
+
+  runBtn.disabled = true;
+  resultBox.textContent = "";
+
+  const totalStart = performance.now();
+
+  try {
+    statusBox.textContent = "📷 Preparing image...";
+
+    const reader = new FileReader();
+
+    const imageData = await new Promise((resolve, reject) => {
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(selectedFile);
+    });
+
+    statusBox.textContent = "🚀 Processing with AI OCR...";
+
+    const apiStart = performance.now();
+
+    const response = await fetch(API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        userPrompt:
+          "Extract ALL text from this image exactly. " +
+          "Preserve Hindi and English exactly as written. " +
+          "Do not translate. " +
+          "Do not summarize. " +
+          "Do not invent or correct text. " +
+          "Return only the extracted text.",
+        image: imageData
+      })
+    });
+
+    const apiTime = (performance.now() - apiStart) / 1000;
+
+    if (!response.ok) {
+      throw new Error("OCR API HTTP " + response.status);
+    }
+
+    const data = await response.json();
+
+    if (!data.success || !data.response) {
+      throw new Error("No OCR text returned");
+    }
+
+    const totalTime = (performance.now() - totalStart) / 1000;
+
+    resultBox.textContent = data.response;
+
+    statusBox.textContent =
+      "✅ OCR completed successfully\n" +
+      "⚡ API + processing: " + apiTime.toFixed(2) + " sec\n" +
+      "⏱️ Total: " + totalTime.toFixed(2) + " sec";
+
+  } catch (error) {
+    console.error(error);
+
+    statusBox.textContent =
+      "❌ OCR Error\n" + error.message;
+
+    resultBox.textContent =
+      "OCR failed:\n\n" + error.message;
+
+  } finally {
+    runBtn.disabled = false;
+  }
+};
+</script>
+
+</body>
+</html>
