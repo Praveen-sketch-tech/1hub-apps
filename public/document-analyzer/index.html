@@ -288,7 +288,7 @@ h1 { font-size: 1.6rem; margin-bottom: 4px; }
   <div class="card hidden" id="pdfCard">
     <h2>6. Combined PDF</h2>
     <p style="font-size:0.85rem;color:#718096;margin-bottom:12px;">
-      Generate one PDF containing every original document page plus its AI analysis summary.
+      Generate one PDF containing every original document page plus its OCR text and AI analysis summary.
     </p>
     <div class="btn-row">
       <button class="btn btn-primary" id="btnGeneratePdf">📄 Generate Combined PDF</button>
@@ -309,7 +309,6 @@ const CONFIG = {
   JPEG_QUALITY: 0.85,
   MAX_FILE_SIZE_MB: 25,
   MAX_RETRIES_PER_DOC: 2,
-  // Retry configuration for overall summary (429 handling)
   SUMMARY_MAX_RETRIES: 4,
   SUMMARY_BASE_DELAY_MS: 2000
 };
@@ -324,8 +323,7 @@ const STATE = {
   nextId: 1,
   overallSummaryText: '',
   generatedPdfBlob: null,
-  // Group tracking for continuation pages
-  pdfGroups: {}  // key: filename, value: { totalPages, detectedType }
+  pdfGroups: {}
 };
 
 /* ===================================================== */
@@ -557,10 +555,6 @@ const AI_CONFIG = {
   visionEndpoint: '/api/ocr'
 };
 
-/**
- * Low-level AI call. Handles HTTP + JSON.
- * Throws typed errors including isRateLimit flag for 429.
- */
 async function callVisionAIOnce(imageDataUrl, prompt) {
   let response;
   try {
@@ -619,10 +613,6 @@ async function callVisionAIOnce(imageDataUrl, prompt) {
   return text;
 }
 
-/**
- * Central AI call with retry/backoff for rate limits.
- * All AI communication goes through this function.
- */
 async function callVisionAI(imageDataUrl, prompt, opts = {}) {
   const maxRetries = opts.maxRetries ?? 2;
   const baseDelay = opts.baseDelay ?? 1500;
@@ -633,7 +623,6 @@ async function callVisionAI(imageDataUrl, prompt, opts = {}) {
       return await callVisionAIOnce(imageDataUrl, prompt);
     } catch (err) {
       lastErr = err;
-      // Only retry on rate limit or network errors
       const shouldRetry = err.isRateLimit || err.isNetwork;
       if (!shouldRetry || attempt >= maxRetries) break;
 
@@ -695,7 +684,6 @@ RULES FOR ANALYSIS:
 Return the JSON now. Nothing else.`;
 
 async function analyzeDocument(doc, context) {
-  // Build prompt with optional context (previous page in same PDF)
   let prompt = DOC_ANALYSIS_PROMPT;
   if (context && context.previousType) {
     prompt += `\n\nCONTEXT: This image is page ${context.pageIndex} of a ${context.totalPages}-page PDF named "${context.sourceFileName}". The previous page was identified as "${context.previousType}". If this page is a continuation of that same document, set isContinuation=true and continuationOf="${context.previousType}". Otherwise identify this page independently.`;
@@ -871,13 +859,9 @@ async function startProcessing() {
   }
 }
 
-/**
- * Finds previous processed page in the same PDF for context.
- */
 function findPreviousContext(doc) {
   if (doc.kind !== 'pdf' || !doc.pdfPageIndex || doc.pdfPageIndex <= 1) return null;
 
-  // Find the previous page in the same source PDF that has a detected type
   const prev = STATE.documents.find(d =>
     d.kind === 'pdf' &&
     d.sourceFileName === doc.sourceFileName &&
@@ -916,11 +900,9 @@ async function runWorker(queue, onOneDone) {
         doc.parsed = parsed;
         doc.status = 'completed';
 
-        // Continuation logic: if marked as continuation and we have a parent type
         if (parsed?.isContinuation && parsed.continuationOf) {
           doc.detectedType = `${parsed.continuationOf} - Continuation Page`;
         } else if (parsed?.documentType === 'Unidentified' && context?.previousType) {
-          // Fallback: if AI couldn't identify but context suggests continuation
           doc.detectedType = `${context.previousType} - Continuation Page`;
         } else {
           doc.detectedType = parsed?.documentType || 'Unidentified';
@@ -932,7 +914,6 @@ async function runWorker(queue, onOneDone) {
       } catch (err) {
         lastError = err;
         if (attempt < CONFIG.MAX_RETRIES_PER_DOC) {
-          // Exponential backoff for rate limit
           const delay = err.isRateLimit
             ? 2000 * Math.pow(2, attempt)
             : 1500 * (attempt + 1);
@@ -1053,7 +1034,6 @@ async function generateOverallSummary() {
   const localSummary = buildLocalSummary(completed);
 
   try {
-    // Retry with exponential backoff for rate limits
     const raw = await callVisionAI(
       completed[0].base64,
       prompt,
@@ -1186,12 +1166,10 @@ function buildLocalSummary(docs) {
 }
 
 /* ===================================================== */
-/* 12. PDF GENERATION — ALL PAGES PRESERVED */
+/* 12. PDF GENERATION — ALL PAGES + OCR TEXT INCLUDED */
 /* ===================================================== */
 
 async function generateCombinedPdf() {
-  // Include EVERY processed document (completed / failed / cancelled)
-  // Original order = queue order
   const docs = STATE.documents.filter(d =>
     d.status === 'completed' ||
     d.status === 'failed' ||
@@ -1212,7 +1190,6 @@ async function generateCombinedPdf() {
   const margin = 36;
   let firstPage = true;
 
-  // Loop over EVERY processed doc — no skips
   for (let i = 0; i < docs.length; i++) {
     const doc = docs[i];
     if (!firstPage) pdf.addPage();
@@ -1220,7 +1197,7 @@ async function generateCombinedPdf() {
 
     let cursorY = margin;
 
-    // ---- HEADER: Detected document type ----
+    // ===== HEADER: Detected document type =====
     const heading = (doc.detectedType || 'DOCUMENT').toUpperCase();
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(16);
@@ -1232,11 +1209,11 @@ async function generateCombinedPdf() {
     pdf.line(margin, cursorY, pageW - margin, cursorY);
     cursorY += 14;
 
-    // ---- ORIGINAL DOCUMENT IMAGE (aspect-ratio preserved) ----
+    // ===== ORIGINAL DOCUMENT IMAGE =====
     try {
       const imgProps = await getImageProps(doc.previewUrl);
       const maxW = pageW - margin * 2;
-      const maxH = pageH * 0.48;
+      const maxH = pageH * 0.35;
       let w = imgProps.width;
       let h = imgProps.height;
       const scale = Math.min(maxW / w, maxH / h, 1);
@@ -1246,7 +1223,7 @@ async function generateCombinedPdf() {
 
       const fmt = detectImageFormat(doc.previewUrl);
       pdf.addImage(doc.previewUrl, fmt, x, cursorY, w, h, undefined, 'FAST');
-      cursorY += h + 14;
+      cursorY += h + 12;
     } catch (err) {
       pdf.setFontSize(10);
       pdf.setTextColor(200, 0, 0);
@@ -1254,19 +1231,55 @@ async function generateCombinedPdf() {
       cursorY += 16;
     }
 
-    // ---- AI ANALYSIS SECTION ----
+    // ===== OCR / EXTRACTED TEXT SECTION =====
+    const extractedText = (doc.parsed && doc.parsed.textExtracted)
+      ? String(doc.parsed.textExtracted).trim()
+      : '';
+
     pdf.setDrawColor(180);
     pdf.line(margin, cursorY, pageW - margin, cursorY);
-    cursorY += 14;
+    cursorY += 12;
 
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(12);
+    pdf.setFontSize(11);
     pdf.setTextColor(30, 30, 30);
-    pdf.text('AI ANALYSIS SUMMARY', pageW / 2, cursorY, { align: 'center' });
-    cursorY += 18;
+    pdf.text('EXTRACTED TEXT (OCR)', pageW / 2, cursorY, { align: 'center' });
+    cursorY += 14;
 
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(9);
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(40, 40, 40);
+
+    if (extractedText) {
+      const ocrLines = extractedText.split(/\r?\n/);
+      const wrapped = ocrLines.flatMap(l =>
+        pdf.splitTextToSize(l || ' ', pageW - margin * 2)
+      );
+      wrapped.forEach(line => {
+        if (cursorY > pageH - margin - 120) return;
+        pdf.text(line, margin, cursorY);
+        cursorY += 10;
+      });
+    } else {
+      pdf.text('(No OCR text available for this page.)', margin, cursorY);
+      cursorY += 12;
+    }
+
+    cursorY += 6;
+
+    // ===== AI ANALYSIS SECTION =====
+    pdf.setDrawColor(180);
+    pdf.line(margin, cursorY, pageW - margin, cursorY);
+    cursorY += 12;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(30, 30, 30);
+    pdf.text('AI ANALYSIS SUMMARY', pageW / 2, cursorY, { align: 'center' });
+    cursorY += 14;
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8.5);
     pdf.setTextColor(50, 50, 50);
 
     const p = doc.parsed;
@@ -1313,10 +1326,10 @@ async function generateCombinedPdf() {
     wrapped.forEach(line => {
       if (cursorY > pageH - margin - 20) return;
       pdf.text(line, margin, cursorY);
-      cursorY += 11;
+      cursorY += 10;
     });
 
-    // ---- FOOTER ----
+    // ===== FOOTER =====
     pdf.setFontSize(8);
     pdf.setTextColor(120);
     pdf.text(
@@ -1327,7 +1340,7 @@ async function generateCombinedPdf() {
     );
   }
 
-  // ---- Overall summary appended as final page ----
+  // ===== OVERALL SUMMARY (final page) =====
   if (STATE.overallSummaryText) {
     pdf.addPage();
     let y = margin;
@@ -1357,8 +1370,6 @@ async function generateCombinedPdf() {
   }
 
   STATE.generatedPdfBlob = pdf.output('blob');
-
-  // Dynamic message with actual counts
   const pageWord = docs.length === 1 ? 'page' : 'pages';
   DOM.pdfMsg.textContent =
     `PDF ready (${docs.length} document ${pageWord} + ${docs.length} AI summaries).`;
@@ -1676,7 +1687,7 @@ function escapeHtml(s) {
   setupActionHandlers();
   renderQueue();
   updateControls();
-  console.log('Universal Document Analyzer ready (all fixes applied).');
+  console.log('Universal Document Analyzer ready (with OCR in PDF).');
 })();
 </script>
 
