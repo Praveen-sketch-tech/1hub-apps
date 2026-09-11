@@ -4,160 +4,226 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>OCR — 1 Hub</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}
-.wrap{max-width:900px;margin:auto;padding:24px 16px}
-.card{background:#fff;border:1px solid #e1e6ef;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 4px 18px #00000008}
-h1{margin:0 0 6px;font-size:25px}
-.sub{color:#667085;margin-bottom:20px}
-.drop{border:2px dashed #b8c1d1;border-radius:14px;padding:35px 20px;text-align:center;cursor:pointer}
-.drop:hover{border-color:#667085}
-input{display:none}
-button{border:0;border-radius:10px;padding:12px 20px;font-size:15px;cursor:pointer;margin-top:14px}
-#run{background:#111827;color:#fff}
-#run:disabled{opacity:.5;cursor:not-allowed}
-.status{margin-top:14px;padding:12px;border-radius:10px;background:#f1f5f9;white-space:pre-wrap}
-.preview{max-width:100%;max-height:400px;display:block;margin:15px auto;border-radius:10px}
-.small{font-size:13px;color:#667085}
-.result{white-space:pre-wrap;font-family:Arial,sans-serif;line-height:1.65;background:#fafafa;border-radius:12px;padding:18px;overflow:auto;min-height:180px}
-
-/* Upload success + OCR progress */
-.ocr-upload-success {
-  margin: 12px 0 8px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-weight: 600;
-}
-
-.ocr-progress {
-  margin-top: 18px;
-}
-
-.ocr-progress-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  font-size: 14px;
-}
-
-.ocr-progress-track {
-  width: 100%;
-  height: 10px;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.ocr-progress-bar {
-  width: 0%;
-  height: 100%;
-  border-radius: inherit;
-  transition: width .35s ease;
-}
-
-</style>
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --ocr-accent:#2563eb;
-  --ocr-accent2:#7c3aed;
-  --ocr-bg:#f6f8fc;
+  --ocr-accent:#4f46e5;
+  --ocr-accent2:#06b6d4;
+  --ocr-accent-soft:#eef2ff;
+  --ocr-bg:#f8fafc;
   --ocr-card:#ffffff;
-  --ocr-text:#172033;
-  --ocr-muted:#687386;
-  --ocr-border:#e4e8f0;
+  --ocr-text:#0f172a;
+  --ocr-muted:#64748b;
+  --ocr-border:#e2e8f0;
+  --ocr-success:#10b981;
+  --ocr-error:#ef4444;
+  --ocr-radius:20px;
+  --ocr-shadow:0 1px 3px rgba(15,23,42,.06), 0 8px 24px rgba(15,23,42,.06);
 }
+
 *{box-sizing:border-box}
+
 body{
   margin:0;
-  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   background:var(--ocr-bg);
   color:var(--ocr-text);
+  -webkit-font-smoothing:antialiased;
 }
+
 .ocr-shell{max-width:900px;margin:auto;padding:28px 16px 50px}
+
+/* ---------- Hero ---------- */
 .ocr-hero{text-align:center;padding:18px 0 28px}
 .ocr-icon{
-  width:64px;height:64px;margin:0 auto 14px;border-radius:20px;
-  display:grid;place-items:center;font-size:30px;
+  width:72px;height:72px;margin:0 auto 16px;border-radius:22px;
+  display:grid;place-items:center;font-size:34px;
   background:linear-gradient(135deg,var(--ocr-accent),var(--ocr-accent2));
-  box-shadow:0 10px 28px rgba(37,99,235,.20)
+  box-shadow:0 12px 32px rgba(79,70,229,.28);
 }
-.ocr-hero h1{margin:0;font-size:32px;letter-spacing:-.6px}
-.ocr-hero p{margin:9px 0 14px;color:var(--ocr-muted)}
+.ocr-hero h1{
+  margin:0;font-size:34px;font-weight:800;letter-spacing:-1px;
+  background:linear-gradient(135deg,var(--ocr-accent),var(--ocr-accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.ocr-hero p{margin:10px 0 16px;color:var(--ocr-muted);font-size:15px}
 .ocr-badges{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
 .ocr-badge{
   border:1px solid var(--ocr-border);background:#fff;
-  border-radius:999px;padding:6px 11px;font-size:12px;color:var(--ocr-muted)
+  border-radius:999px;padding:6px 12px;font-size:12px;
+  color:var(--ocr-muted);font-weight:500;
 }
+
+/* ---------- Cards ---------- */
 .ocr-card{
-  background:var(--ocr-card);border:1px solid var(--ocr-border);
-  border-radius:22px;padding:20px;
-  box-shadow:0 8px 30px rgba(20,30,55,.06);margin-bottom:16px
+  background:var(--ocr-card);
+  border:1px solid var(--ocr-border);
+  border-radius:var(--ocr-radius);
+  padding:24px;
+  box-shadow:var(--ocr-shadow);
+  margin-bottom:16px;
+  transition:box-shadow .2s ease;
 }
-#dropZone{
-  border:2px dashed #cbd5e1;border-radius:18px;padding:34px 18px;
-  text-align:center;cursor:pointer;transition:.2s;background:#fafbfe
+.ocr-card:hover{box-shadow:0 12px 32px rgba(15,23,42,.08)}
+
+/* ---------- Drop Zone ---------- */
+#drop{
+  border:2px dashed #cbd5e1;
+  border-radius:16px;
+  padding:40px 20px;
+  text-align:center;
+  cursor:pointer;
+  background:#fafbff;
+  transition:all .25s ease;
 }
-#dropZone:hover,#dropZone.drag{border-color:var(--ocr-accent);background:#f5f8ff}
-#dropZone .upload-icon{font-size:40px;margin-bottom:8px}
-#dropZone h3{margin:5px 0;font-size:18px}
-#dropZone p{margin:6px 0;color:var(--ocr-muted);font-size:13px}
-#fileInput{display:none}
+#drop:hover,#drop.drag{
+  border-color:var(--ocr-accent);
+  background:var(--ocr-accent-soft);
+  transform:translateY(-2px);
+}
+#drop .upload-icon{font-size:46px;margin-bottom:10px;line-height:1}
+#drop h3{margin:6px 0;font-size:19px;font-weight:700}
+#drop p{margin:6px 0;color:var(--ocr-muted);font-size:13px}
+#file{display:none}
+
+/* ---------- Upload Success ---------- */
+.ocr-upload-success{
+  margin:14px 0 0;
+  padding:12px 16px;
+  border-radius:12px;
+  background:#ecfdf5;
+  color:#065f46;
+  border:1px solid #a7f3d0;
+  font-weight:600;
+  font-size:14px;
+  animation:slideIn .3s ease;
+}
+@keyframes slideIn{
+  from{opacity:0;transform:translateY(-6px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ---------- File Info + Preview ---------- */
 .ocr-file{
-  margin-top:14px;padding:10px 12px;border-radius:12px;
-  background:#f5f7fb;font-size:13px;display:none
+  margin-top:14px;padding:10px 14px;border-radius:12px;
+  background:#f5f7fb;font-size:13px;color:#475569;display:none;
 }
 #preview{
-  max-width:100%;max-height:380px;display:none;margin:16px auto 0;
-  border-radius:15px;object-fit:contain;border:1px solid var(--ocr-border)
+  max-width:100%;max-height:380px;display:none;
+  margin:16px auto 0;border-radius:15px;
+  object-fit:contain;border:1px solid var(--ocr-border);
 }
-.ocr-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+/* ---------- Progress ---------- */
+.ocr-progress{margin-top:18px;display:none}
+.ocr-progress-head{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:8px;font-size:14px;font-weight:600;color:#334155;
+}
+.ocr-progress-track{
+  width:100%;height:12px;border-radius:999px;
+  overflow:hidden;background:#eef2f7;
+}
+.ocr-progress-bar{
+  width:0%;height:100%;border-radius:inherit;
+  background:linear-gradient(90deg,#4f46e5,#06b6d4,#4f46e5);
+  background-size:200% 100%;
+  animation:shimmer 1.8s linear infinite;
+  transition:width .35s ease;
+}
+@keyframes shimmer{
+  0%{background-position:0% 0}
+  100%{background-position:200% 0}
+}
+
+/* ---------- Buttons ---------- */
+.ocr-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
 .ocr-btn{
-  border:0;border-radius:12px;padding:12px 17px;font-weight:700;
-  cursor:pointer;font-size:14px
+  border:0;border-radius:12px;padding:13px 22px;
+  font-weight:700;cursor:pointer;font-size:14px;
+  display:inline-flex;align-items:center;gap:6px;
+  transition:all .2s ease;font-family:inherit;
 }
-.ocr-primary{background:var(--ocr-accent);color:#fff;flex:1}
-.ocr-secondary{background:#eef2f7;color:#263244}
+.ocr-primary{
+  background:linear-gradient(135deg,var(--ocr-accent),var(--ocr-accent2));
+  color:#fff;flex:1;
+  box-shadow:0 4px 14px rgba(79,70,229,.3);
+}
+.ocr-primary:hover:not(:disabled){
+  transform:translateY(-1px);
+  box-shadow:0 8px 22px rgba(79,70,229,.4);
+}
+.ocr-secondary{background:#f1f5f9;color:#334155}
+.ocr-secondary:hover{background:#e2e8f0}
 .ocr-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ---------- Status ---------- */
 #status{
-  display:none;margin-top:14px;padding:12px 14px;border-radius:12px;
-  background:#f0f5ff;color:#31527e;font-size:13px
+  display:none;margin-top:14px;padding:12px 16px;
+  border-radius:12px;background:#eff6ff;color:#1e40af;
+  border:1px solid #bfdbfe;font-size:13px;
+  white-space:pre-wrap;line-height:1.5;
 }
-.result-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.result-head h2{margin:0;font-size:18px}
-.result-actions{display:flex;gap:7px;flex-wrap:wrap}
-.result-actions button{padding:8px 11px;font-size:12px}
-#result{
-  margin-top:13px;min-height:180px;width:100%;resize:vertical;
-  border:1px solid var(--ocr-border);border-radius:14px;padding:14px;
-  font:14px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;
-  background:#fbfcfe;color:#172033;outline:none
-}
-#result:focus{border-color:var(--ocr-accent)}
-.ocr-stats{
-  display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;
-  color:var(--ocr-muted);font-size:12px
-}
-.ocr-footer{text-align:center;color:var(--ocr-muted);font-size:12px;margin-top:20px}
 .spinner{
-  display:inline-block;width:14px;height:14px;border:2px solid #cbd5e1;
-  border-top-color:var(--ocr-accent);border-radius:50%;
-  animation:spin .7s linear infinite;vertical-align:-2px;margin-right:7px
+  display:inline-block;width:14px;height:14px;
+  border:2px solid #cbd5e1;border-top-color:var(--ocr-accent);
+  border-radius:50%;animation:spin .7s linear infinite;
+  vertical-align:-2px;margin-right:7px;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Result ---------- */
+.result-head{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;flex-wrap:wrap;
+}
+.result-head h2{margin:0;font-size:18px;font-weight:700}
+.result-actions{display:flex;gap:8px;flex-wrap:wrap}
+.result-actions button{padding:9px 14px;font-size:12px}
+
+#result{
+  margin-top:14px;min-height:200px;width:100%;resize:vertical;
+  border:1.5px solid var(--ocr-border);border-radius:14px;
+  padding:16px;background:#fbfcfe;color:var(--ocr-text);
+  outline:none;font-family:'Noto Sans Devanagari','Inter',system-ui,sans-serif;
+  font-size:15px;line-height:1.7;
+  transition:border-color .2s, box-shadow .2s;
+}
+#result:focus{
+  border-color:var(--ocr-accent);
+  box-shadow:0 0 0 3px rgba(79,70,229,.12);
+}
+
+.ocr-stats{
+  display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;
+  color:var(--ocr-muted);font-size:12px;font-weight:500;
+}
+
+.ocr-footer{
+  text-align:center;color:var(--ocr-muted);
+  font-size:12px;margin-top:22px;line-height:1.6;
+}
+
+/* ---------- Responsive ---------- */
 @media(max-width:600px){
   .ocr-shell{padding:18px 12px 40px}
   .ocr-hero h1{font-size:27px}
-  .ocr-card{padding:15px;border-radius:18px}
-  .result-head{align-items:flex-start;flex-direction:column}
+  .ocr-icon{width:60px;height:60px;font-size:28px;border-radius:18px}
+  .ocr-card{padding:16px;border-radius:18px}
+  .result-head{flex-direction:column;align-items:flex-start}
   .ocr-primary{flex-basis:100%}
+  #drop{padding:30px 16px}
 }
 </style>
 </head>
 
 <body>
 <div class="ocr-shell">
+
+  <!-- Hero -->
   <section class="ocr-hero">
     <div class="ocr-icon">🔎</div>
     <h1>AI OCR</h1>
@@ -169,23 +235,24 @@ body{
     </div>
   </section>
 
+  <!-- Upload Card -->
   <section class="ocr-card">
     <div id="drop">
       <div class="upload-icon">📷</div>
       <h3>Upload an image</h3>
-      <p>Tap to browse or drag & drop</p>
+      <p>Tap to browse or drag &amp; drop</p>
       <p>JPG • PNG • WEBP</p>
       <input id="file" type="file" accept="image/jpeg,image/png,image/webp">
     </div>
 
     <div id="uploadSuccess" class="ocr-upload-success" style="display:none;">
-      <span>✅ Image uploaded</span>
+      ✅ Image uploaded
     </div>
 
     <div id="fileInfo" class="ocr-file"></div>
     <img id="preview" alt="Image preview">
 
-    <div id="ocrProgress" style="display:none;">
+    <div id="ocrProgress" class="ocr-progress">
       <div class="ocr-progress-head">
         <span>🔄 Processing OCR</span>
         <strong id="progressPercent">0%</strong>
@@ -203,6 +270,7 @@ body{
     <div id="status"></div>
   </section>
 
+  <!-- Result Card -->
   <section class="ocr-card">
     <div class="result-head">
       <h2>📝 Extracted Text</h2>
@@ -224,159 +292,39 @@ body{
     🔒 Images are sent only for OCR processing and are not stored by 1 Hub itself.
   </div>
 </div>
-<script>
-const API = "/api/ocr";
 
-const fileInput = document.getElementById("file");
-const drop = document.getElementById("drop");
-const preview = document.getElementById("preview");
-const runBtn = document.getElementById("run");
-const statusBox = document.getElementById("status");
-const resultBox = document.getElementById("result");
-
-let selectedFile = null;
-
-drop.onclick = () => fileInput.click();
-
-fileInput.onchange = () => {
-  selectedFile = fileInput.files[0];
-
-  if (!selectedFile) return;
-
-  preview.src = URL.createObjectURL(selectedFile);
-  preview.hidden = false;
-
-  runBtn.disabled = false;
-  statusBox.textContent = "✅ Image uploaded: " + selectedFile.name;
-  statusBox.style.display = "block";
-  resultBox.value = "";
-
-  const uploadSuccess = document.getElementById("uploadSuccess");
-  if (uploadSuccess) {
-    uploadSuccess.style.display = "block";
-  }
-};
-
-runBtn.onclick = async () => {
-  if (!selectedFile) return;
-
-  runBtn.disabled = true;
-  resultBox.value = "";
-
-  const progressBox = document.getElementById("ocrProgress");
-  const progressBar = document.getElementById("progressBar");
-  const progressPercent = document.getElementById("progressPercent");
-
-  progressBox.style.display = "block";
-  progressBar.style.width = "8%";
-  progressPercent.textContent = "8%";
-
-  let progress = 8;
-  const progressTimer = setInterval(() => {
-    if (progress < 92) {
-      progress += Math.random() * 7;
-      progress = Math.min(progress, 92);
-      progressBar.style.width = progress.toFixed(0) + "%";
-      progressPercent.textContent = progress.toFixed(0) + "%";
-    }
-  }, 450);
-
-  const totalStart = performance.now();
-
-  try {
-    statusBox.textContent = "📷 Preparing image...";
-
-    const reader = new FileReader();
-
-    const imageData = await new Promise((resolve, reject) => {
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(selectedFile);
-    });
-
-    statusBox.textContent = "🚀 Processing with AI OCR...";
-
-    const apiStart = performance.now();
-
-    const response = await fetch(API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        userPrompt:
-          "Extract ALL text from this image exactly. " +
-          "Preserve Hindi and English exactly as written. " +
-          "Do not translate. " +
-          "Do not summarize. " +
-          "Do not invent or correct text. " +
-          "Return only the extracted text.",
-        image: imageData
-      })
-    });
-
-    const apiTime = (performance.now() - apiStart) / 1000;
-
-    if (!response.ok) {
-      throw new Error("OCR API HTTP " + response.status);
-    }
-
-    const data = await response.json();
-
-    if (!data.success || !data.response) {
-      throw new Error("No OCR text returned");
-    }
-
-    const totalTime = (performance.now() - totalStart) / 1000;
-
-    resultBox.value = data.response;
-
-    clearInterval(progressTimer);
-    progressBar.style.width = "100%";
-    progressPercent.textContent = "100%";
-
-    statusBox.textContent =
-      "✅ OCR completed successfully\n" +
-      "⚡ API + processing: " + apiTime.toFixed(2) + " sec\n" +
-      "⏱️ Total: " + totalTime.toFixed(2) + " sec";
-
-  } catch (error) {
-    console.error(error);
-
-    statusBox.textContent =
-      "❌ OCR Error\n" + error.message;
-
-    resultBox.value = "OCR failed:\n\n" + error.message;
-
-  } finally {
-    clearInterval(progressTimer);
-    runBtn.disabled = false;
-  }
-};
-</script>
 <script>
 (function(){
-  const input = document.getElementById("file");
-  const zone = document.getElementById("drop");
-  const preview = document.getElementById("preview");
-  const info = document.getElementById("fileInfo");
-  const runBtn = document.getElementById("run");
-  const clearBtn = document.getElementById("clearBtn");
-  const result = document.getElementById("result");
-  const status = document.getElementById("status");
-  const copyBtn = document.getElementById("copyBtn");
-  const downloadBtn = document.getElementById("downloadBtn");
-  const words = document.getElementById("wordCount");
-  const chars = document.getElementById("charCount");
-  const uploadSuccess = document.getElementById("uploadSuccess");
-  const progressBox = document.getElementById("ocrProgress");
-  const progressBar = document.getElementById("progressBar");
+  "use strict";
+
+  const API = "/api/ocr";
+
+  // ---- Elements ----
+  const input           = document.getElementById("file");
+  const drop            = document.getElementById("drop");
+  const preview         = document.getElementById("preview");
+  const info            = document.getElementById("fileInfo");
+  const runBtn          = document.getElementById("run");
+  const clearBtn        = document.getElementById("clearBtn");
+  const result          = document.getElementById("result");
+  const statusBox       = document.getElementById("status");
+  const copyBtn         = document.getElementById("copyBtn");
+  const downloadBtn     = document.getElementById("downloadBtn");
+  const wordsEl         = document.getElementById("wordCount");
+  const charsEl         = document.getElementById("charCount");
+  const uploadSuccess   = document.getElementById("uploadSuccess");
+  const progressBox     = document.getElementById("ocrProgress");
+  const progressBar     = document.getElementById("progressBar");
   const progressPercent = document.getElementById("progressPercent");
 
+  let selectedFile = null;
+  let progressTimer = null;
+
+  // ---- Helpers ----
   function formatBytes(bytes){
     if(bytes < 1024) return bytes + " B";
-    if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + " KB";
-    return (bytes/1024/1024).toFixed(2) + " MB";
+    if(bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / 1024 / 1024).toFixed(2) + " MB";
   }
 
   function setProgress(percent){
@@ -394,52 +342,179 @@ runBtn.onclick = async () => {
 
   function updateStats(){
     const text = result.value.trim();
-    words.textContent = "Words: " + (text ? text.split(/\s+/).length : 0);
-    chars.textContent = "Characters: " + result.value.length;
+    wordsEl.textContent = "Words: " + (text ? text.split(/\s+/).length : 0);
+    charsEl.textContent = "Characters: " + result.value.length;
   }
 
+  function handleFile(file){
+    if(!file) return;
+    selectedFile = file;
+
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = "block";
+
+    info.textContent = "📎 " + file.name + " • " + formatBytes(file.size);
+    info.style.display = "block";
+
+    uploadSuccess.style.display = "block";
+
+    runBtn.disabled = false;
+    statusBox.style.display = "none";
+    result.value = "";
+    updateStats();
+  }
+
+  // ---- Drop Zone ----
+  drop.addEventListener("click", () => input.click());
+
+  input.addEventListener("change", () => {
+    const file = input.files && input.files[0];
+    handleFile(file);
+  });
 
   ["dragenter","dragover"].forEach(ev => {
-    zone.addEventListener(ev, e => {
+    drop.addEventListener(ev, e => {
       e.preventDefault();
-      zone.classList.add("drag");
+      drop.classList.add("drag");
     });
   });
 
   ["dragleave","drop"].forEach(ev => {
-    zone.addEventListener(ev, e => {
+    drop.addEventListener(ev, e => {
       e.preventDefault();
-      zone.classList.remove("drag");
+      drop.classList.remove("drag");
     });
   });
 
+  drop.addEventListener("drop", e => {
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if(!file) return;
+    // Sync the file into the input so subsequent flows behave normally
+    try{
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+    }catch(_){ /* older browsers — ignore */ }
+    handleFile(file);
+  });
+
+  // ---- OCR ----
+  runBtn.addEventListener("click", async () => {
+    if(!selectedFile) return;
+
+    runBtn.disabled = true;
+    result.value = "";
+    statusBox.style.display = "block";
+    statusBox.innerHTML = '<span class="spinner"></span> Preparing image...';
+
+    setProgress(8);
+    let progress = 8;
+    clearInterval(progressTimer);
+    progressTimer = setInterval(() => {
+      if(progress < 92){
+        progress += Math.random() * 7;
+        progress = Math.min(progress, 92);
+        setProgress(progress);
+      }
+    }, 450);
+
+    const totalStart = performance.now();
+
+    try{
+      const imageData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedFile);
+      });
+
+      statusBox.innerHTML = '<span class="spinner"></span> Processing with AI OCR...';
+
+      const apiStart = performance.now();
+      const response = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userPrompt:
+            "Extract ALL text from this image exactly. " +
+            "Preserve Hindi and English exactly as written. " +
+            "Do not translate. Do not summarize. " +
+            "Do not invent or correct text. " +
+            "Return only the extracted text.",
+          image: imageData
+        })
+      });
+
+      const apiTime = (performance.now() - apiStart) / 1000;
+
+      if(!response.ok){
+        throw new Error("OCR API HTTP " + response.status);
+      }
+
+      const data = await response.json();
+
+      if(!data.success || !data.response){
+        throw new Error("No OCR text returned");
+      }
+
+      const totalTime = (performance.now() - totalStart) / 1000;
+
+      result.value = data.response;
+      updateStats();
+
+      clearInterval(progressTimer);
+      setProgress(100);
+
+      statusBox.textContent =
+        "✅ OCR completed successfully\n" +
+        "⚡ API + processing: " + apiTime.toFixed(2) + " sec\n" +
+        "⏱️ Total: " + totalTime.toFixed(2) + " sec";
+
+    }catch(error){
+      console.error(error);
+      clearInterval(progressTimer);
+      resetProgress();
+      statusBox.textContent = "❌ OCR Error\n" + error.message;
+      result.value = "OCR failed:\n\n" + error.message;
+      updateStats();
+    }finally{
+      clearInterval(progressTimer);
+      runBtn.disabled = false;
+    }
+  });
+
+  // ---- Clear ----
   clearBtn.addEventListener("click", () => {
     input.value = "";
-    window.location.reload();
-    return;
+    selectedFile = null;
     preview.src = "";
     preview.style.display = "none";
     info.textContent = "";
     info.style.display = "none";
+    uploadSuccess.style.display = "none";
     result.value = "";
-    status.style.display = "none";
+    statusBox.style.display = "none";
+    statusBox.textContent = "";
+    resetProgress();
     runBtn.disabled = true;
     updateStats();
   });
 
+  // ---- Copy ----
   copyBtn.addEventListener("click", async () => {
     if(!result.value.trim()) return;
-    try {
+    try{
       await navigator.clipboard.writeText(result.value);
-      const old = copyBtn.textContent;
-      copyBtn.textContent = "✅ Copied";
-      setTimeout(() => copyBtn.textContent = old, 1400);
-    } catch(e) {
+    }catch(_){
       result.select();
       document.execCommand("copy");
     }
+    const old = copyBtn.textContent;
+    copyBtn.textContent = "✅ Copied";
+    setTimeout(() => copyBtn.textContent = old, 1400);
   });
 
+  // ---- Download ----
   downloadBtn.addEventListener("click", () => {
     if(!result.value.trim()) return;
     const blob = new Blob([result.value], {type:"text/plain;charset=utf-8"});
@@ -450,26 +525,8 @@ runBtn.onclick = async () => {
     URL.revokeObjectURL(a.href);
   });
 
+  // ---- Live stats ----
   result.addEventListener("input", updateStats);
-
-  window.__ocrEnhancement = {
-    showProcessing: () => {
-      status.style.display = "block";
-      status.innerHTML = '<span class="spinner"></span> Reading your image and extracting text...';
-      runBtn.disabled = true;
-    },
-    showDone: () => {
-      status.style.display = "block";
-      status.textContent = "✅ OCR completed successfully";
-      runBtn.disabled = false;
-      updateStats();
-    },
-    showError: (msg) => {
-      status.style.display = "block";
-      status.textContent = "❌ " + msg;
-      runBtn.disabled = false;
-    }
-  };
 })();
 </script>
 </body>
