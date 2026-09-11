@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Universal Document Analyzer</title>
+
+<!-- ===================================================== -->
+<!-- CDN LIBRARIES -->
+<!-- ===================================================== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+/* ===================================================== */
+/* STYLES */
+/* ===================================================== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f5f7fa;
+  color: #1a202c;
+  line-height: 1.5;
+  padding: 16px;
+}
+.container { max-width: 1200px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 4px; }
+.subtitle { color: #718096; font-size: 0.9rem; margin-bottom: 20px; }
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card h2 {
+  font-size: 1.1rem;
+  margin-bottom: 14px;
+  color: #2d3748;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 8px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #edf2f7;
+  color: #2d3748;
+}
+.btn:hover { background: #e2e8f0; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: #3182ce; color: #fff; }
+.btn-primary:hover { background: #2c5aa0; }
+.btn-success { background: #38a169; color: #fff; }
+.btn-success:hover { background: #2f855a; }
+.btn-danger { background: #e53e3e; color: #fff; }
+.btn-danger:hover { background: #c53030; }
+.btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+.btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+
+#dropZone {
+  border: 2px dashed #cbd5e0;
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  color: #718096;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+#dropZone.dragover {
+  border-color: #3182ce;
+  background: #ebf8ff;
+  color: #2c5aa0;
+}
+#dropZone .big-icon { font-size: 2.5rem; margin-bottom: 8px; }
+
+#queueGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.doc-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.doc-thumb {
+  height: 140px;
+  background: #f7fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+.doc-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.doc-body { padding: 10px; font-size: 0.78rem; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.doc-name { font-weight: 600; word-break: break-all; font-size: 0.8rem; }
+.doc-meta { color: #718096; }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge.waiting { background: #edf2f7; color: #4a5568; }
+.badge.processing { background: #fefcbf; color: #975a16; }
+.badge.completed { background: #c6f6d5; color: #22543d; }
+.badge.failed { background: #fed7d7; color: #742a2a; }
+.badge.cancelled { background: #e2e8f0; color: #4a5568; }
+.badge.good { background: #c6f6d5; color: #22543d; }
+.badge.acceptable { background: #bee3f8; color: #2a4365; }
+.badge.needs-review { background: #fefcbf; color: #975a16; }
+.badge.poor { background: #fed7d7; color: #742a2a; }
+.badge.clear { background: #c6f6d5; color: #22543d; }
+.badge.unknown { background: #e2e8f0; color: #4a5568; }
+
+.doc-actions { display: flex; gap: 6px; margin-top: auto; padding-top: 6px; }
+
+#progressWrap {
+  display: none;
+  background: #e2e8f0;
+  border-radius: 20px;
+  overflow: hidden;
+  height: 22px;
+  margin-bottom: 14px;
+  position: relative;
+}
+#progressBar {
+  height: 100%;
+  background: #3182ce;
+  width: 0%;
+  transition: width 0.3s;
+}
+#progressText {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 22px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.result-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #fff;
+}
+.result-item h3 { font-size: 0.95rem; margin-bottom: 6px; }
+.result-row { font-size: 0.82rem; color: #4a5568; margin-bottom: 3px; }
+.result-row strong { color: #2d3748; }
+.text-block {
+  background: #f7fafc;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 0.78rem;
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 6px;
+}
+.issue-list { list-style: none; padding-left: 0; }
+.issue-list li { font-size: 0.8rem; color: #c05621; margin-bottom: 3px; }
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.summary-box {
+  background: #f7fafc;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.summary-box .num { font-size: 1.6rem; font-weight: 700; color: #2d3748; }
+.summary-box .lbl { font-size: 0.75rem; color: #718096; text-transform: uppercase; }
+.overall-status {
+  text-align: center;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.overall-status.ready { background: #c6f6d5; color: #22543d; }
+.overall-status.review { background: #fefcbf; color: #975a16; }
+.overall-status.issues { background: #fed7d7; color: #742a2a; }
+
+.alert {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+.alert-error { background: #fed7d7; color: #742a2a; }
+.alert-info { background: #bee3f8; color: #2a4365; }
+.alert-warn { background: #fefcbf; color: #975a16; }
+
+.hidden { display: none !important; }
+
+@media (max-width: 600px) {
+  body { padding: 10px; }
+  .card { padding: 14px; }
+  #queueGrid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🔍 Universal Document Analyzer</h1>
+  <p class="subtitle">Upload any documents — AI identifies each one, checks quality, extracts text, and generates a combined PDF.</p>
+
+  <div class="card">
+    <h2>1. Add Documents</h2>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnUpload">📁 Upload Documents</button>
+      <button class="btn btn-primary" id="btnCamera">📷 Camera</button>
+      <button class="btn btn-danger" id="btnClearAll">🗑 Clear All</button>
+    </div>
+    <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,image/*,application/pdf" hidden>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+
+    <div id="dropZone">
+      <div class="big-icon">📄</div>
+      <div><strong>Drag &amp; drop documents here</strong></div>
+      <div style="font-size:0.8rem;margin-top:6px;">JPG, PNG, WEBP, GIF, PDF — multiple files supported</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. Document Queue (<span id="queueCount">0</span>)</h2>
+    <div id="queueEmpty" style="color:#a0aec0;text-align:center;padding:20px;font-size:0.9rem;">
+      No documents yet. Upload or drag files above.
+    </div>
+    <div id="queueGrid"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. Processing</h2>
+    <div class="btn-row">
+      <button class="btn btn-success" id="btnStart" disabled>▶ Start AI Analysis</button>
+      <button class="btn btn-danger" id="btnCancel" disabled>⏹ Cancel Processing</button>
+    </div>
+    <div id="progressWrap">
+      <div id="progressBar"></div>
+      <div id="progressText">0%</div>
+    </div>
+    <div id="processingMsg" style="font-size:0.85rem;color:#718096;"></div>
+  </div>
+
+  <div class="card hidden" id="resultsCard">
+    <h2>4. Individual Analysis Results</h2>
+    <div id="resultsList"></div>
+  </div>
+
+  <div class="card hidden" id="summaryCard">
+    <h2>5. Overall Summary</h2>
+    <div id="summaryContent"></div>
+  </div>
+
+  <div class="card hidden" id="pdfCard">
+    <h2>6. Combined PDF</h2>
+    <p style="font-size:0.85rem;color:#718096;margin-bottom:12px;">
+      Generate one PDF containing every original document page plus its AI analysis summary.
+    </p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnGeneratePdf">📄 Generate Combined PDF</button>
+      <button class="btn btn-success" id="btnDownloadPdf" disabled>⬇ Download PDF</button>
+    </div>
+    <div id="pdfMsg" style="font-size:0.85rem;color:#718096;"></div>
+  </div>
+</div>
+
+<script>
+/* ===================================================== */
+/* 01. GLOBAL CONFIGURATION */
+/* ===================================================== */
+const CONFIG = {
+  PROCESSING_CONCURRENCY: 2,
+  DELAY_BETWEEN_REQUESTS: 800,
+  MAX_IMAGE_DIMENSION: 1600,
+  JPEG_QUALITY: 0.85,
+  MAX_FILE_SIZE_MB: 25,
+  MAX_RETRIES_PER_DOC: 2,
+  // Retry configuration for overall summary (429 handling)
+  SUMMARY_MAX_RETRIES: 4,
+  SUMMARY_BASE_DELAY_MS: 2000
+};
+
+/* ===================================================== */
+/* 02. APPLICATION STATE */
+/* ===================================================== */
+const STATE = {
+  documents: [],
+  processing: false,
+  cancelled: false,
+  nextId: 1,
+  overallSummaryText: '',
+  generatedPdfBlob: null,
+  // Group tracking for continuation pages
+  pdfGroups: {}  // key: filename, value: { totalPages, detectedType }
+};
+
+/* ===================================================== */
+/* 03. DOM REFERENCES */
+/* ===================================================== */
+const DOM = {
+  btnUpload: document.getElementById('btnUpload'),
+  btnCamera: document.getElementById('btnCamera'),
+  btnClearAll: document.getElementById('btnClearAll'),
+  fileInput: document.getElementById('fileInput'),
+  cameraInput: document.getElementById('cameraInput'),
+  dropZone: document.getElementById('dropZone'),
+  queueGrid: document.getElementById('queueGrid'),
+  queueEmpty: document.getElementById('queueEmpty'),
+  queueCount: document.getElementById('queueCount'),
+  btnStart: document.getElementById('btnStart'),
+  btnCancel: document.getElementById('btnCancel'),
+  progressWrap: document.getElementById('progressWrap'),
+  progressBar: document.getElementById('progressBar'),
+  progressText: document.getElementById('progressText'),
+  processingMsg: document.getElementById('processingMsg'),
+  resultsCard: document.getElementById('resultsCard'),
+  resultsList: document.getElementById('resultsList'),
+  summaryCard: document.getElementById('summaryCard'),
+  summaryContent: document.getElementById('summaryContent'),
+  pdfCard: document.getElementById('pdfCard'),
+  btnGeneratePdf: document.getElementById('btnGeneratePdf'),
+  btnDownloadPdf: document.getElementById('btnDownloadPdf'),
+  pdfMsg: document.getElementById('pdfMsg')
+};
+
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+/* ===================================================== */
+/* 04. UPLOAD / CAMERA / DRAG-DROP */
+/* ===================================================== */
+
+function setupUploadHandlers() {
+  DOM.btnUpload.addEventListener('click', () => DOM.fileInput.click());
+  DOM.btnCamera.addEventListener('click', () => DOM.cameraInput.click());
+
+  DOM.fileInput.addEventListener('change', (e) => {
+    handleFiles(e.target.files);
+    e.target.value = '';
+  });
+
+  DOM.cameraInput.addEventListener('change', (e) => {
+    handleFiles(e.target.files);
+    e.target.value = '';
+  });
+
+  ['dragenter', 'dragover'].forEach(evt => {
+    DOM.dropZone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      DOM.dropZone.classList.add('dragover');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(evt => {
+    DOM.dropZone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      DOM.dropZone.classList.remove('dragover');
+    });
+  });
+
+  DOM.dropZone.addEventListener('drop', (e) => {
+    const files = e.dataTransfer.files;
+    if (files && files.length) handleFiles(files);
+  });
+
+  DOM.dropZone.addEventListener('click', () => DOM.fileInput.click());
+}
+
+async function handleFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+
+  for (const file of files) {
+    if (file.size > CONFIG.MAX_FILE_SIZE_MB * 1024 * 1024) {
+      alert(`File too large (max ${CONFIG.MAX_FILE_SIZE_MB}MB): ${file.name}`);
+      continue;
+    }
+
+    const isPdf = file.type === 'application/pdf' ||
+                  file.name.toLowerCase().endsWith('.pdf');
+    const isImage = file.type.startsWith('image/');
+
+    if (!isPdf && !isImage) {
+      alert(`Unsupported file type: ${file.name}`);
+      continue;
+    }
+
+    if (isPdf) {
+      await addPdfDocument(file);
+    } else {
+      await addImageDocument(file);
+    }
+  }
+
+  renderQueue();
+  updateControls();
+}
+
+/* ===================================================== */
+/* 05. FILE HANDLING */
+/* ===================================================== */
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function downscaleDataUrl(dataUrl, maxDim = CONFIG.MAX_IMAGE_DIMENSION) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width <= maxDim && height <= maxDim) {
+        resolve(dataUrl);
+        return;
+      }
+      const scale = Math.min(maxDim / width, maxDim / height);
+      const w = Math.round(width * scale);
+      const h = Math.round(height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', CONFIG.JPEG_QUALITY));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+async function addImageDocument(file) {
+  const rawDataUrl = await fileToDataUrl(file);
+  const aiData = await downscaleDataUrl(rawDataUrl);
+
+  STATE.documents.push({
+    id: STATE.nextId++,
+    file,
+    name: file.name,
+    type: file.type || 'image/*',
+    size: file.size,
+    kind: 'image',
+    pdfPageIndex: null,
+    totalSourcePages: null,
+    sourceFileName: file.name,
+    previewUrl: rawDataUrl,
+    base64: aiData,
+    status: 'waiting',
+    rawResponse: '',
+    parsed: null,
+    error: null,
+    qualityOverall: null,
+    detectedType: null,
+    retries: 0
+  });
+}
+
+async function addPdfDocument(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  let pdf;
+  try {
+    pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  } catch (err) {
+    alert(`Failed to read PDF: ${file.name}`);
+    return;
+  }
+
+  const totalPages = pdf.numPages;
+  STATE.pdfGroups[file.name] = { totalPages, detectedType: null };
+
+  for (let i = 1; i <= totalPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const dataUrl = canvas.toDataURL('image/jpeg', CONFIG.JPEG_QUALITY);
+    const aiData = await downscaleDataUrl(dataUrl);
+
+    STATE.documents.push({
+      id: STATE.nextId++,
+      file,
+      name: `${file.name} — page ${i}`,
+      type: 'application/pdf',
+      size: file.size,
+      kind: 'pdf',
+      pdfPageIndex: i,
+      totalSourcePages: totalPages,
+      sourceFileName: file.name,
+      previewUrl: dataUrl,
+      base64: aiData,
+      status: 'waiting',
+      rawResponse: '',
+      parsed: null,
+      error: null,
+      qualityOverall: null,
+      detectedType: null,
+      retries: 0
+    });
+  }
+}
+
+/* ===================================================== */
+/* 06. PDF PAGE PROCESSING (inside addPdfDocument) */
+/* ===================================================== */
+
+/* ===================================================== */
+/* 07. AI PROVIDER / ENDPOINT CONFIGURATION */
+/* ===================================================== */
+
+const AI_CONFIG = {
+  provider: 'AHM7_VIA_1HUB_OCR_ENDPOINT',
+  visionEndpoint: '/api/ocr'
+};
+
+/**
+ * Low-level AI call. Handles HTTP + JSON.
+ * Throws typed errors including isRateLimit flag for 429.
+ */
+async function callVisionAIOnce(imageDataUrl, prompt) {
+  let response;
+  try {
+    response = await fetch(AI_CONFIG.visionEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userPrompt: prompt,
+        image: imageDataUrl
+      })
+    });
+  } catch (networkErr) {
+    const err = new Error(`Network error: ${networkErr.message}`);
+    err.isNetwork = true;
+    throw err;
+  }
+
+  if (!response.ok) {
+    const err = new Error(`HTTP ${response.status}`);
+    err.status = response.status;
+    if (response.status === 429) {
+      err.isRateLimit = true;
+      err.message = 'Rate limit reached (429). Please wait and retry.';
+    } else if (response.status === 400) {
+      err.message = 'Bad request (400) — invalid input.';
+    } else if (response.status === 405) {
+      err.message = 'Method not allowed (405).';
+    } else if (response.status === 413) {
+      err.message = 'Payload too large (413) — image too big.';
+    } else if (response.status === 502) {
+      err.message = 'Bad gateway (502) — AI service unavailable.';
+    }
+    throw err;
+  }
+
+  let data;
+  try {
+    data = await response.json();
+  } catch (e) {
+    throw new Error('Invalid JSON response from server.');
+  }
+
+  if (data.success === false) {
+    throw new Error(data.error || 'AI service returned failure.');
+  }
+
+  const text =
+    data.response ||
+    data.result ||
+    data.message ||
+    (typeof data === 'string' ? data : '');
+
+  if (!text) {
+    throw new Error('AI response was empty or missing "response" field.');
+  }
+  return text;
+}
+
+/**
+ * Central AI call with retry/backoff for rate limits.
+ * All AI communication goes through this function.
+ */
+async function callVisionAI(imageDataUrl, prompt, opts = {}) {
+  const maxRetries = opts.maxRetries ?? 2;
+  const baseDelay = opts.baseDelay ?? 1500;
+  let lastErr = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await callVisionAIOnce(imageDataUrl, prompt);
+    } catch (err) {
+      lastErr = err;
+      // Only retry on rate limit or network errors
+      const shouldRetry = err.isRateLimit || err.isNetwork;
+      if (!shouldRetry || attempt >= maxRetries) break;
+
+      const delay = baseDelay * Math.pow(2, attempt);
+      await sleep(delay);
+    }
+  }
+  throw lastErr;
+}
+
+/* ===================================================== */
+/* 08. DOCUMENT ANALYSIS PROMPT */
+/* ===================================================== */
+
+const DOC_ANALYSIS_PROMPT = `You are a strict document inspection and OCR API.
+
+CRITICAL RULES:
+- Return ONLY a raw JSON object.
+- DO NOT wrap the JSON in markdown code fences (no triple backticks).
+- DO NOT add any commentary, explanation, or text before or after the JSON.
+- DO NOT omit any field. Every field below must be present.
+- If unsure, use "unknown" or 0 — but ALWAYS include every field.
+
+Analyze the image and return EXACTLY this JSON structure:
+
+{
+  "documentType": "string (e.g. Aadhaar Card, PAN Card, Invoice, Sale Deed, Bank Statement, Invitation, Property Document, Udyam Registration Certificate, Photograph, Non-document image, etc.)",
+  "confidence": 0,
+  "documentStatus": "original | scanned | photocopy | screenshot | photograph | handwritten | unknown",
+  "isContinuation": false,
+  "continuationOf": "string or null (name of the document this page continues, if this looks like a continuation page of a multi-page document)",
+  "quality": {
+    "overall": "GOOD | ACCEPTABLE | NEEDS_REVIEW | POOR",
+    "blur": "None | Slight | Moderate | Severe",
+    "visibility": "Fully visible | Mostly visible | Partially visible | Not readable",
+    "darkness": "None | Slight | Moderate | Severe",
+    "overexposure": "None | Slight | Moderate | Severe",
+    "glare": "None | Slight | Moderate | Severe",
+    "cropping": "None | Minor | Significant",
+    "rotation": "None | Slight | Significant",
+    "obstruction": "None | Minor | Significant",
+    "readability": 0
+  },
+  "pageAssessment": "short description of what this page shows",
+  "textExtracted": "all visible text, preserved exactly. For TABLES (bank statements, invoices), keep each row on its own line and separate columns with ' | '. Use [unclear] or [OCR uncertain] for unclear parts. DO NOT invent text.",
+  "importantDetails": ["key detail 1", "key detail 2"],
+  "issues": ["issue 1", "issue 2"],
+  "recommendation": "what the user should do if quality is poor, else 'Document is clear'"
+}
+
+RULES FOR ANALYSIS:
+- Identify the document type from VISIBLE CONTENT only. Do not trust the filename.
+- If this page looks like a continuation (page 2, 3, etc.) of the same document type as the previous page, set isContinuation=true and continuationOf to the parent document type.
+- Do not invent text. If unclear, write [unclear] or [OCR uncertain].
+- For tables, preserve structure using ' | ' separators.
+- Be conservative with confidence (0-100).
+- If the image is not a document (random photo), set documentType to "Photograph" or "Non-document image".
+
+Return the JSON now. Nothing else.`;
+
+async function analyzeDocument(doc, context) {
+  // Build prompt with optional context (previous page in same PDF)
+  let prompt = DOC_ANALYSIS_PROMPT;
+  if (context && context.previousType) {
+    prompt += `\n\nCONTEXT: This image is page ${context.pageIndex} of a ${context.totalPages}-page PDF named "${context.sourceFileName}". The previous page was identified as "${context.previousType}". If this page is a continuation of that same document, set isContinuation=true and continuationOf="${context.previousType}". Otherwise identify this page independently.`;
+  }
+
+  const raw = await callVisionAI(doc.base64, prompt);
+  const parsed = parseAIResponse(raw);
+  return { raw, parsed };
+}
+
+/* ===================================================== */
+/* 09. RESULT PARSING — ROBUST */
+/* ===================================================== */
+
+function parseAIResponse(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+
+  let text = raw.trim();
+
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenceMatch) text = fenceMatch[1].trim();
+
+  let parsed = null;
+  try {
+    parsed = JSON.parse(text);
+  } catch (_) {
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end > start) {
+      try {
+        parsed = JSON.parse(text.slice(start, end + 1));
+      } catch (_) {}
+    }
+  }
+
+  if (!parsed || typeof parsed !== 'object') return null;
+
+  return normalizeParsedResult(parsed);
+}
+
+function normalizeParsedResult(p) {
+  const pick = (...keys) => {
+    for (const k of keys) {
+      if (p[k] !== undefined && p[k] !== null && p[k] !== '') return p[k];
+    }
+    return undefined;
+  };
+
+  const qualitySrc = p.quality || {};
+
+  return {
+    documentType: pick('documentType', 'document_type', 'type', 'docType') || 'Unidentified',
+    confidence: Number(pick('confidence', 'confidence_score', 'score')) || 0,
+    documentStatus: pick('documentStatus', 'document_status', 'status') || 'unknown',
+    isContinuation: !!pick('isContinuation', 'is_continuation'),
+    continuationOf: pick('continuationOf', 'continuation_of') || null,
+    quality: {
+      overall: qualitySrc.overall || qualitySrc.quality || pick('quality_overall') || 'UNKNOWN',
+      blur: qualitySrc.blur || 'None',
+      visibility: qualitySrc.visibility || 'Fully visible',
+      darkness: qualitySrc.darkness || 'None',
+      overexposure: qualitySrc.overexposure || 'None',
+      glare: qualitySrc.glare || 'None',
+      cropping: qualitySrc.cropping || 'None',
+      rotation: qualitySrc.rotation || 'None',
+      obstruction: qualitySrc.obstruction || 'None',
+      readability: Number(qualitySrc.readability) || 0
+    },
+    pageAssessment: pick('pageAssessment', 'page_assessment', 'assessment') || '',
+    textExtracted: pick('textExtracted', 'text_extracted', 'text', 'ocr_text') || '',
+    importantDetails: Array.isArray(p.importantDetails) ? p.importantDetails
+                     : Array.isArray(p.important_details) ? p.important_details
+                     : [],
+    issues: Array.isArray(p.issues) ? p.issues : [],
+    recommendation: pick('recommendation', 'advice') || ''
+  };
+}
+
+/* ===================================================== */
+/* 09b. QUALITY HELPERS */
+/* ===================================================== */
+
+function deriveQualityStatus(quality) {
+  if (!quality) return 'NEEDS REVIEW';
+
+  const overall = (quality.overall || '').toUpperCase();
+
+  if (overall === 'GOOD') return 'CLEAR';
+  if (overall === 'ACCEPTABLE') return 'CLEAR';
+  if (overall === 'NEEDS_REVIEW' || overall === 'NEEDS REVIEW') return 'NEEDS REVIEW';
+  if (overall === 'POOR') return 'POOR';
+
+  const hasSevere =
+    /severe/i.test(quality.blur || '') ||
+    /not readable/i.test(quality.visibility || '') ||
+    /severe/i.test(quality.darkness || '') ||
+    /severe/i.test(quality.glare || '') ||
+    /significant/i.test(quality.cropping || '');
+
+  const hasModerate =
+    /moderate/i.test(quality.blur || '') ||
+    /partially visible/i.test(quality.visibility || '') ||
+    /moderate/i.test(quality.darkness || '') ||
+    /moderate/i.test(quality.glare || '');
+
+  if (hasSevere) return 'POOR';
+  if (hasModerate) return 'NEEDS REVIEW';
+  return 'CLEAR';
+}
+
+function formatReadability(raw) {
+  if (raw === undefined || raw === null || raw === '') return 'Unknown';
+
+  let num = Number(raw);
+  if (isNaN(num)) return 'Unknown';
+
+  if (num > 0 && num <= 1) num = Math.round(num * 100);
+
+  num = Math.max(0, Math.min(100, Math.round(num)));
+
+  let label;
+  if (num >= 90) label = 'Excellent';
+  else if (num >= 75) label = 'Good';
+  else if (num >= 50) label = 'Fair';
+  else label = 'Poor';
+
+  return `${label} (${num}%)`;
+}
+
+/* ===================================================== */
+/* 10. DOCUMENT QUEUE / CONCURRENCY */
+/* ===================================================== */
+
+function getPendingDocs() {
+  return STATE.documents.filter(d => d.status === 'waiting');
+}
+
+async function startProcessing() {
+  if (STATE.processing) return;
+  const pending = getPendingDocs();
+  if (!pending.length) {
+    alert('No documents waiting for analysis.');
+    return;
+  }
+
+  STATE.processing = true;
+  STATE.cancelled = false;
+  updateControls();
+  DOM.progressWrap.style.display = 'block';
+
+  const total = pending.length;
+  let done = 0;
+
+  const workers = [];
+  for (let i = 0; i < CONFIG.PROCESSING_CONCURRENCY; i++) {
+    workers.push(runWorker(pending, () => {
+      done++;
+      updateProgress(done, total);
+    }));
+  }
+
+  await Promise.all(workers);
+
+  STATE.processing = false;
+  updateControls();
+  renderQueue();
+  renderResults();
+
+  if (!STATE.cancelled) {
+    await generateOverallSummary();
+  } else {
+    DOM.processingMsg.textContent = 'Processing cancelled.';
+  }
+}
+
+/**
+ * Finds previous processed page in the same PDF for context.
+ */
+function findPreviousContext(doc) {
+  if (doc.kind !== 'pdf' || !doc.pdfPageIndex || doc.pdfPageIndex <= 1) return null;
+
+  // Find the previous page in the same source PDF that has a detected type
+  const prev = STATE.documents.find(d =>
+    d.kind === 'pdf' &&
+    d.sourceFileName === doc.sourceFileName &&
+    d.pdfPageIndex === doc.pdfPageIndex - 1 &&
+    d.parsed &&
+    d.detectedType
+  );
+
+  if (!prev) return null;
+
+  return {
+    previousType: prev.detectedType,
+    pageIndex: doc.pdfPageIndex,
+    totalPages: doc.totalSourcePages,
+    sourceFileName: doc.sourceFileName
+  };
+}
+
+async function runWorker(queue, onOneDone) {
+  while (queue.length) {
+    if (STATE.cancelled) return;
+    const doc = queue.shift();
+    if (doc.status !== 'waiting') continue;
+
+    doc.status = 'processing';
+    renderQueue();
+
+    let lastError = null;
+    for (let attempt = 0; attempt <= CONFIG.MAX_RETRIES_PER_DOC; attempt++) {
+      if (STATE.cancelled) break;
+      try {
+        const context = findPreviousContext(doc);
+        const { raw, parsed } = await analyzeDocument(doc, context);
+
+        doc.rawResponse = raw;
+        doc.parsed = parsed;
+        doc.status = 'completed';
+
+        // Continuation logic: if marked as continuation and we have a parent type
+        if (parsed?.isContinuation && parsed.continuationOf) {
+          doc.detectedType = `${parsed.continuationOf} - Continuation Page`;
+        } else if (parsed?.documentType === 'Unidentified' && context?.previousType) {
+          // Fallback: if AI couldn't identify but context suggests continuation
+          doc.detectedType = `${context.previousType} - Continuation Page`;
+        } else {
+          doc.detectedType = parsed?.documentType || 'Unidentified';
+        }
+
+        doc.qualityOverall = parsed?.quality?.overall || 'UNKNOWN';
+        lastError = null;
+        break;
+      } catch (err) {
+        lastError = err;
+        if (attempt < CONFIG.MAX_RETRIES_PER_DOC) {
+          // Exponential backoff for rate limit
+          const delay = err.isRateLimit
+            ? 2000 * Math.pow(2, attempt)
+            : 1500 * (attempt + 1);
+          await sleep(delay);
+        }
+      }
+    }
+
+    if (lastError) {
+      doc.status = 'failed';
+      doc.error = lastError.message || 'Unknown error';
+    }
+
+    onOneDone();
+    renderQueue();
+    await sleep(CONFIG.DELAY_BETWEEN_REQUESTS);
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function updateProgress(done, total) {
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  DOM.progressBar.style.width = pct + '%';
+  DOM.progressText.textContent = `Processing ${done} of ${total} (${pct}%)`;
+  DOM.processingMsg.textContent = `Processing ${done} of ${total} documents...`;
+}
+
+function cancelProcessing() {
+  if (!STATE.processing) return;
+  STATE.cancelled = true;
+  STATE.documents.forEach(d => {
+    if (d.status === 'waiting') d.status = 'cancelled';
+  });
+  DOM.processingMsg.textContent = 'Cancelling… current requests will finish.';
+  renderQueue();
+  updateControls();
+}
+
+/* ===================================================== */
+/* 11. OVERALL SUMMARY — IMPROVED FORMAT */
+/* ===================================================== */
+
+const SUMMARY_PROMPT_INTRO = `You are reviewing a collection of independently analyzed documents.
+
+Create a universal document review summary.
+
+Do not assume that any specific document is required. Do not create a predefined checklist. Only report what is actually present in the supplied analysis.
+
+Return plain text only (no JSON, no markdown). Use this exact format:
+
+OVERALL DOCUMENT REVIEW
+
+Documents Received: N
+Documents Analyzed: N
+Failed: N
+
+Clear: N
+Needs Review: N
+Poor: N
+
+Detected Document Types:
+1. ...
+2. ...
+
+Blur Issues:
+None detected. (or list)
+
+Poor Visibility:
+None detected. (or list)
+
+Cropped / Incomplete Pages:
+None detected. (or list)
+
+Unreadable Information:
+None detected. (or list)
+
+Possible Duplicates:
+None detected. (or list)
+
+Re-upload Required:
+None detected. (or list)
+
+Overall Quality:
+GOOD / NEEDS REVIEW / POOR
+
+Overall Status:
+READY / NEEDS REVIEW / QUALITY ISSUES FOUND
+
+Here is the analysis of each document:`;
+
+async function generateOverallSummary() {
+  const completed = STATE.documents.filter(d => d.status === 'completed');
+  if (!completed.length) {
+    DOM.summaryCard.classList.remove('hidden');
+    DOM.summaryContent.innerHTML = `<div class="alert alert-warn">No documents were analyzed successfully.</div>`;
+    DOM.pdfCard.classList.remove('hidden');
+    return;
+  }
+
+  const compact = completed.map(d => ({
+    file: d.name,
+    detectedType: d.detectedType,
+    confidence: d.parsed?.confidence ?? null,
+    qualityOverall: d.qualityOverall,
+    blur: d.parsed?.quality?.blur ?? null,
+    visibility: d.parsed?.quality?.visibility ?? null,
+    cropping: d.parsed?.quality?.cropping ?? null,
+    issues: d.parsed?.issues ?? [],
+    recommendation: d.parsed?.recommendation ?? ''
+  }));
+
+  const prompt = `${SUMMARY_PROMPT_INTRO}\n\n${JSON.stringify(compact, null, 2)}`;
+
+  DOM.summaryCard.classList.remove('hidden');
+  DOM.summaryContent.innerHTML = `<div class="alert alert-info">Generating overall summary…</div>`;
+
+  const localSummary = buildLocalSummary(completed);
+
+  try {
+    // Retry with exponential backoff for rate limits
+    const raw = await callVisionAI(
+      completed[0].base64,
+      prompt,
+      { maxRetries: CONFIG.SUMMARY_MAX_RETRIES, baseDelay: CONFIG.SUMMARY_BASE_DELAY_MS }
+    );
+    const cleaned = (raw || '').trim();
+    if (cleaned && cleaned.length > 50) {
+      STATE.overallSummaryText = cleaned;
+    } else {
+      STATE.overallSummaryText = localSummary;
+    }
+    renderSummary();
+  } catch (err) {
+    const reason = err.isRateLimit
+      ? 'Rate limit reached (429). Local summary dikhaya ja raha hai.'
+      : `AI summary unavailable (${err.message}). Local summary dikhaya ja raha hai.`;
+    STATE.overallSummaryText = localSummary;
+    renderSummary(reason);
+  }
+
+  DOM.pdfCard.classList.remove('hidden');
+}
+
+function buildLocalSummary(docs) {
+  const total = STATE.documents.length;
+  const analyzed = docs.length;
+  const failed = STATE.documents.filter(d => d.status === 'failed').length;
+
+  const clear = docs.filter(d => deriveQualityStatus(d.parsed?.quality) === 'CLEAR').length;
+  const review = docs.filter(d => deriveQualityStatus(d.parsed?.quality) === 'NEEDS REVIEW').length;
+  const poor = docs.filter(d => deriveQualityStatus(d.parsed?.quality) === 'POOR').length;
+
+  const lines = [];
+
+  lines.push('OVERALL DOCUMENT REVIEW');
+  lines.push('');
+  lines.push(`Documents Received: ${total}`);
+  lines.push(`Documents Analyzed: ${analyzed}`);
+  lines.push(`Failed: ${failed}`);
+  lines.push('');
+  lines.push(`Clear: ${clear}`);
+  lines.push(`Needs Review: ${review}`);
+  lines.push(`Poor: ${poor}`);
+  lines.push('');
+
+  lines.push('Detected Document Types:');
+  docs.forEach((d, i) => {
+    lines.push(`${i + 1}. ${d.detectedType || 'Unknown'} (${d.name})`);
+  });
+  lines.push('');
+
+  const blurIssues = docs.filter(d => {
+    const b = d.parsed?.quality?.blur;
+    return b && !/^none$/i.test(b);
+  });
+  lines.push('Blur Issues:');
+  if (blurIssues.length) {
+    blurIssues.forEach(d => lines.push(`- ${d.name}: ${d.parsed.quality.blur}`));
+  } else {
+    lines.push('None detected.');
+  }
+  lines.push('');
+
+  const visIssues = docs.filter(d => {
+    const v = d.parsed?.quality?.visibility;
+    return v && !/fully visible/i.test(v);
+  });
+  lines.push('Poor Visibility:');
+  if (visIssues.length) {
+    visIssues.forEach(d => lines.push(`- ${d.name}: ${d.parsed.quality.visibility}`));
+  } else {
+    lines.push('None detected.');
+  }
+  lines.push('');
+
+  const cropIssues = docs.filter(d => {
+    const c = d.parsed?.quality?.cropping;
+    return c && !/^none$/i.test(c);
+  });
+  lines.push('Cropped / Incomplete Pages:');
+  if (cropIssues.length) {
+    cropIssues.forEach(d => lines.push(`- ${d.name}: ${d.parsed.quality.cropping}`));
+  } else {
+    lines.push('None detected.');
+  }
+  lines.push('');
+
+  const unreadable = docs.filter(d => {
+    const txt = d.parsed?.textExtracted || '';
+    return /\[unreadable\]|\[partially visible\]|\[unclear\]|\[ocr uncertain\]/i.test(txt);
+  });
+  lines.push('Unreadable Information:');
+  if (unreadable.length) {
+    unreadable.forEach(d => lines.push(`- ${d.name}: contains unreadable text`));
+  } else {
+    lines.push('None detected.');
+  }
+  lines.push('');
+
+  lines.push('Possible Duplicates:');
+  lines.push('None detected.');
+  lines.push('');
+
+  const reupload = docs.filter(d => {
+    const s = deriveQualityStatus(d.parsed?.quality);
+    return s === 'POOR' || s === 'NEEDS REVIEW';
+  });
+  lines.push('Re-upload Required:');
+  if (reupload.length) {
+    reupload.forEach(d => lines.push(`- ${d.name}`));
+  } else {
+    lines.push('None detected.');
+  }
+  lines.push('');
+
+  let overallQuality = 'GOOD';
+  if (poor > 0) overallQuality = 'POOR';
+  else if (review > 0) overallQuality = 'NEEDS REVIEW';
+  lines.push('Overall Quality:');
+  lines.push(overallQuality);
+  lines.push('');
+
+  let status = 'READY';
+  if (poor > 0) status = 'QUALITY ISSUES FOUND';
+  else if (review > 0 || failed > 0) status = 'NEEDS REVIEW';
+  lines.push('Overall Status:');
+  lines.push(status);
+
+  return lines.join('\n');
+}
+
+/* ===================================================== */
+/* 12. PDF GENERATION — ALL PAGES PRESERVED */
+/* ===================================================== */
+
+async function generateCombinedPdf() {
+  // Include EVERY processed document (completed / failed / cancelled)
+  // Original order = queue order
+  const docs = STATE.documents.filter(d =>
+    d.status === 'completed' ||
+    d.status === 'failed' ||
+    d.status === 'cancelled'
+  );
+
+  if (!docs.length) {
+    DOM.pdfMsg.textContent = 'No documents to include. Please run AI analysis first.';
+    return;
+  }
+
+  DOM.pdfMsg.textContent = `Generating PDF with ${docs.length} page(s)…`;
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = 36;
+  let firstPage = true;
+
+  // Loop over EVERY processed doc — no skips
+  for (let i = 0; i < docs.length; i++) {
+    const doc = docs[i];
+    if (!firstPage) pdf.addPage();
+    firstPage = false;
+
+    let cursorY = margin;
+
+    // ---- HEADER: Detected document type ----
+    const heading = (doc.detectedType || 'DOCUMENT').toUpperCase();
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
+    pdf.setTextColor(20, 20, 20);
+    pdf.text(heading, pageW / 2, cursorY + 10, { align: 'center' });
+    cursorY += 26;
+
+    pdf.setDrawColor(180);
+    pdf.line(margin, cursorY, pageW - margin, cursorY);
+    cursorY += 14;
+
+    // ---- ORIGINAL DOCUMENT IMAGE (aspect-ratio preserved) ----
+    try {
+      const imgProps = await getImageProps(doc.previewUrl);
+      const maxW = pageW - margin * 2;
+      const maxH = pageH * 0.48;
+      let w = imgProps.width;
+      let h = imgProps.height;
+      const scale = Math.min(maxW / w, maxH / h, 1);
+      w *= scale;
+      h *= scale;
+      const x = (pageW - w) / 2;
+
+      const fmt = detectImageFormat(doc.previewUrl);
+      pdf.addImage(doc.previewUrl, fmt, x, cursorY, w, h, undefined, 'FAST');
+      cursorY += h + 14;
+    } catch (err) {
+      pdf.setFontSize(10);
+      pdf.setTextColor(200, 0, 0);
+      pdf.text('IMAGE COULD NOT BE EMBEDDED', margin, cursorY);
+      cursorY += 16;
+    }
+
+    // ---- AI ANALYSIS SECTION ----
+    pdf.setDrawColor(180);
+    pdf.line(margin, cursorY, pageW - margin, cursorY);
+    cursorY += 14;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.setTextColor(30, 30, 30);
+    pdf.text('AI ANALYSIS SUMMARY', pageW / 2, cursorY, { align: 'center' });
+    cursorY += 18;
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(50, 50, 50);
+
+    const p = doc.parsed;
+    const lines = [];
+    lines.push(`Source File: ${doc.name}`);
+    if (doc.kind === 'pdf' && doc.pdfPageIndex) {
+      lines.push(`Source Page: ${doc.pdfPageIndex} of ${doc.totalSourcePages || '?'}`);
+    }
+
+    if (p) {
+      const qualityStatus = deriveQualityStatus(p.quality);
+      lines.push(`Status: ${qualityStatus}`);
+      lines.push(`Document Type: ${p.documentType || 'Unknown'}`);
+      if (typeof p.confidence === 'number') {
+        lines.push(`Confidence: ${p.confidence}%`);
+      }
+      if (p.quality) {
+        lines.push(`Quality: ${p.quality.overall || '-'}`);
+        lines.push(`Blur: ${p.quality.blur || 'None'}`);
+        lines.push(`Visibility: ${p.quality.visibility || 'Fully visible'}`);
+        lines.push(`Readability: ${formatReadability(p.quality.readability)}`);
+        lines.push(`Cropping: ${p.quality.cropping || 'None'}`);
+        lines.push(`Glare: ${p.quality.glare || 'None'}`);
+        lines.push(`Rotation: ${p.quality.rotation || 'None'}`);
+        lines.push(`Obstruction: ${p.quality.obstruction || 'None'}`);
+      }
+      if (p.issues && p.issues.length) {
+        lines.push(`Issues: ${p.issues.join('; ')}`);
+      }
+      if (p.recommendation) {
+        lines.push(`Recommendation: ${p.recommendation}`);
+      }
+    } else if (doc.status === 'failed') {
+      lines.push(`Analysis failed: ${doc.error || 'Unknown error'}`);
+    } else if (doc.status === 'cancelled') {
+      lines.push('Analysis cancelled.');
+    } else {
+      lines.push('Analysis not available.');
+    }
+
+    const wrapped = lines.flatMap(l =>
+      pdf.splitTextToSize(l, pageW - margin * 2)
+    );
+    wrapped.forEach(line => {
+      if (cursorY > pageH - margin - 20) return;
+      pdf.text(line, margin, cursorY);
+      cursorY += 11;
+    });
+
+    // ---- FOOTER ----
+    pdf.setFontSize(8);
+    pdf.setTextColor(120);
+    pdf.text(
+      `Page ${i + 1} of ${docs.length}`,
+      pageW / 2,
+      pageH - 16,
+      { align: 'center' }
+    );
+  }
+
+  // ---- Overall summary appended as final page ----
+  if (STATE.overallSummaryText) {
+    pdf.addPage();
+    let y = margin;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
+    pdf.text('OVERALL SUMMARY', pageW / 2, y + 10, { align: 'center' });
+    y += 30;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    const wrapped = pdf.splitTextToSize(STATE.overallSummaryText, pageW - margin * 2);
+    wrapped.forEach(line => {
+      if (y > pageH - margin) {
+        pdf.addPage();
+        y = margin;
+      }
+      pdf.text(line, margin, y);
+      y += 13;
+    });
+    pdf.setFontSize(8);
+    pdf.setTextColor(120);
+    pdf.text(
+      `Page ${docs.length + 1} of ${docs.length + 1}`,
+      pageW / 2,
+      pageH - 16,
+      { align: 'center' }
+    );
+  }
+
+  STATE.generatedPdfBlob = pdf.output('blob');
+
+  // Dynamic message with actual counts
+  const pageWord = docs.length === 1 ? 'page' : 'pages';
+  DOM.pdfMsg.textContent =
+    `PDF ready (${docs.length} document ${pageWord} + ${docs.length} AI summaries).`;
+  DOM.btnDownloadPdf.disabled = false;
+}
+
+function getImageProps(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+function detectImageFormat(dataUrl) {
+  if (dataUrl.startsWith('data:image/png')) return 'PNG';
+  if (dataUrl.startsWith('data:image/webp')) return 'WEBP';
+  if (dataUrl.startsWith('data:image/gif')) return 'GIF';
+  return 'JPEG';
+}
+
+function downloadPdf() {
+  if (!STATE.generatedPdfBlob) return;
+  const url = URL.createObjectURL(STATE.generatedPdfBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `document-analysis-${Date.now()}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* ===================================================== */
+/* 13. UI RENDERING */
+/* ===================================================== */
+
+function renderQueue() {
+  DOM.queueCount.textContent = STATE.documents.length;
+  DOM.queueEmpty.style.display = STATE.documents.length ? 'none' : 'block';
+
+  DOM.queueGrid.innerHTML = '';
+  STATE.documents.forEach(doc => {
+    const card = document.createElement('div');
+    card.className = 'doc-card';
+
+    const thumb = document.createElement('div');
+    thumb.className = 'doc-thumb';
+    const img = document.createElement('img');
+    img.src = doc.previewUrl;
+    img.alt = doc.name;
+    thumb.appendChild(img);
+
+    const body = document.createElement('div');
+    body.className = 'doc-body';
+
+    const name = document.createElement('div');
+    name.className = 'doc-name';
+    name.textContent = doc.name;
+
+    const meta = document.createElement('div');
+    meta.className = 'doc-meta';
+    meta.textContent = `${doc.type || 'unknown'} • ${formatSize(doc.size)}`;
+
+    const status = document.createElement('div');
+    status.innerHTML = `<span class="badge ${doc.status}">${doc.status}</span>`;
+
+    body.appendChild(name);
+    body.appendChild(meta);
+    body.appendChild(status);
+
+    if (doc.detectedType) {
+      const dt = document.createElement('div');
+      dt.className = 'doc-meta';
+      dt.innerHTML = `<strong>Type:</strong> ${escapeHtml(doc.detectedType)}`;
+      body.appendChild(dt);
+    }
+    if (doc.qualityOverall) {
+      const q = document.createElement('div');
+      const cls = doc.qualityOverall.toLowerCase().replace('_', '-');
+      q.innerHTML = `<span class="badge ${cls}">${doc.qualityOverall}</span>`;
+      body.appendChild(q);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'doc-actions';
+    const rm = document.createElement('button');
+    rm.className = 'btn btn-sm btn-danger';
+    rm.textContent = 'Remove';
+    rm.addEventListener('click', () => removeDoc(doc.id));
+    actions.appendChild(rm);
+    body.appendChild(actions);
+
+    card.appendChild(thumb);
+    card.appendChild(body);
+    DOM.queueGrid.appendChild(card);
+  });
+}
+
+function renderResults() {
+  const done = STATE.documents.filter(d =>
+    d.status === 'completed' || d.status === 'failed' || d.status === 'cancelled'
+  );
+  if (!done.length) {
+    DOM.resultsCard.classList.add('hidden');
+    return;
+  }
+  DOM.resultsCard.classList.remove('hidden');
+  DOM.resultsList.innerHTML = '';
+
+  done.forEach(doc => {
+    const item = document.createElement('div');
+    item.className = 'result-item';
+
+    const title = document.createElement('h3');
+    title.textContent = doc.detectedType || doc.name;
+    item.appendChild(title);
+
+    const srcRow = document.createElement('div');
+    srcRow.className = 'result-row';
+    srcRow.innerHTML = `<strong>Source File:</strong> ${escapeHtml(doc.name)}`;
+    item.appendChild(srcRow);
+
+    if (doc.status === 'failed') {
+      const err = document.createElement('div');
+      err.className = 'alert alert-error';
+      err.innerHTML = `⚠ Analysis Failed — ${escapeHtml(doc.error || 'Unknown error')}`;
+      item.appendChild(err);
+
+      const retry = document.createElement('button');
+      retry.className = 'btn btn-sm btn-primary';
+      retry.textContent = 'Retry';
+      retry.addEventListener('click', () => retryDoc(doc.id));
+      item.appendChild(retry);
+    } else if (doc.status === 'cancelled') {
+      const c = document.createElement('div');
+      c.className = 'alert alert-warn';
+      c.textContent = 'Analysis cancelled.';
+      item.appendChild(c);
+    } else if (doc.parsed) {
+      const p = doc.parsed;
+      const qualityStatus = deriveQualityStatus(p.quality);
+      const rows = [
+        ['Status', qualityStatus],
+        ['Confidence', p.confidence != null ? p.confidence + '%' : '-'],
+        ['Source Type', p.documentStatus || '-'],
+        ['Quality', p.quality?.overall || '-'],
+        ['Blur', p.quality?.blur || '-'],
+        ['Visibility', p.quality?.visibility || '-'],
+        ['Readability', formatReadability(p.quality?.readability)],
+        ['Cropping', p.quality?.cropping || '-'],
+        ['Glare', p.quality?.glare || '-'],
+        ['Rotation', p.quality?.rotation || '-'],
+        ['Obstruction', p.quality?.obstruction || '-']
+      ];
+      rows.forEach(([k, v]) => {
+        const r = document.createElement('div');
+        r.className = 'result-row';
+        r.innerHTML = `<strong>${k}:</strong> ${escapeHtml(String(v))}`;
+        item.appendChild(r);
+      });
+
+      if (p.issues && p.issues.length) {
+        const ul = document.createElement('ul');
+        ul.className = 'issue-list';
+        p.issues.forEach(i => {
+          const li = document.createElement('li');
+          li.textContent = '⚠ ' + i;
+          ul.appendChild(li);
+        });
+        item.appendChild(ul);
+      }
+
+      if (p.recommendation) {
+        const rec = document.createElement('div');
+        rec.className = 'result-row';
+        rec.innerHTML = `<strong>Recommendation:</strong> ${escapeHtml(p.recommendation)}`;
+        item.appendChild(rec);
+      }
+
+      if (p.textExtracted) {
+        const tb = document.createElement('div');
+        tb.className = 'text-block';
+        tb.textContent = p.textExtracted;
+        item.appendChild(tb);
+      }
+    } else if (doc.rawResponse) {
+      const tb = document.createElement('div');
+      tb.className = 'text-block';
+      tb.textContent = doc.rawResponse;
+      item.appendChild(tb);
+    }
+
+    DOM.resultsList.appendChild(item);
+  });
+}
+
+function renderSummary(fallbackMsg) {
+  const docs = STATE.documents.filter(d => d.status === 'completed');
+  const total = STATE.documents.length;
+  const failed = STATE.documents.filter(d => d.status === 'failed').length;
+  const clear = docs.filter(d => deriveQualityStatus(d.parsed?.quality) === 'CLEAR').length;
+  const review = docs.filter(d => deriveQualityStatus(d.parsed?.quality) === 'NEEDS REVIEW').length;
+  const poor = docs.filter(d => deriveQualityStatus(d.parsed?.quality) === 'POOR').length;
+
+  let statusClass = 'ready';
+  let statusText = '✅ READY';
+  if (poor > 0) { statusClass = 'issues'; statusText = '⚠ QUALITY ISSUES FOUND'; }
+  else if (review > 0 || failed > 0) { statusClass = 'review'; statusText = '⚠ NEEDS REVIEW'; }
+
+  let html = '';
+  if (fallbackMsg) html += `<div class="alert alert-warn">${escapeHtml(fallbackMsg)}</div>`;
+
+  html += `
+    <div class="summary-grid">
+      <div class="summary-box"><div class="num">${total}</div><div class="lbl">Total</div></div>
+      <div class="summary-box"><div class="num">${docs.length}</div><div class="lbl">Analyzed</div></div>
+      <div class="summary-box"><div class="num">${failed}</div><div class="lbl">Failed</div></div>
+      <div class="summary-box"><div class="num">${clear}</div><div class="lbl">Clear</div></div>
+      <div class="summary-box"><div class="num">${review}</div><div class="lbl">Needs Review</div></div>
+      <div class="summary-box"><div class="num">${poor}</div><div class="lbl">Poor</div></div>
+    </div>
+    <div class="overall-status ${statusClass}">${statusText}</div>
+  `;
+
+  if (STATE.overallSummaryText) {
+    html += '<h3 style="font-size:0.95rem;margin:12px 0 8px;">Summary</h3>';
+    html += `<div class="text-block" style="max-height:400px;">${escapeHtml(STATE.overallSummaryText)}</div>`;
+  }
+
+  DOM.summaryContent.innerHTML = html;
+}
+
+/* ===================================================== */
+/* 14. ERROR HANDLING */
+/* ===================================================== */
+
+function removeDoc(id) {
+  STATE.documents = STATE.documents.filter(d => d.id !== id);
+  renderQueue();
+  updateControls();
+}
+
+async function retryDoc(id) {
+  const doc = STATE.documents.find(d => d.id === id);
+  if (!doc) return;
+  doc.status = 'waiting';
+  doc.error = null;
+  doc.parsed = null;
+  doc.rawResponse = '';
+  renderQueue();
+  updateControls();
+  await startProcessing();
+}
+
+/* ===================================================== */
+/* 15. EVENT LISTENERS */
+/* ===================================================== */
+
+function setupActionHandlers() {
+  DOM.btnStart.addEventListener('click', startProcessing);
+  DOM.btnCancel.addEventListener('click', cancelProcessing);
+  DOM.btnGeneratePdf.addEventListener('click', generateCombinedPdf);
+  DOM.btnDownloadPdf.addEventListener('click', downloadPdf);
+  DOM.btnClearAll.addEventListener('click', () => {
+    if (!confirm('Clear all documents and results?')) return;
+    STATE.documents = [];
+    STATE.overallSummaryText = '';
+    STATE.generatedPdfBlob = null;
+    STATE.processing = false;
+    STATE.cancelled = false;
+    STATE.pdfGroups = {};
+    DOM.resultsCard.classList.add('hidden');
+    DOM.summaryCard.classList.add('hidden');
+    DOM.pdfCard.classList.add('hidden');
+    DOM.progressWrap.style.display = 'none';
+    DOM.progressBar.style.width = '0%';
+    DOM.progressText.textContent = '0%';
+    DOM.processingMsg.textContent = '';
+    DOM.btnDownloadPdf.disabled = true;
+    DOM.pdfMsg.textContent = '';
+    renderQueue();
+    updateControls();
+  });
+}
+
+function updateControls() {
+  const waiting = STATE.documents.some(d => d.status === 'waiting');
+  DOM.btnStart.disabled = STATE.processing || !waiting;
+  DOM.btnCancel.disabled = !STATE.processing;
+}
+
+/* ===================================================== */
+/* 16. APPLICATION INITIALIZATION */
+/* ===================================================== */
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+(function init() {
+  setupUploadHandlers();
+  setupActionHandlers();
+  renderQueue();
+  updateControls();
+  console.log('Universal Document Analyzer ready (all fixes applied).');
+})();
+</script>
+
+</body>
+</html>
