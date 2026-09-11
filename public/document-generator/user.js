@@ -290,6 +290,45 @@ async function parseDocxManual(arrayBuffer) {
         return result;
     }
 
+    // Normalize placeholders split across multiple DOCX runs.
+    // Example: "{" + "company_name" + "}" -> "{company_name}"
+    // Non-placeholder text stays in its original run/style.
+    function normalizeSplitPlaceholders(runList) {
+        const combined = runList.map(r => r.text).join('');
+        if (!combined) return;
+
+        const owner = [];
+        for (let i = 0; i < runList.length; i++) {
+            for (let j = 0; j < runList[i].text.length; j++) {
+                owner.push(i);
+            }
+        }
+
+        const pattern = /\{\{([A-Za-z0-9_.-]+)\}\}|\{([A-Za-z0-9_.-]+)\}/g;
+        const newTexts = runList.map(() => '');
+        let pos = 0;
+        let match;
+
+        while (pos < combined.length) {
+            pattern.lastIndex = pos;
+            match = pattern.exec(combined);
+
+            if (match && match.index === pos) {
+                const firstRun = owner[pos];
+                newTexts[firstRun] += match[0];
+                pos += match[0].length;
+            } else {
+                const runIndex = owner[pos];
+                newTexts[runIndex] += combined[pos];
+                pos++;
+            }
+        }
+
+        runList.forEach((run, i) => {
+            run.text = newTexts[i];
+        });
+    }
+
     function getNextCounter(numId, level) {
         const key = numId + '_' + level;
         if (!listCountersMap[key]) {
@@ -370,6 +409,9 @@ async function parseDocxManual(arrayBuffer) {
                 }
                 if (text) runs.push({ text, style: rStyle });
             }
+
+            // Fix placeholders that Word has split across multiple runs.
+            normalizeSplitPlaceholders(runs);
 
             let numPr = null;
             let listLevel = -1;
