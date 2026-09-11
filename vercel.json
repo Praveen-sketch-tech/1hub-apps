@@ -6,6 +6,10 @@
       "use": "@vercel/node"
     },
     {
+      "src": "api/ocr.cjs",
+      "use": "@vercel/node"
+    },
+    {
       "src": "package.json",
       "use": "@vercel/static-build"
     }
@@ -14,6 +18,10 @@
     {
       "src": "/api/document-generator/(.*)",
       "dest": "/api/document-generator/telegram.cjs"
+    },
+    {
+      "src": "/api/ocr",
+      "dest": "/api/ocr.cjs"
     },
     {
       "handle": "filesystem"
