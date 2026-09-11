@@ -1,8 +1,8 @@
 /**
- * Auto-enhance = per-channel histogram stretch (auto levels). Brightens dim
- * phone-camera photos of documents and adds mild contrast. This is not AI
- * upscaling or noise removal — kept simple, honest, and fast enough to run
- * on every crop.
+ * Auto-enhance = per-channel histogram stretch (auto levels).
+ * This brightens washed-out / dim phone-camera photos of documents and
+ * boosts contrast slightly. It is NOT AI upscaling or noise removal —
+ * kept honest and simple, and it's fast enough to run on every crop.
  */
 export function autoEnhanceCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
   const canvas = document.createElement('canvas')
@@ -24,6 +24,8 @@ export function autoEnhanceCanvas(source: HTMLCanvasElement): HTMLCanvasElement 
   }
 
   const range = max - min
+  // If the image already uses close to the full range, don't touch it —
+  // stretching a already-good photo can introduce banding/artifacts.
   if (range < 10 || range > 240) return source
 
   const scale = 255 / range

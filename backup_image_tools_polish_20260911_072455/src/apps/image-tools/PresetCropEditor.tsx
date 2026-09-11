@@ -19,7 +19,7 @@ export type CropExporter = () => Promise<CropExportResult>
 
 interface PresetCropEditorProps {
   imageUrl: string
-  aspectRatio: number | null
+  aspectRatio: number | null // null = free crop
   onExporterReady: (exporter: CropExporter | null) => void
 }
 
@@ -85,6 +85,7 @@ export function PresetCropEditor({ imageUrl, aspectRatio, onExporterReady }: Pre
   const previousAngleRef = useRef(0)
   const [rotation, setRotation] = useState(0)
 
+  // (Re)create the cropper whenever the image changes.
   useEffect(() => {
     const container = containerRef.current
     const rotateHandle = rotateHandleRef.current
@@ -94,7 +95,7 @@ export function PresetCropEditor({ imageUrl, aspectRatio, onExporterReady }: Pre
 
     const image = new Image()
     image.src = imageUrl
-    image.alt = 'Crop source'
+    image.alt = 'Crop image'
 
     const cropper = new Cropper(image, { container, template: CROPPER_TEMPLATE })
     const cropperImage = cropper.getCropperImage()
@@ -136,7 +137,7 @@ export function PresetCropEditor({ imageUrl, aspectRatio, onExporterReady }: Pre
         },
       })
       if (!canvas.width || !canvas.height) {
-        throw new Error('The crop area is empty. Please try again.')
+        throw new Error('Crop area khaali hai, dobara try karo.')
       }
       return { canvas, width: canvas.width, height: canvas.height }
     }
@@ -157,6 +158,7 @@ export function PresetCropEditor({ imageUrl, aspectRatio, onExporterReady }: Pre
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageUrl])
 
+  // Update the locked ratio in place when the preset changes, without rebuilding the cropper.
   useEffect(() => {
     const selection = selectionRef.current
     if (!selection) return
@@ -221,32 +223,32 @@ export function PresetCropEditor({ imageUrl, aspectRatio, onExporterReady }: Pre
   }
 
   return (
-    <div className="it-crop-section">
-      <div className="it-crop-stage" onWheel={handleWheel}>
-        <div ref={containerRef} className="it-cropper-container" />
+    <div className="psr-crop-section">
+      <div className="psr-crop-stage" onWheel={handleWheel}>
+        <div ref={containerRef} className="psr-cropper-container" />
         <button
           ref={rotateHandleRef}
-          className="it-crop-rotate-handle"
+          className="psr-crop-rotate-handle"
           type="button"
-          title="Drag to rotate"
-          aria-label="Drag to rotate"
+          title="Drag to rotate image"
+          aria-label="Drag to rotate image"
           onPointerDown={beginRotation}
           onPointerMove={rotateImage}
           onPointerUp={stopRotation}
           onPointerCancel={stopRotation}
           onDoubleClick={resetRotation}
         >
-          <span className="it-rotate-line" />
-          <span className="it-rotate-circle">↻</span>
+          <span className="psr-rotate-line" />
+          <span className="psr-rotate-circle">↻</span>
         </button>
-        <div className="it-rotation-badge">{rotation > 0 ? '+' : ''}{rotation.toFixed(1)}°</div>
+        <div className="psr-rotation-badge">{rotation > 0 ? '+' : ''}{rotation.toFixed(1)}°</div>
       </div>
 
-      <p className="it-crop-hint">
-        Drag the corners or edges to adjust the crop area · drag the center to move it · use the handle above to rotate
+      <p className="psr-crop-hint">
+        Corners/sides ko drag karke crop area adjust karo · beech mein drag karke move karo · upar wale round handle se rotate karo
       </p>
 
-      <button type="button" className="it-secondary-button" onClick={resetRotation}>
+      <button type="button" className="psr-secondary-button" onClick={resetRotation}>
         Reset rotation
       </button>
     </div>

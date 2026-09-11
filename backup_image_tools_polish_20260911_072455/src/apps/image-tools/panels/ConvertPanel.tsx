@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Card } from '@shared/components/ui/Card'
 import { Button } from '@shared/components/ui/Button'
-import { processImage, loadImage } from '@apps/smart-image-tools/lib/imageProcessing'
+import { processImage } from '@apps/smart-image-tools/lib/imageProcessing'
 import type { OutputFormat } from '@apps/smart-image-tools/types'
-import { toGrayscale } from '../lib/toGrayscale'
 
 const FORMATS: { value: OutputFormat; label: string; ext: string }[] = [
   { value: 'image/jpeg', label: 'JPG', ext: 'jpg' },
@@ -15,7 +14,6 @@ export function ConvertPanel() {
   const [sourceUrl, setSourceUrl] = useState<string | null>(null)
   const [sourceFormat, setSourceFormat] = useState<string>('')
   const [targetFormat, setTargetFormat] = useState<OutputFormat>('image/png')
-  const [grayscale, setGrayscale] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewKB, setPreviewKB] = useState<number | null>(null)
   const [processing, setProcessing] = useState(false)
@@ -37,39 +35,30 @@ export function ConvertPanel() {
     let cancelled = false
     setProcessing(true)
     setError(null)
-
-    async function run() {
-      try {
-        let inputUrl = sourceUrl!
-        if (grayscale) {
-          const img = await loadImage(sourceUrl!)
-          const grayCanvas = toGrayscale(img, img.naturalWidth, img.naturalHeight)
-          inputUrl = grayCanvas.toDataURL('image/png')
-        }
-        const { blob } = await processImage({ sourceUrl: inputUrl, outputFormat: targetFormat, quality: 0.92 })
+    processImage({ sourceUrl, outputFormat: targetFormat, quality: 0.92 })
+      .then(({ blob }) => {
         if (cancelled) return
         setPreviewUrl((old) => {
           if (old) URL.revokeObjectURL(old)
           return URL.createObjectURL(blob)
         })
         setPreviewKB(Math.round((blob.size / 1024) * 10) / 10)
-      } catch {
-        if (!cancelled) setError('Something went wrong during conversion. Please try again.')
-      } finally {
+      })
+      .catch(() => {
+        if (!cancelled) setError('Convert karne mein dikkat aayi, dobara try karo.')
+      })
+      .finally(() => {
         if (!cancelled) setProcessing(false)
-      }
-    }
-    run()
+      })
     return () => {
       cancelled = true
     }
-  }, [sourceUrl, targetFormat, grayscale])
+  }, [sourceUrl, targetFormat])
 
   function startOver() {
     setSourceUrl(null)
     setPreviewUrl(null)
     setPreviewKB(null)
-    setGrayscale(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -77,52 +66,47 @@ export function ConvertPanel() {
 
   return (
     <Card>
-      <div className="it-card-inner">
+      <div className="psr-card-inner">
         {!sourceUrl && (
-          <div className="it-field">
-            <label>Upload an image (JPG, PNG, WEBP, or any browser-supported format)</label>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="it-file-input" />
+          <div className="psr-field">
+            <label>Image upload karo (JPG, PNG, WEBP, ya koi bhi browser-supported format)</label>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="psr-file-input" />
           </div>
         )}
 
         {sourceUrl && (
           <>
-            <p className="it-hint">Current format: {sourceFormat.replace('image/', '').toUpperCase() || 'Unknown'}</p>
+            <p className="psr-hint">Current format: {sourceFormat.replace('image/', '').toUpperCase() || 'Unknown'}</p>
 
-            <div className="it-field">
+            <div className="psr-field">
               <label>Convert to</label>
-              <select className="it-select" value={targetFormat} onChange={(e) => setTargetFormat(e.target.value as OutputFormat)}>
+              <select className="psr-select" value={targetFormat} onChange={(e) => setTargetFormat(e.target.value as OutputFormat)}>
                 {FORMATS.map((f) => (
                   <option key={f.value} value={f.value}>{f.label}</option>
                 ))}
               </select>
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={grayscale} onChange={(e) => setGrayscale(e.target.checked)} />
-              Convert to grayscale
-            </label>
-
-            <div className="it-compare-grid">
-              <div className="it-compare-item">
-                <span className="it-compare-label">Original</span>
-                <img src={sourceUrl} alt="Original" className="it-compare-image" />
+            <div className="psr-compare-grid">
+              <div className="psr-compare-item">
+                <span className="psr-compare-label">Original</span>
+                <img src={sourceUrl} alt="Original" className="psr-compare-image" />
               </div>
-              <div className="it-compare-item">
-                <span className="it-compare-label">
-                  {targetExt.toUpperCase()} preview {previewKB !== null && `— ${previewKB} KB`} {processing && '· Updating…'}
+              <div className="psr-compare-item">
+                <span className="psr-compare-label">
+                  {targetExt.toUpperCase()} preview {previewKB !== null && `— ${previewKB}KB`} {processing && '…'}
                 </span>
-                {previewUrl && <img src={previewUrl} alt="Converted preview" className="it-compare-image" />}
+                {previewUrl && <img src={previewUrl} alt="Converted preview" className="psr-compare-image" />}
               </div>
             </div>
 
             {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
             <div className="flex w-full gap-3">
-              <Button variant="secondary" onClick={startOver} className="flex-1">Choose another image</Button>
+              <Button variant="secondary" onClick={startOver} className="flex-1">Naya image</Button>
               {previewUrl && (
                 <a href={previewUrl} download={`converted.${targetExt}`} className="flex-[2]">
-                  <Button className="it-primary-button w-full">Download</Button>
+                  <Button className="psr-primary-button w-full">Download</Button>
                 </a>
               )}
             </div>

@@ -6,7 +6,7 @@ import { processImage } from '@apps/smart-image-tools/lib/imageProcessing'
 export function CompressPanel() {
   const [sourceUrl, setSourceUrl] = useState<string | null>(null)
   const [originalKB, setOriginalKB] = useState<number | null>(null)
-  const [quality, setQuality] = useState(0.9)
+  const [quality, setQuality] = useState(0.9) // 100% quality = best natural quality, no artificial throttle
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewKB, setPreviewKB] = useState<number | null>(null)
   const [encoding, setEncoding] = useState(false)
@@ -25,7 +25,7 @@ export function CompressPanel() {
       })
       setPreviewKB(Math.round((blob.size / 1024) * 10) / 10)
     } catch {
-      setError('Something went wrong while compressing. Please try again.')
+      setError('Compress karne mein dikkat aayi, dobara try karo.')
     } finally {
       setEncoding(false)
     }
@@ -62,33 +62,33 @@ export function CompressPanel() {
 
   return (
     <Card>
-      <div className="it-card-inner">
+      <div className="psr-card-inner">
         {!sourceUrl && (
-          <div className="it-field">
-            <label>Upload an image to compress</label>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="it-file-input" />
+          <div className="psr-field">
+            <label>Koi bhi image upload karo</label>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="psr-file-input" />
           </div>
         )}
 
         {sourceUrl && (
           <>
-            <div className="it-compare-grid">
-              <div className="it-compare-item">
-                <span className="it-compare-label">Original — {originalKB} KB</span>
-                <img src={sourceUrl} alt="Original" className="it-compare-image" />
+            <div className="psr-compare-grid">
+              <div className="psr-compare-item">
+                <span className="psr-compare-label">Original — {originalKB}KB</span>
+                <img src={sourceUrl} alt="Original" className="psr-compare-image" />
               </div>
-              <div className="it-compare-item">
-                <span className="it-compare-label">
-                  Preview {previewKB !== null && `— ${previewKB} KB`} {encoding && '· Updating…'}
+              <div className="psr-compare-item">
+                <span className="psr-compare-label">
+                  Live preview {previewKB !== null && `— ${previewKB}KB`} {encoding && '…'}
                 </span>
-                {previewUrl && <img src={previewUrl} alt="Compressed preview" className="it-compare-image" />}
+                {previewUrl && <img src={previewUrl} alt="Compressed preview" className="psr-compare-image" />}
               </div>
             </div>
 
-            <div className="it-field">
+            <div className="psr-field">
               <label>
                 Quality: {Math.round(quality * 100)}%
-                {quality >= 0.95 && <span className="text-slate-500 font-normal"> (maximum quality)</span>}
+                {quality >= 0.95 && <span className="text-slate-500 font-normal"> (best natural quality)</span>}
               </label>
               <input
                 type="range"
@@ -99,16 +99,16 @@ export function CompressPanel() {
                 onChange={(e) => setQuality(Number(e.target.value))}
                 className="w-full"
               />
-              <p className="it-hint">Lower quality produces a smaller file. The preview and file size update instantly as you adjust the slider.</p>
+              <p className="psr-hint">Kam quality = chhoti file. Slider drag karte hi preview aur size turant update hoti hai.</p>
             </div>
 
             {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
             <div className="flex w-full gap-3">
-              <Button variant="secondary" onClick={startOver} className="flex-1">Choose another image</Button>
+              <Button variant="secondary" onClick={startOver} className="flex-1">Naya image</Button>
               {previewUrl && (
                 <a href={previewUrl} download="compressed-image.jpg" className="flex-[2]">
-                  <Button className="it-primary-button w-full">Download</Button>
+                  <Button className="psr-primary-button w-full">Download</Button>
                 </a>
               )}
             </div>

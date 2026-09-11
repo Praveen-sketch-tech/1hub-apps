@@ -75,7 +75,7 @@ export function ResizePanel() {
         })
         setPreviewKB(Math.round((blob.size / 1024) * 10) / 10)
       } catch {
-        if (!cancelled) setError('Something went wrong while resizing. Please try again.')
+        if (!cancelled) setError('Resize karne mein dikkat aayi, dobara try karo.')
       } finally {
         if (!cancelled) setProcessing(false)
       }
@@ -98,66 +98,66 @@ export function ResizePanel() {
 
   return (
     <Card>
-      <div className="it-card-inner">
+      <div className="psr-card-inner">
         {!sourceUrl && (
-          <div className="it-field">
-            <label>Upload an image to resize</label>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="it-file-input" />
+          <div className="psr-field">
+            <label>Image upload karo</label>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="psr-file-input" />
           </div>
         )}
 
         {sourceUrl && (
           <>
-            <p className="it-hint">Original dimensions: {naturalW} × {naturalH}px</p>
+            <p className="psr-hint">Original: {naturalW}×{naturalH}px</p>
 
             <div className="flex justify-center gap-2 text-sm">
-              <button type="button" className={`it-secondary-button ${mode === 'percent' ? 'is-active' : ''}`} onClick={() => setMode('percent')}>By percentage</button>
-              <button type="button" className={`it-secondary-button ${mode === 'pixels' ? 'is-active' : ''}`} onClick={() => setMode('pixels')}>By pixels</button>
+              <button type="button" className={`psr-secondary-button ${mode === 'percent' ? 'is-active' : ''}`} onClick={() => setMode('percent')}>By %</button>
+              <button type="button" className={`psr-secondary-button ${mode === 'pixels' ? 'is-active' : ''}`} onClick={() => setMode('pixels')}>By pixels</button>
             </div>
 
             {mode === 'percent' ? (
-              <div className="it-field">
+              <div className="psr-field">
                 <label>Scale: {percent}%</label>
                 <input type="range" min={5} max={200} step={5} value={percent} onChange={(e) => setPercent(Number(e.target.value))} className="w-full" />
-                <p className="it-hint">New size: {targetW} × {targetH}px</p>
+                <p className="psr-hint">Naya size: {targetW}×{targetH}px</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 w-full">
-                <div className="it-field">
+                <div className="psr-field">
                   <label>Width (px)</label>
-                  <input type="number" className="it-select" value={width} onChange={(e) => onWidthChange(Number(e.target.value))} />
+                  <input type="number" className="psr-select" value={width} onChange={(e) => onWidthChange(Number(e.target.value))} />
                 </div>
-                <div className="it-field">
+                <div className="psr-field">
                   <label>Height (px)</label>
-                  <input type="number" className="it-select" value={height} onChange={(e) => onHeightChange(Number(e.target.value))} />
+                  <input type="number" className="psr-select" value={height} onChange={(e) => onHeightChange(Number(e.target.value))} />
                 </div>
                 <label className="col-span-2 flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={lockAspect} onChange={(e) => setLockAspect(e.target.checked)} />
-                  Lock aspect ratio
+                  Aspect ratio lock rakho
                 </label>
               </div>
             )}
 
-            <div className="it-compare-grid">
-              <div className="it-compare-item">
-                <span className="it-compare-label">Original</span>
-                <img src={sourceUrl} alt="Original" className="it-compare-image" />
+            <div className="psr-compare-grid">
+              <div className="psr-compare-item">
+                <span className="psr-compare-label">Original</span>
+                <img src={sourceUrl} alt="Original" className="psr-compare-image" />
               </div>
-              <div className="it-compare-item">
-                <span className="it-compare-label">
-                  Preview {previewKB !== null && `— ${previewKB} KB`} {processing && '· Updating…'}
+              <div className="psr-compare-item">
+                <span className="psr-compare-label">
+                  Preview {previewKB !== null && `— ${previewKB}KB`} {processing && '…'}
                 </span>
-                {previewUrl && <img src={previewUrl} alt="Resized preview" className="it-compare-image" />}
+                {previewUrl && <img src={previewUrl} alt="Resized preview" className="psr-compare-image" />}
               </div>
             </div>
 
             {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
             <div className="flex w-full gap-3">
-              <Button variant="secondary" onClick={startOver} className="flex-1">Choose another image</Button>
+              <Button variant="secondary" onClick={startOver} className="flex-1">Naya image</Button>
               {previewUrl && (
                 <a href={previewUrl} download="resized-image.jpg" className="flex-[2]">
-                  <Button className="it-primary-button w-full">Download</Button>
+                  <Button className="psr-primary-button w-full">Download</Button>
                 </a>
               )}
             </div>

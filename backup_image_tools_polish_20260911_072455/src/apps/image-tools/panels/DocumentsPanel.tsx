@@ -15,13 +15,13 @@ interface Preset {
 }
 
 const PRESETS: Record<PresetKey, Preset> = {
-  passport: { label: 'Passport Photo', width: 413, height: 531, suggestedKB: '20–50 KB' },
-  pan: { label: 'PAN Card Photo', width: 213, height: 213, suggestedKB: '20–50 KB' },
-  aadhaar: { label: 'Aadhaar Update Photo', width: 200, height: 230, suggestedKB: '10–20 KB' },
-  ssc: { label: 'SSC / Railway Exam Photo', width: 100, height: 120, suggestedKB: '20–50 KB' },
-  upsc: { label: 'UPSC Photo', width: 200, height: 230, suggestedKB: '20–300 KB' },
-  signature: { label: 'Signature', width: 140, height: 60, suggestedKB: '10–20 KB' },
-  custom: { label: 'Custom', width: 300, height: 300, suggestedKB: 'your choice' },
+  passport: { label: 'Passport Photo', width: 413, height: 531, suggestedKB: '20–50KB' },
+  pan: { label: 'PAN Card Photo', width: 213, height: 213, suggestedKB: '20–50KB' },
+  aadhaar: { label: 'Aadhaar Update Photo', width: 200, height: 230, suggestedKB: '10–20KB' },
+  ssc: { label: 'SSC / Railway Form Photo', width: 100, height: 120, suggestedKB: '20–50KB' },
+  upsc: { label: 'UPSC Photo', width: 200, height: 230, suggestedKB: '20–300KB' },
+  signature: { label: 'Signature', width: 140, height: 60, suggestedKB: '10–20KB' },
+  custom: { label: 'Custom', width: 300, height: 300, suggestedKB: 'aapki marzi' },
 }
 
 export function DocumentsPanel() {
@@ -35,6 +35,8 @@ export function DocumentsPanel() {
   const [originalUrl, setOriginalUrl] = useState<string | null>(null)
   const [croppedCanvas, setCroppedCanvas] = useState<HTMLCanvasElement | null>(null)
 
+  // Direct quality control — same model as the Compress tab. 100% = best
+  // natural quality at this pixel size, no artificial KB-target throttling.
   const [quality, setQuality] = useState(0.9)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewKB, setPreviewKB] = useState<number | null>(null)
@@ -47,7 +49,7 @@ export function DocumentsPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const active: Preset = preset === 'custom' ? { label: 'Custom', width: customW, height: customH, suggestedKB: 'your choice' } : PRESETS[preset]
+  const active: Preset = preset === 'custom' ? { label: 'Custom', width: customW, height: customH, suggestedKB: 'aapki marzi' } : PRESETS[preset]
   const lockedAspect = freeCrop ? null : active.width / active.height
 
   const handleExporterReady = useCallback((exporter: CropExporter | null) => {
@@ -63,13 +65,13 @@ export function DocumentsPanel() {
       setOriginalUrl(reader.result as string)
       setStage('crop')
     }
-    reader.onerror = () => setError('The file could not be read. Please try again.')
+    reader.onerror = () => setError('File read nahi ho payi, dobara try karo.')
     reader.readAsDataURL(file)
   }
 
   async function handleConfirmCrop() {
     if (!exporterRef.current) {
-      setError('The crop area is not ready yet. Please wait a moment and try again.')
+      setError('Crop area ready nahi hai, ek second ruk ke dobara try karo.')
       return
     }
     setProcessing(true)
@@ -81,7 +83,7 @@ export function DocumentsPanel() {
       setQuality(0.9)
       setStage('adjust')
     } catch {
-      setError('Something went wrong. Please try again.')
+      setError('Kuch galat ho gaya, dobara try karo.')
     } finally {
       setProcessing(false)
     }
@@ -129,12 +131,12 @@ export function DocumentsPanel() {
 
   return (
     <Card>
-      <div className="it-card-inner">
+      <div className="psr-card-inner">
         {stage === 'upload' && (
           <>
-            <div className="it-field">
+            <div className="psr-field">
               <label>Document type</label>
-              <select className="it-select" value={preset} onChange={(e) => setPreset(e.target.value as PresetKey)}>
+              <select className="psr-select" value={preset} onChange={(e) => setPreset(e.target.value as PresetKey)}>
                 {Object.entries(PRESETS).map(([key, val]) => (
                   <option key={key} value={key}>{val.label}</option>
                 ))}
@@ -143,25 +145,25 @@ export function DocumentsPanel() {
 
             {preset === 'custom' && (
               <div className="grid grid-cols-2 gap-3 w-full">
-                <div className="it-field">
+                <div className="psr-field">
                   <label>Width (px)</label>
-                  <input type="number" className="it-select" value={customW} onChange={(e) => setCustomW(Number(e.target.value))} />
+                  <input type="number" className="psr-select" value={customW} onChange={(e) => setCustomW(Number(e.target.value))} />
                 </div>
-                <div className="it-field">
+                <div className="psr-field">
                   <label>Height (px)</label>
-                  <input type="number" className="it-select" value={customH} onChange={(e) => setCustomH(Number(e.target.value))} />
+                  <input type="number" className="psr-select" value={customH} onChange={(e) => setCustomH(Number(e.target.value))} />
                 </div>
               </div>
             )}
 
-            <p className="it-hint">
-              Target size: {active.width} × {active.height}px. (Typical official requirement: {active.suggestedKB} —
-              you'll set the exact file size with the quality slider in the next step.)
+            <p className="psr-hint">
+              Target size: {active.width}×{active.height}px. (Typical govt spec: {active.suggestedKB} —
+              agle step mein quality slider se apni marzi ka size set karoge.)
             </p>
 
-            <div className="it-field">
-              <label>Upload a photo or signature</label>
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="it-file-input" />
+            <div className="psr-field">
+              <label>Photo ya signature upload karo</label>
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} className="psr-file-input" />
             </div>
 
             {error && <p className="text-sm text-red-600 text-center">{error}</p>}
@@ -175,11 +177,11 @@ export function DocumentsPanel() {
             <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={freeCrop} onChange={(e) => setFreeCrop(e.target.checked)} />
-                Free crop (remove aspect ratio lock)
+                Free crop (ratio lock hata do)
               </label>
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={enhanceOn} onChange={(e) => setEnhanceOn(e.target.checked)} />
-                Auto-enhance (brightness/contrast)
+                Auto enhance (brightness/contrast)
               </label>
             </div>
 
@@ -187,8 +189,8 @@ export function DocumentsPanel() {
 
             <div className="flex w-full gap-3">
               <Button variant="secondary" onClick={startOver} className="flex-1">Cancel</Button>
-              <Button onClick={handleConfirmCrop} disabled={processing} className="it-primary-button flex-[2]">
-                {processing ? 'Processing…' : 'Confirm crop'}
+              <Button onClick={handleConfirmCrop} disabled={processing} className="psr-primary-button flex-[2]">
+                {processing ? 'Processing…' : 'Crop confirm karo'}
               </Button>
             </div>
           </>
@@ -196,23 +198,23 @@ export function DocumentsPanel() {
 
         {stage === 'adjust' && croppedCanvas && (
           <>
-            <div className="it-compare-grid">
-              <div className="it-compare-item">
-                <span className="it-compare-label">Before</span>
-                {originalUrl && <img src={originalUrl} alt="Original" className="it-compare-image" />}
+            <div className="psr-compare-grid">
+              <div className="psr-compare-item">
+                <span className="psr-compare-label">Before</span>
+                {originalUrl && <img src={originalUrl} alt="Original" className="psr-compare-image" />}
               </div>
-              <div className="it-compare-item">
-                <span className="it-compare-label">
-                  Preview {previewKB !== null && `— ${previewKB} KB`} {encoding && '· Updating…'}
+              <div className="psr-compare-item">
+                <span className="psr-compare-label">
+                  Live preview {previewKB !== null && `— ${previewKB}KB`} {encoding && '…'}
                 </span>
-                {previewUrl && <img src={previewUrl} alt="Result preview" className="it-compare-image" />}
+                {previewUrl && <img src={previewUrl} alt="Result preview" className="psr-compare-image" />}
               </div>
             </div>
 
-            <div className="it-field">
+            <div className="psr-field">
               <label>
                 Quality: {Math.round(quality * 100)}%
-                {quality >= 0.95 && <span className="text-slate-500 font-normal"> (maximum quality)</span>}
+                {quality >= 0.95 && <span className="text-slate-500 font-normal"> (best natural quality)</span>}
               </label>
               <input
                 type="range"
@@ -223,18 +225,18 @@ export function DocumentsPanel() {
                 onChange={(e) => setQuality(Number(e.target.value))}
                 className="w-full"
               />
-              <p className="it-hint">
-                The preview and file size update instantly as you adjust the slider. Fixed at {active.width} × {active.height}px per the selected document type.
+              <p className="psr-hint">
+                Slider drag karte hi preview + size turant update hoti hai. {active.width}×{active.height}px pe fixed hai (govt spec).
               </p>
             </div>
 
             {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
             <div className="flex w-full gap-3">
-              <Button variant="secondary" onClick={startOver} className="flex-1">Start over</Button>
+              <Button variant="secondary" onClick={startOver} className="flex-1">Naya photo</Button>
               {previewUrl && (
                 <a href={previewUrl} download={preset === 'signature' ? 'signature.jpg' : 'resized-photo.jpg'} className="flex-[2]">
-                  <Button className="it-primary-button w-full">Download</Button>
+                  <Button className="psr-primary-button w-full">Download</Button>
                 </a>
               )}
             </div>
