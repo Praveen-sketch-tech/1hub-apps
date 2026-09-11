@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Hunter</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel2: #1e222b;
+    --border: #2a2f3a;
+    --text: #e6e8ee;
+    --muted: #8b93a7;
+    --accent: #4f8cff;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --yellow: #f1c40f;
+    --orange: #e67e22;
+    --purple: #9b59b6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  header h1 { margin: 0; font-size: 24px; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+  .container { max-width: 1280px; margin: 0 auto; padding: 24px 32px; }
+  .input-row {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+  }
+  .input-row input[type="text"] {
+    flex: 1; min-width: 260px;
+    background: var(--panel2); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 14px; border-radius: 8px;
+    font-size: 14px;
+  }
+  button {
+    background: var(--panel2); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 16px; border-radius: 8px;
+    cursor: pointer; font-size: 14px; transition: background 0.15s;
+  }
+  button:hover { background: #262b36; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  button.primary:hover { background: #3d7aee; }
+  button.small { padding: 5px 10px; font-size: 12px; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .progress { margin: 16px 0; }
+  .stage {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; color: var(--muted); font-size: 13px;
+  }
+  .stage.active { color: var(--accent); }
+  .stage.done { color: var(--green); }
+  .stage .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .stage.active .dot { background: var(--accent); }
+  .stage.done .dot { background: var(--green); }
+  .summary {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin: 20px 0;
+  }
+  .summary .card {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px;
+  }
+  .summary .card .num { font-size: 22px; font-weight: 600; }
+  .summary .card .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 20px 0 0; }
+  .tab {
+    padding: 8px 16px; cursor: pointer; color: var(--muted);
+    border-bottom: 2px solid transparent; font-size: 14px;
+  }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .results { margin-top: 16px; }
+  .result-card {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; margin-bottom: 10px;
+  }
+  .result-card .top {
+    display: flex; justify-content: space-between; align-items: start;
+    gap: 10px; flex-wrap: wrap;
+  }
+  .result-card .url { font-family: monospace; font-size: 13px; word-break: break-all; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .badge {
+    font-size: 11px; padding: 3px 8px; border-radius: 12px;
+    background: var(--panel); border: 1px solid var(--border);
+  }
+  .badge.method { background: #1e3a5f; border-color: #2a4f7f; color: #9ec5ff; }
+  .badge.success { background: #143d24; border-color: #1e6b3a; color: #7ee2a1; }
+  .badge.param { background: #4a3d14; border-color: #7a6320; color: #f5d76e; }
+  .badge.auth { background: #4a1e1e; border-color: #7a2a2a; color: #ff9e9e; }
+  .badge.cors { background: #3d1e4a; border-color: #6b2a7a; color: #d79eff; }
+  .badge.fail { background: #3a1e1e; border-color: #6b2a2a; color: #ff9e9e; }
+  .badge.evidence { background: #1e3d3d; border-color: #2a6b6b; color: #7ee2d1; }
+  .result-card .meta { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .result-card .preview {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px; margin-top: 8px;
+    font-family: monospace; font-size: 12px;
+    max-height: 120px; overflow: auto; white-space: pre-wrap; word-break: break-all;
+  }
+  .result-card .actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .param-row { display: flex; gap: 6px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+  .param-row input {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 10px; border-radius: 6px; font-size: 13px; font-family: monospace;
+  }
+  .doc-link {
+    display: block; padding: 8px 12px; background: var(--panel2);
+    border: 1px solid var(--border); border-radius: 6px;
+    margin-bottom: 6px; font-size: 13px; word-break: break-all;
+  }
+  .doc-link a { color: var(--accent); text-decoration: none; }
+  .empty { color: var(--muted); font-size: 14px; padding: 20px; text-align: center; }
+  .notice {
+    background: #4a3d14; border: 1px solid #7a6320; color: #f5d76e;
+    padding: 10px 14px; border-radius: 8px; font-size: 13px; margin: 12px 0;
+  }
+  .notice.error { background: #4a1e1e; border-color: #7a2a2a; color: #ff9e9e; }
+  .export-row { display: flex; gap: 6px; margin: 16px 0; flex-wrap: wrap; }
+  footer { padding: 24px 32px; color: var(--muted); font-size: 12px; text-align: center; }
+
+  /* ---- Live Capture import additions (new) ---- */
+  .live-box {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; margin-top: 12px;
+  }
+  .live-box h3 { margin: 0 0 6px; font-size: 15px; }
+  .live-box p { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+  .live-box textarea {
+    width: 100%; min-height: 140px; background: var(--bg);
+    border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 10px; font-family: monospace;
+    font-size: 12px; resize: vertical;
+  }
+  .live-box .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  .live-box code {
+    background: var(--bg); border: 1px solid var(--border);
+    padding: 2px 6px; border-radius: 4px; font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>API Hunter</h1>
+  <p>Discover and test public APIs from a website</p>
+</header>
+<div class="container">
+  <div class="input-row">
+    <input type="text" id="urlInput" placeholder="https://example.com" value="https://prexzyapis.com">
+    <button class="primary" id="analyzeBtn">Analyze Website</button>
+    <button id="clearBtn">Clear</button>
+  </div>
+
+  <div class="progress" id="progress"></div>
+
+  <div id="corsNotice"></div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="tabs" id="tabs" style="display:none;">
+    <div class="tab active" data-tab="apis">APIs</div>
+    <div class="tab" data-tab="website">Website / Documentation</div>
+    <div class="tab" data-tab="docs">Documentation Links</div>
+    <div class="tab" data-tab="live">Live Capture</div>
+  </div>
+
+  <div class="results" id="results"></div>
+
+  <div class="export-row" id="exportRow" style="display:none;">
+    <button class="small" id="copyBtn">Copy results</button>
+    <button class="small" id="jsonBtn">Download JSON</button>
+    <button class="small" id="csvBtn">Download CSV</button>
+    <button class="small" id="txtBtn">Download TXT</button>
+  </div>
+</div>
+<footer>API Hunter — read-only API discovery. Never executes remote JavaScript. Never performs destructive requests.</footer>
+
+<script>
+/* ============================================================
+   API Hunter — modular structure
+   scanner | html parser | js extractor | normalizer |
+   classifier | tester | exporter | UI
+   ============================================================ */
+
+const STAGES = [
+  "Fetching website",
+  "Inspecting HTML",
+  "Finding JavaScript files",
+  "Extracting API URLs",
+  "Detecting API patterns",
+  "Testing candidates",
+  "Building results"
+];
+
+const STATE = {
+  website: "",
+  scan_time: null,
+  stages: [],
+  apiCandidates: [],
+  websitePages: [],
+  documentation: [],
+  staticResources: [],
+  docLinks: [],
+  allResults: [],
+  corsBlocked: false,
+  logs: [],
+  // Live Capture import state (new)
+  liveImported: false,
+  liveMeta: null,
+  liveCandidates: []
+};
+
+/* ---------- Utility ---------- */
+
+function log(msg) {
+  STATE.logs.push(`[${new Date().toISOString()}] ${msg}`);
+}
+
+function setStage(idx, status) {
+  STATE.stages[idx] = status;
+  renderProgress();
+}
+
+function renderProgress() {
+  const el = document.getElementById("progress");
+  el.innerHTML = STAGES.map((name, i) => {
+    const st = STATE.stages[i] || "";
+    return `<div class="stage ${st}"><span class="dot"></span><span>${i + 1}. ${name}</span></div>`;
+  }).join("");
+}
+
+function showNotice(msg, isError) {
+  const el = document.getElementById("corsNotice");
+  el.innerHTML = `<div class="notice ${isError ? "error" : ""}">${msg}</div>`;
+}
+
+function clearNotice() {
+  document.getElementById("corsNotice").innerHTML = "";
+}
+
+function safeUrl(u, base) {
+  try { return new URL(u, base).href; } catch { return null; }
+}
+
+function sameOrigin(a, b) {
+  try { return new URL(a).origin === new URL(b).origin; } catch { return false; }
+}
+
+/* ---------- HTML parser ---------- */
+
+const HTMLParser = {
+  parse(html, baseUrl) {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const out = {
+      links: [],
+      scripts: [],
+      inlineScripts: [],
+      forms: [],
+      docLinks: [],
+      title: doc.title || ""
+    };
+
+    doc.querySelectorAll("a[href]").forEach(a => {
+      const href = a.getAttribute("href");
+      const abs = safeUrl(href, baseUrl);
+      if (abs) {
+        out.links.push({ url: abs, text: (a.textContent || "").trim().slice(0, 120) });
+      }
+    });
+
+    doc.querySelectorAll("script[src]").forEach(s => {
+      const abs = safeUrl(s.getAttribute("src"), baseUrl);
+      if (abs) out.scripts.push(abs);
+    });
+
+    doc.querySelectorAll("script:not([src])").forEach(s => {
+      if (s.textContent && s.textContent.trim()) {
+        out.inlineScripts.push(s.textContent);
+      }
+    });
+
+    doc.querySelectorAll("form").forEach(f => {
+      const action = safeUrl(f.getAttribute("action") || baseUrl, baseUrl);
+      const method = (f.getAttribute("method") || "GET").toUpperCase();
+      const fields = [];
+      f.querySelectorAll("input[name], textarea[name], select[name]").forEach(inp => {
+        fields.push(inp.getAttribute("name"));
+      });
+      if (action) out.forms.push({ action, method, fields });
+    });
+
+    const docWords = ["docs","documentation","api","developer","developers","endpoint","swagger","openapi","redoc","reference","examples"];
+    out.links.forEach(l => {
+      const lower = l.url.toLowerCase();
+      if (docWords.some(w => lower.includes(w))) {
+        out.docLinks.push(l);
+      }
+    });
+
+    return out;
+  }
+};
+
+/* ---------- JavaScript extractor ---------- */
+
+const JSExtractor = {
+  extract(jsText, sourceUrl, baseUrl) {
+    const found = [];
+    if (!jsText) return found;
+
+    const fetchRe = /fetch\s*\(\s*([`'"])([^`'"]+)\1/g;
+    let m;
+    while ((m = fetchRe.exec(jsText))) {
+      const url = this.resolve(m[2], baseUrl);
+      if (url) found.push({ url, method: "GET", evidence: "JS_FETCH", source: sourceUrl });
+    }
+
+    const axiosRe = /axios\s*\.\s*(get|post|put|delete|patch|request)\s*\(\s*([`'"])([^`'"]+)\2/gi;
+    while ((m = axiosRe.exec(jsText))) {
+      const url = this.resolve(m[3], baseUrl);
+      if (url) found.push({ url, method: m[1].toUpperCase(), evidence: "JS_AXIOS", source: sourceUrl });
+    }
+
+    const xhrRe = /\.open\s*\(\s*([`'"])([A-Z]+)\1\s*,\s*([`'"])([^`'"]+)\3/g;
+    while ((m = xhrRe.exec(jsText))) {
+      const url = this.resolve(m[4], baseUrl);
+      if (url) found.push({ url, method: m[2], evidence: "JS_XHR", source: sourceUrl });
+    }
+
+    const urlRe = /new\s+URL\s*\(\s*([`'"])([^`'"]+)\1/g;
+    while ((m = urlRe.exec(jsText))) {
+      const url = this.resolve(m[2], baseUrl);
+      if (url && /\/api\/|\/v\d\/|\/graphql/.test(url)) {
+        found.push({ url, method: "GET", evidence: "JS_HEURISTIC", source: sourceUrl });
+      }
+    }
+
+    const apiStrRe = /[`'"]([^`'"]*\/api\/[^`'"]*)[`'"]/g;
+    while ((m = apiStrRe.exec(jsText))) {
+      const url = this.resolve(m[1], baseUrl);
+      if (url) found.push({ url, method: "GET", evidence: "JS_HEURISTIC", source: sourceUrl });
+    }
+
+    const vRe = /[`'"]([^`'"]*\/v[12]\/[^`'"]*)[`'"]/g;
+    while ((m = vRe.exec(jsText))) {
+      const url = this.resolve(m[1], baseUrl);
+      if (url) found.push({ url, method: "GET", evidence: "JS_HEURISTIC", source: sourceUrl });
+    }
+
+    return found;
+  },
+
+  resolve(raw, base) {
+    if (!raw) return null;
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+    if (raw.startsWith("//")) return "https:" + raw;
+    if (raw.startsWith("/") || raw.startsWith("./") || raw.startsWith("../")) {
+      return safeUrl(raw, base);
+    }
+    if (!raw.includes("/") && !raw.includes(".")) return null;
+    return safeUrl(raw, base);
+  }
+};
+
+/* ---------- Documentation parser ---------- */
+
+const DocParser = {
+  extract(html, pageUrl) {
+    const found = [];
+    const doc = new DOMParser().parseFromString(html, "text/html");
+
+    const codeBlocks = [];
+    doc.querySelectorAll("pre, code").forEach(el => {
+      const t = el.textContent || "";
+      if (t.trim()) codeBlocks.push(t);
+    });
+
+    codeBlocks.forEach(block => {
+      const curlRe = /curl\s+(?:-[A-Za-z]+\s+)*["']([^"']+)["']/g;
+      let m;
+      while ((m = curlRe.exec(block))) {
+        const url = safeUrl(m[1], pageUrl);
+        if (url) found.push({ url, method: "GET", evidence: "DOCUMENTATION_CURL", source: pageUrl, raw: m[0] });
+      }
+
+      const fetchRe = /fetch\s*\(\s*["'`]([^"'`]+)["'`]/g;
+      while ((m = fetchRe.exec(block))) {
+        const url = safeUrl(m[1], pageUrl);
+        if (url) found.push({ url, method: "GET", evidence: "DOCUMENTATION_FETCH", source: pageUrl, raw: m[0] });
+      }
+
+      const axiosRe = /axios\s*\.\s*(get|post|put|delete|patch)\s*\(\s*["'`]([^"'`]+)["'`]/gi;
+      while ((m = axiosRe.exec(block))) {
+        const url = safeUrl(m[2], pageUrl);
+        if (url) found.push({ url, method: m[1].toUpperCase(), evidence: "DOCUMENTATION_AXIOS", source: pageUrl, raw: m[0] });
+      }
+
+      const methodRe = /\b(GET|POST|PUT|DELETE|PATCH)\s+(\/[A-Za-z0-9_\-\/\.{}?=&]+)/g;
+      while ((m = methodRe.exec(block))) {
+        const url = safeUrl(m[2], pageUrl);
+        if (url) found.push({ url, method: m[1], evidence: "DOCUMENTATION", source: pageUrl, raw: m[0] });
+      }
+
+      const xhrRe = /\.open\s*\(\s*["']([A-Z]+)["']\s*,\s*["']([^"']+)["']/g;
+      while ((m = xhrRe.exec(block))) {
+        const url = safeUrl(m[2], pageUrl);
+        if (url) found.push({ url, method: m[1], evidence: "DOCUMENTATION_XHR", source: pageUrl, raw: m[0] });
+      }
+    });
+
+    return found;
+  }
+};
+
+/* ---------- Endpoint normalizer ---------- */
+
+const Normalizer = {
+  normalize(candidates, baseUrl) {
+    const seen = new Set();
+    const out = [];
+    candidates.forEach(c => {
+      if (!c.url) return;
+      let url = c.url;
+      try {
+        const u = new URL(url);
+        u.hash = "";
+        url = u.href;
+      } catch { return; }
+      const key = c.method + " " + url;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ ...c, url });
+    });
+    return out;
+  }
+};
+
+/* ---------- Classifier ---------- */
+
+const Classifier = {
+  isStatic(url) {
+    return /\.(png|jpe?g|gif|svg|webp|ico|css|woff2?|ttf|eot|mp4|webm|mp3|wav|pdf|zip)(\?|$)/i.test(url);
+  },
+
+  isAnalytics(url) {
+    return /(google-analytics|googletagmanager|facebook\.com\/tr|hotjar|mixpanel|segment\.io|doubleclick|analytics|tracking|pixel)/i.test(url);
+  },
+
+  isSocial(url) {
+    return /(twitter\.com|facebook\.com|linkedin\.com|instagram\.com|youtube\.com|github\.com|discord\.gg|t\.me)/i.test(url);
+  },
+
+  isDocsLink(url) {
+    return /(docs|documentation|developer|endpoint|swagger|openapi|redoc|reference)/i.test(url);
+  },
+
+  category(url) {
+    const u = url.toLowerCase();
+    const map = [
+      ["ocr", /ocr/],
+      ["vision", /vision|analyze.*image|image.*analy/],
+      ["image generation", /image.*gen|txt2img|text2image|generate.*image|imagine|draw/],
+      ["image", /image|img|photo|picture/],
+      ["video", /video|mp4|movie/],
+      ["audio", /audio|sound|music/],
+      ["tts", /tts|text.*speech|speak|voice/],
+      ["stt", /stt|speech.*text|transcribe/],
+      ["translation", /translat|translate|lang/],
+      ["pdf", /pdf/],
+      ["document", /doc|document|word|excel/],
+      ["file", /file|upload|download/],
+      ["convert", /convert|transform/],
+      ["search", /search|query/],
+      ["screenshot", /screenshot|screen.*shot|capture/],
+      ["downloader", /download|downloader/],
+      ["qr", /qr|qrcode/],
+      ["email", /email|mail/],
+      ["ai", /ai|chat|gpt|llm|completion/],
+      ["code", /code|compiler|execute|run/],
+      ["utility", /util|tool|helper/]
+    ];
+    for (const [name, re] of map) if (re.test(u)) return name;
+    return "Unknown";
+  },
+
+  authFromResponse(status, headers, body) {
+    if (status === 401 || status === 403) return "AUTH_REQUIRED";
+    const h = (headers || "").toLowerCase();
+    if (h.includes("www-authenticate")) return "AUTH_REQUIRED";
+    const b = (body || "").toLowerCase();
+    if (/api[\s_-]?key|bearer|token required|unauthorized|authentication required|invalid.*key/.test(b)) {
+      return "AUTH_REQUIRED";
+    }
+    return "UNKNOWN";
+  },
+
+  statusFromResponse(status, body) {
+    if (status >= 200 && status < 300) return "SUCCESS";
+    if (status === 400) {
+      const b = (body || "").toLowerCase();
+      if (/parameter|missing|required|invalid/.test(b)) return "PARAMETER_REQUIRED";
+      return "UNKNOWN";
+    }
+    if (status === 401 || status === 403) return "AUTH_REQUIRED";
+    if (status === 404) return "NOT_FOUND";
+    if (status === 429) return "RATE_LIMITED";
+    if (status >= 500) return "SERVER_ERROR";
+    return "UNKNOWN";
+  },
+
+  extractParams(body) {
+    const params = new Set();
+    const b = body || "";
+    const patterns = [
+      /["']?(\w+)["']?\s+parameter\s+is\s+required/i,
+      /missing\s+["']?(\w+)["']?/i,
+      /required[:\s]+["']?(\w+)["']?/i,
+      /["']?(\w+)["']?\s+is\s+required/i,
+      /parameter\s+["']?(\w+)["']?\s+(?:is\s+)?(?:required|missing)/i
+    ];
+    patterns.forEach(re => {
+      const m = b.match(re);
+      if (m && m[1] && m[1].length < 30) params.add(m[1]);
+    });
+    return [...params];
+  }
+};
+
+/* ---------- Tester ---------- */
+
+const Tester = {
+  async test(candidate) {
+    const method = candidate.method || "GET";
+    if (method !== "GET" && method !== "HEAD") {
+      return {
+        ...candidate,
+        http_status: null,
+        content_type: null,
+        response_preview: "",
+        status: "UNKNOWN",
+        auth: "UNKNOWN",
+        cors: "UNKNOWN",
+        notes: "Non-GET method not auto-tested (safety)",
+        tested: false
+      };
+    }
+    try {
+      const res = await fetch(candidate.url, { method: "GET", mode: "cors" });
+      const text = await res.text();
+      const preview = text.slice(0, 500);
+      const contentType = res.headers.get("content-type") || "";
+      const status = Classifier.statusFromResponse(res.status, text);
+      const auth = Classifier.authFromResponse(res.status, "", text);
+      const params = Classifier.extractParams(text);
+      return {
+        ...candidate,
+        http_status: res.status,
+        content_type: contentType,
+        response_preview: preview,
+        status,
+        auth,
+        cors: "CORS_OK",
+        params_detected: params,
+        tested: true
+      };
+    } catch (e) {
+      return {
+        ...candidate,
+        http_status: null,
+        content_type: null,
+        response_preview: "",
+        status: "CORS_BLOCKED",
+        auth: "UNKNOWN",
+        cors: "CORS_BLOCKED",
+        notes: "Browser could not fetch (CORS or network)",
+        tested: true
+      };
+    }
+  },
+
+  async retestWithParam(candidate, paramName, value) {
+    const u = new URL(candidate.url);
+    u.searchParams.set(paramName, value);
+    const testUrl = u.href;
+    try {
+      const res = await fetch(testUrl, { method: "GET", mode: "cors" });
+      const text = await res.text();
+      const preview = text.slice(0, 500);
+      const contentType = res.headers.get("content-type") || "";
+      const status = Classifier.statusFromResponse(res.status, text);
+      const auth = Classifier.authFromResponse(res.status, "", text);
+      return {
+        ...candidate,
+        url: testUrl,
+        http_status: res.status,
+        content_type: contentType,
+        response_preview: preview,
+        status,
+        auth,
+        cors: "CORS_OK",
+        tested: true,
+        notes: `Tested with ${paramName}=${value}`
+      };
+    } catch (e) {
+      return {
+        ...candidate,
+        url: testUrl,
+        http_status: null,
+        content_type: null,
+        response_preview: "",
+        status: "CORS_BLOCKED",
+        auth: "UNKNOWN",
+        cors: "CORS_BLOCKED",
+        tested: true,
+        notes: "Browser could not fetch with parameter"
+      };
+    }
+  }
+};
+
+/* ---------- Scanner (orchestrator) ---------- */
+
+const Scanner = {
+  async scan(websiteUrl) {
+    STATE.website = websiteUrl;
+    STATE.scan_time = new Date().toISOString();
+    STATE.stages = [];
+    STATE.apiCandidates = [];
+    STATE.websitePages = [];
+    STATE.documentation = [];
+    STATE.staticResources = [];
+    STATE.docLinks = [];
+    STATE.allResults = [];
+    STATE.corsBlocked = false;
+    STATE.logs = [];
+
+    clearNotice();
+    renderProgress();
+    document.getElementById("summary").innerHTML = "";
+    document.getElementById("results").innerHTML = "";
+    document.getElementById("tabs").style.display = "none";
+    document.getElementById("exportRow").style.display = "none";
+
+    setStage(0, "active");
+    let html = "";
+    try {
+      const res = await fetch(websiteUrl, { method: "GET", mode: "cors" });
+      html = await res.text();
+      setStage(0, "done");
+    } catch (e) {
+      setStage(0, "done");
+      STATE.corsBlocked = true;
+      showNotice(
+        "CORS blocked — browser could not inspect this website directly. " +
+        "Use the Node/local scanner (api-hunter-node.js) for full discovery.",
+        true
+      );
+      log("Fetch failed: " + e.message);
+      this.finish();
+      return;
+    }
+
+    setStage(1, "active");
+    const parsed = HTMLParser.parse(html, websiteUrl);
+    setStage(1, "done");
+
+    setStage(2, "active");
+    const jsFiles = parsed.scripts.filter(s => sameOrigin(s, websiteUrl));
+    setStage(2, "done");
+
+    setStage(3, "active");
+    const candidates = [];
+
+    for (const jsUrl of jsFiles) {
+      try {
+        const r = await fetch(jsUrl, { mode: "cors" });
+        const js = await r.text();
+        const found = JSExtractor.extract(js, jsUrl, websiteUrl);
+        candidates.push(...found);
+      } catch (e) {
+        log("JS fetch failed: " + jsUrl);
+      }
+    }
+
+    parsed.inlineScripts.forEach(js => {
+      const found = JSExtractor.extract(js, websiteUrl, websiteUrl);
+      candidates.push(...found);
+    });
+
+    parsed.forms.forEach(f => {
+      if (f.action && sameOrigin(f.action, websiteUrl)) {
+        candidates.push({
+          url: f.action,
+          method: f.method,
+          evidence: "FORM",
+          source: websiteUrl
+        });
+      }
+    });
+
+    setStage(3, "done");
+
+    setStage(4, "active");
+
+    parsed.links.forEach(l => {
+      if (Classifier.isStatic(l.url)) {
+        STATE.staticResources.push(l);
+      } else if (Classifier.isDocsLink(l.url)) {
+        STATE.documentation.push(l);
+      } else if (Classifier.isAnalytics(l.url) || Classifier.isSocial(l.url)) {
+        STATE.staticResources.push(l);
+      } else if (sameOrigin(l.url, websiteUrl)) {
+        STATE.websitePages.push(l);
+      }
+    });
+
+    STATE.docLinks = parsed.docLinks;
+
+    const normalized = Normalizer.normalize(candidates, websiteUrl);
+    const apiCandidates = normalized.filter(c => {
+      if (Classifier.isStatic(c.url)) return false;
+      if (Classifier.isAnalytics(c.url)) return false;
+      if (Classifier.isSocial(c.url)) return false;
+      const goodEvidence = [
+        "JS_FETCH","JS_AXIOS","JS_XHR","JS_HEURISTIC",
+        "DOCUMENTATION_CURL","DOCUMENTATION_FETCH","DOCUMENTATION_AXIOS",
+        "DOCUMENTATION_XHR","DOCUMENTATION","FORM","OPENAPI"
+      ];
+      return goodEvidence.includes(c.evidence);
+    });
+
+    const filtered = apiCandidates.filter(c => {
+      if (c.evidence === "JS_HEURISTIC" && /\/[a-z-]+\/[a-z-]+$/.test(c.url)) {
+        return false;
+      }
+      return true;
+    });
+
+    STATE.apiCandidates = filtered;
+
+    const docUrlsToFetch = [...new Set(
+      STATE.documentation
+        .filter(d => sameOrigin(d.url, websiteUrl))
+        .map(d => d.url)
+    )].slice(0, 5);
+
+    for (const docUrl of docUrlsToFetch) {
+      try {
+        const r = await fetch(docUrl, { mode: "cors" });
+        const docHtml = await r.text();
+        const found = DocParser.extract(docHtml, docUrl);
+        found.forEach(f => {
+          if (!STATE.apiCandidates.some(c => c.url === f.url && c.method === f.method)) {
+            STATE.apiCandidates.push(f);
+          }
+        });
+      } catch (e) {
+        log("Doc fetch failed: " + docUrl);
+      }
+    }
+
+    setStage(4, "done");
+
+    setStage(5, "active");
+    for (let i = 0; i < STATE.apiCandidates.length; i++) {
+      const c = STATE.apiCandidates[i];
+      const result = await Tester.test(c);
+      STATE.apiCandidates[i] = result;
+      STATE.allResults.push(result);
+    }
+    setStage(5, "done");
+
+    setStage(6, "active");
+    this.finish();
+    setStage(6, "done");
+  },
+
+  finish() {
+    renderProgress();
+    renderSummary();
+    renderResults();
+    document.getElementById("tabs").style.display = "flex";
+    document.getElementById("exportRow").style.display = "flex";
+  }
+};
+
+/* ---------- Exporter ---------- */
+
+const Exporter = {
+  toJSON() {
+    return JSON.stringify({
+      website: STATE.website,
+      scan_time: STATE.scan_time,
+      api_candidates: STATE.apiCandidates,
+      website_pages: STATE.websitePages,
+      documentation: STATE.documentation,
+      static_resources: STATE.staticResources,
+      documentation_links: STATE.docLinks,
+      live_imported: STATE.liveImported,
+      live_meta: STATE.liveMeta,
+      live_candidates: STATE.liveCandidates
+    }, null, 2);
+  },
+
+  toCSV() {
+    const rows = [["endpoint","method","category","evidence","auth_status","cors_status","http_status","content_type","source","notes"]];
+    const all = [...STATE.apiCandidates, ...STATE.liveCandidates];
+    all.forEach(c => {
+      rows.push([
+        c.url, c.method || "GET", Classifier.category(c.url),
+        c.evidence || "", c.auth || "", c.cors || "",
+        c.http_status || "", c.content_type || "",
+        c.source || "",
+        (c.notes || "").replace(/"/g, '""')
+      ]);
+    });
+    return rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+  },
+
+  toTXT() {
+    let out = `API Hunter Report\nWebsite: ${STATE.website}\nScan time: ${STATE.scan_time}\n\n`;
+    out += `API candidates: ${STATE.apiCandidates.length}\n`;
+    out += `Website pages: ${STATE.websitePages.length}\n`;
+    out += `Documentation: ${STATE.documentation.length}\n`;
+    out += `Static resources: ${STATE.staticResources.length}\n`;
+    out += `Live capture candidates: ${STATE.liveCandidates.length}\n\n`;
+    const all = [...STATE.apiCandidates, ...STATE.liveCandidates];
+    all.forEach(c => {
+      out += `${c.method || "GET"} ${c.url}\n`;
+      out += `  Evidence: ${c.evidence || ""}\n`;
+      out += `  Category: ${Classifier.category(c.url)}\n`;
+      out += `  Status: ${c.status || ""}\n`;
+      out += `  Auth: ${c.auth || ""}\n`;
+      out += `  CORS: ${c.cors || ""}\n\n`;
+    });
+    return out;
+  }
+};
+
+/* ---------- UI ---------- */
+
+function renderSummary() {
+  const api = [...STATE.apiCandidates, ...STATE.liveCandidates];
+  const working = api.filter(c => c.status === "SUCCESS").length;
+  const paramReq = api.filter(c => c.status === "PARAMETER_REQUIRED").length;
+  const authReq = api.filter(c => c.auth === "AUTH_REQUIRED").length;
+  const failed = api.filter(c => ["NOT_FOUND","SERVER_ERROR","UNKNOWN"].includes(c.status)).length;
+  const corsBlocked = api.filter(c => c.cors === "CORS_BLOCKED").length;
+
+  const el = document.getElementById("summary");
+  el.innerHTML = `
+    <div class="card"><div class="num">${api.length}</div><div class="label">API candidates</div></div>
+    <div class="card"><div class="num">${STATE.websitePages.length}</div><div class="label">Website pages</div></div>
+    <div class="card"><div class="num">${STATE.documentation.length}</div><div class="label">Documentation</div></div>
+    <div class="card"><div class="num">${STATE.staticResources.length}</div><div class="label">Static resources</div></div>
+    <div class="card"><div class="num" style="color:var(--green)">${working}</div><div class="label">Working</div></div>
+    <div class="card"><div class="num" style="color:var(--yellow)">${paramReq}</div><div class="label">Parameter required</div></div>
+    <div class="card"><div class="num" style="color:var(--red)">${authReq}</div><div class="label">Auth required</div></div>
+    <div class="card"><div class="num" style="color:var(--red)">${failed}</div><div class="label">Failed</div></div>
+    <div class="card"><div class="num" style="color:var(--purple)">${corsBlocked}</div><div class="label">CORS blocked</div></div>
+  `;
+}
+
+function statusBadge(c) {
+  if (c.status === "SUCCESS") return `<span class="badge success">SUCCESS</span>`;
+  if (c.status === "PARAMETER_REQUIRED") return `<span class="badge param">PARAMETER_REQUIRED</span>`;
+  if (c.status === "AUTH_REQUIRED") return `<span class="badge auth">AUTH_REQUIRED</span>`;
+  if (c.status === "CORS_BLOCKED") return `<span class="badge cors">CORS_BLOCKED</span>`;
+  if (c.status === "NOT_FOUND") return `<span class="badge fail">NOT_FOUND</span>`;
+  if (c.status === "SERVER_ERROR") return `<span class="badge fail">SERVER_ERROR</span>`;
+  return `<span class="badge">${c.status || "UNTESTED"}</span>`;
+}
+
+function renderResultCard(c, idx) {
+  const params = c.params_detected || [];
+  const paramHtml = params.length ? `
+    <div class="param-row">
+      <span style="font-size:12px;color:var(--muted)">Parameter detected:</span>
+      <input type="text" id="param-name-${idx}" value="${params[0]}" readonly style="width:80px">
+      <input type="text" id="param-value-${idx}" value="Hello from API Hunter">
+      <button class="small primary" onclick="runParamTest(${idx})">Run Test</button>
+    </div>
+  ` : "";
+
+  return `
+    <div class="result-card" id="card-${idx}">
+      <div class="top">
+        <div class="url">${c.url}</div>
+        <div>${statusBadge(c)}</div>
+      </div>
+      <div class="badges">
+        <span class="badge method">${c.method || "GET"}</span>
+        <span class="badge">${Classifier.category(c.url)}</span>
+        ${c.evidence ? `<span class="badge evidence">${c.evidence}</span>` : ""}
+        ${c.auth && c.auth !== "UNKNOWN" ? `<span class="badge auth">${c.auth}</span>` : ""}
+        ${c.cors ? `<span class="badge cors">${c.cors}</span>` : ""}
+        ${c.http_status ? `<span class="badge">HTTP ${c.http_status}</span>` : ""}
+      </div>
+      <div class="meta">
+        ${c.source ? `Source: ${c.source}` : ""}
+        ${c.notes ? ` • ${c.notes}` : ""}
+      </div>
+      ${c.response_preview ? `<div class="preview">${escapeHtml(c.response_preview)}</div>` : ""}
+      ${paramHtml}
+      <div class="actions">
+        <button class="small" onclick="copyEndpoint('${encodeURIComponent(c.url)}')">Copy endpoint</button>
+        <button class="small" onclick="retest(${idx})">Test</button>
+      </div>
+    </div>
+  `;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[ch]));
+}
+
+function renderResults() {
+  const el = document.getElementById("results");
+  const activeTab = document.querySelector(".tab.active")?.dataset.tab || "apis";
+  let html = "";
+
+  if (activeTab === "apis") {
+    const all = [...STATE.apiCandidates, ...STATE.liveCandidates];
+    if (!all.length) {
+      html = `<div class="empty">No API endpoints with real evidence found. Website routes are listed in the Website/Documentation tab.</div>`;
+    } else {
+      html = all.map((c, i) => renderResultCard(c, i)).join("");
+    }
+  } else if (activeTab === "website") {
+    const items = [...STATE.websitePages, ...STATE.documentation, ...STATE.staticResources];
+    if (!items.length) {
+      html = `<div class="empty">No website pages discovered.</div>`;
+    } else {
+      html = items.map(l => `<div class="doc-link">${l.url}</div>`).join("");
+    }
+  } else if (activeTab === "docs") {
+    if (!STATE.docLinks.length) {
+      html = `<div class="empty">No documentation links discovered.</div>`;
+    } else {
+      html = STATE.docLinks.map(l => `<div class="doc-link"><a href="${l.url}" target="_blank" rel="noopener">${l.url}</a></div>`).join("");
+    }
+  } else if (activeTab === "live") {
+    html = renderLiveTab();
+  }
+  el.innerHTML = html;
+}
+
+/* ---------- Live Capture tab (new) ---------- */
+
+function renderLiveTab() {
+  const imported = STATE.liveImported;
+  const meta = STATE.liveMeta || {};
+  const count = STATE.liveCandidates.length;
+
+  const notice = `
+    <div class="notice">
+      Browser-only interception is restricted by browser security. A normal web page cannot read the
+      network traffic of another origin. Use the Node/local scanner
+      (<code>api-hunter-node.js --live</code>) to capture real traffic, then import its JSON below.
+    </div>
+  `;
+
+  const importBox = `
+    <div class="live-box">
+      <h3>Import live capture JSON</h3>
+      <p>Run: <code>node api-hunter-node.js https://target.com --live --json out.json</code>, then load <code>out.json</code> here.</p>
+      <div class="row">
+        <input type="file" id="liveFile" accept="application/json,.json">
+        <button class="small" id="liveLoadBtn">Load file</button>
+      </div>
+      <p style="margin-top:12px;">Or paste JSON:</p>
+      <textarea id="liveText" placeholder='{"website":"...","mode":"live","api_candidates":[...]}'></textarea>
+      <div class="row">
+        <button class="small primary" id="liveImportBtn">Import pasted JSON</button>
+        <button class="small" id="liveClearBtn">Clear live results</button>
+      </div>
+    </div>
+  `;
+
+  let summary = "";
+  if (imported) {
+    const working = STATE.liveCandidates.filter(c => c.status === "SUCCESS").length;
+    const paramReq = STATE.liveCandidates.filter(c => c.status === "PARAMETER_REQUIRED").length;
+    const authReq = STATE.liveCandidates.filter(c => c.auth === "AUTH_REQUIRED").length;
+    const failed = STATE.liveCandidates.filter(c => ["NOT_FOUND","SERVER_ERROR","UNKNOWN"].includes(c.status)).length;
+
+    summary = `
+      <div class="live-box" style="margin-top:12px;">
+        <h3>Imported capture</h3>
+        <p>
+          Website: ${meta.website || "—"} &nbsp;•&nbsp;
+          Mode: ${meta.mode || "—"} &nbsp;•&nbsp;
+          Time: ${meta.scan_time || "—"}
+        </p>
+        <div class="badges">
+          <span class="badge">Candidates: ${count}</span>
+          <span class="badge success">Working: ${working}</span>
+          <span class="badge param">Parameter required: ${paramReq}</span>
+          <span class="badge auth">Auth required: ${authReq}</span>
+          <span class="badge fail">Failed: ${failed}</span>
+        </div>
+        <p style="margin-top:10px;">Switch to the <b>APIs</b> tab to see these results in the normal cards.</p>
+      </div>
+    `;
+  }
+
+  return notice + importBox + summary;
+}
+
+function importLiveObject(obj) {
+  if (!obj || typeof obj !== "object") {
+    showNotice("Live import failed: not a JSON object.", true);
+    return;
+  }
+  const candidates = Array.isArray(obj.api_candidates) ? obj.api_candidates
+    : Array.isArray(obj.candidates) ? obj.candidates
+    : Array.isArray(obj.requests) ? obj.requests
+    : null;
+
+  if (!candidates) {
+    showNotice("Live import failed: no api_candidates array found.", true);
+    return;
+  }
+
+  STATE.liveCandidates = candidates.map(c => {
+    const status = c.status || Classifier.statusFromResponse(c.http_status, c.response_preview || "");
+    const auth = c.auth || Classifier.authFromResponse(c.http_status, "", c.response_preview || "");
+    return {
+      ...c,
+      url: c.url || c.endpoint || "",
+      method: c.method || "GET",
+      evidence: c.evidence || "LIVE_CAPTURE",
+      status,
+      auth,
+      cors: c.cors || "N/A_LOCAL",
+      tested: c.tested !== undefined ? c.tested : true
+    };
+  });
+
+  STATE.liveImported = true;
+  STATE.liveMeta = {
+    website: obj.website || "",
+    mode: obj.mode || "live",
+    scan_time: obj.scan_time || new Date().toISOString()
+  };
+
+  if (!STATE.website) STATE.website = STATE.liveMeta.website;
+
+  renderSummary();
+  renderResults();
+  clearNotice();
+}
+
+/* ---------- Tab handlers ---------- */
+
+document.getElementById("tabs").addEventListener("click", e => {
+  const tab = e.target.closest(".tab");
+  if (!tab) return;
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  tab.classList.add("active");
+  renderResults();
+});
+
+/* ---------- Main button handlers ---------- */
+
+document.getElementById("analyzeBtn").addEventListener("click", async () => {
+  const url = document.getElementById("urlInput").value.trim();
+  if (!url) return;
+  document.getElementById("analyzeBtn").disabled = true;
+  document.getElementById("analyzeBtn").textContent = "Analyzing...";
+  try {
+    await Scanner.scan(url);
+  } catch (e) {
+    showNotice("Scan error: " + e.message, true);
+  } finally {
+    document.getElementById("analyzeBtn").disabled = false;
+    document.getElementById("analyzeBtn").textContent = "Analyze Website";
+  }
+});
+
+document.getElementById("clearBtn").addEventListener("click", () => {
+  document.getElementById("urlInput").value = "";
+  document.getElementById("progress").innerHTML = "";
+  document.getElementById("summary").innerHTML = "";
+  document.getElementById("results").innerHTML = "";
+  document.getElementById("tabs").style.display = "none";
+  document.getElementById("exportRow").style.display = "none";
+  clearNotice();
+  STATE.liveImported = false;
+  STATE.liveMeta = null;
+  STATE.liveCandidates = [];
+});
+
+document.getElementById("copyBtn").addEventListener("click", () => {
+  navigator.clipboard.writeText(Exporter.toTXT());
+});
+
+document.getElementById("jsonBtn").addEventListener("click", () => {
+  download("api-hunter.json", Exporter.toJSON(), "application/json");
+});
+
+document.getElementById("csvBtn").addEventListener("click", () => {
+  download("api-hunter.csv", Exporter.toCSV(), "text/csv");
+});
+
+document.getElementById("txtBtn").addEventListener("click", () => {
+  download("api-hunter.txt", Exporter.toTXT(), "text/plain");
+});
+
+function download(filename, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- Live tab event delegation (new) ---------- */
+
+document.getElementById("results").addEventListener("click", e => {
+  const t = e.target;
+  if (t && t.id === "liveLoadBtn") {
+    const f = document.getElementById("liveFile");
+    if (f && f.files && f.files[0]) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const obj = JSON.parse(reader.result);
+          importLiveObject(obj);
+        } catch (err) {
+          showNotice("Live import failed: " + err.message, true);
+        }
+      };
+      reader.readAsText(f.files[0]);
+    }
+  }
+  if (t && t.id === "liveImportBtn") {
+    const txt = document.getElementById("liveText").value.trim();
+    if (!txt) return;
+    try {
+      const obj = JSON.parse(txt);
+      importLiveObject(obj);
+    } catch (err) {
+      showNotice("Live import failed: " + err.message, true);
+    }
+  }
+  if (t && t.id === "liveClearBtn") {
+    STATE.liveImported = false;
+    STATE.liveMeta = null;
+    STATE.liveCandidates = [];
+    renderSummary();
+    renderResults();
+  }
+});
+
+/* ---------- Init ---------- */
+
+renderProgress();
+log("API Hunter initialized");
+</script>
+</body>
+</html>
