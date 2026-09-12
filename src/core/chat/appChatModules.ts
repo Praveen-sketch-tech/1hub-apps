@@ -378,3 +378,8 @@ registerAppChatModule(
     return module.chatModule
   },
 )
+
+registerAppChatModule('web-publisher', async () => {
+  const module = await import('@apps/web-publisher/chatActions')
+  return module.chatModule
+})

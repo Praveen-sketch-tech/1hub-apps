@@ -1,0 +1,12 @@
+{
+  "website": "https://api.nfsa.gov.in/",
+  "scan_time": "2026-09-11T13:57:09.405Z",
+  "mode": "static",
+  "api_candidates": [],
+  "website_pages": [],
+  "documentation": [],
+  "static_resources": [],
+  "errors": [
+    "Fetch failed: fetch failed"
+  ]
+}

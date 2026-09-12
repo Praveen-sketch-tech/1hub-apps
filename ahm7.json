@@ -1,0 +1,446 @@
+{
+  "website": "https://ahm7xmakki.com/",
+  "scan_time": "2026-09-11T13:50:38.307Z",
+  "mode": "static",
+  "api_candidates": [
+    {
+      "url": "https://ahm7xmakki.com/api/websnap",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 400,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"ok\":false,\"error\":\"url parameter is required\"}",
+      "status": "PARAMETER_REQUIRED",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true,
+      "params_detected": [
+        "url",
+        "is"
+      ]
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/tts",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 405,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"error\":\"Method not allowed\"}",
+      "status": "METHOD_REQUIRED",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/alldl",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 400,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"links\":[\"https://tinyurl.com/5euz3dnn\",\"https://tinyurl.com/4cbz7smj\"],\"note\":\"🚀 Want more free APIs? Follow these channels.\",\"success\":false,\"message\":\"❌ Please provide a valid URL (YouTube, TikTok, Instagram, Facebook, Snapchat, SoundCloud, Reddit, Twitter, Douyin, SnackVideo, or CapCut).\",\"example\":\"https://batgpt.vercel.app/api/alldl?url=https://youtu.be/xu7VHa9Rldk\",\"supportedPlatforms\":[\"YouTube\",\"TikTok\",\"Instagram\",\"Facebook\",\"Snapchat\",\"SoundCloud\",\"Reddit\",\"Twitter\",\"Douyin\",\"SnackV",
+      "status": "PARAMETER_REQUIRED",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true,
+      "params_detected": [
+        "url"
+      ]
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/imgchat",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 200,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"status\":\"ok\",\"message\":\"VisionChat API is running\",\"timestamp\":\"2026-09-11T13:50:41.199Z\"}",
+      "status": "SUCCESS",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/tti",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 405,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"error\":\"Method not allowed\"}",
+      "status": "METHOD_REQUIRED",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/mail",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 400,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"error\":\"Unknown action.\",\"actions\":{\"create\":\"GET /api/mail?action=create  (optional: &name=yourname)\",\"inbox\":\"GET /api/mail?action=inbox&mail=x@y.z\",\"read\":\"GET /api/mail?action=read&mail=x@y.z&id=42\",\"delete\":\"GET /api/mail?action=delete&mail=x@y.z&id=42\"}}",
+      "status": "PARAMETER_REQUIRED",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true,
+      "params_detected": [
+        "action"
+      ]
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/zip",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 405,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"error\":\"Method not allowed\"}",
+      "status": "METHOD_REQUIRED",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/manga",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 400,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"error\":\"Unknown action.\",\"actions\":{\"search\":\"GET /api/manga?action=search&q=<query>\",\"latest\":\"GET /api/manga?action=latest\",\"chapters\":\"GET /api/manga?action=chapters&id=<manga-slug or /manga/slug>\",\"pages\":\"GET /api/manga?action=pages&id=<slug/cNUM>\",\"img\":\"GET /api/manga?action=img&p=<upstream-path>\"}}",
+      "status": "PARAMETER_REQUIRED",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true,
+      "params_detected": [
+        "action"
+      ]
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/novel",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 400,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"error\":\"action must be: search | chapters | read\"}",
+      "status": "PARAMETER_REQUIRED",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true,
+      "params_detected": [
+        "action"
+      ]
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/unovel",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 400,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"ok\":false,\"error\":\"Invalid action. Valid: categories|series|authors|search|novels|detail\"}",
+      "status": "UNKNOWN",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/msearch",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 400,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"error\":\"'q' parameter is required\",\"example\":\"/api/msearch?q=inception\"}",
+      "status": "PARAMETER_REQUIRED",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true,
+      "params_detected": [
+        "is"
+      ]
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/search",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 400,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"error\":\"Query parameter 'q' is required.\"}",
+      "status": "PARAMETER_REQUIRED",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true,
+      "params_detected": [
+        "q"
+      ]
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/transcribe",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 200,
+      "content_type": "application/json",
+      "response_preview": "{\n  \"api\": \"transcribe\",\n  \"name\": \"Audio → Text (Speech to Text)\",\n  \"version\": \"2.0.0\",\n  \"note\": \"Free. Advanced AI speech engine.\",\n  \"usage\": \"POST /api/transcribe  (multipart field \\\"audio\\\", raw audio body, or JSON { audio: base64 })\",\n  \"best_language\": \"English gives the highest accuracy. 99 languages supported.\",\n  \"params\": {\n    \"audio\": \"required — the audio file (max 100 MB)\",\n    \"language\": \"en | es | fr | de | it | pt | nl | ru | ... | auto  (default auto-detect)\",\n    \"model\": ",
+      "status": "SUCCESS",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/hand",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 200,
+      "content_type": "application/json",
+      "response_preview": "{\n  \"api\": \"hand\",\n  \"name\": \"Text → Handwriting\",\n  \"version\": \"2.0.0\",\n  \"usage\": \"GET/POST /api/hand?text=Hello\",\n  \"params\": {\n    \"text\": \"required — text to convert (supports newlines, up to 15000 chars)\",\n    \"color\": \"blue | black | red | pink | green | darkblue | pencil | #rrggbb   (default blue)\",\n    \"font\": \"neat | default | casual | messy | formal | kalam | cursive | gloria | reenie | satisfy | urdu | urdu2 | naskh | lateef   (default neat)\",\n    \"size\": \"16–80 (default 34)\",\n    \"p",
+      "status": "SUCCESS",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/telenor",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 200,
+      "content_type": "application/json",
+      "response_preview": "{\n  \"success\": true,\n  \"title\": \"My Telenor Quiz Today\",\n  \"date\": \"11 September 2026\",\n  \"total\": 5,\n  \"questions\": [\n    {\n      \"number\": 1,\n      \"question\": \"The patriotic song “Aye Jawan” is dedicated to whom\",\n      \"options\": [\n        \"Students\",\n        \"Farmers\",\n        \"Teachers\",\n        \"Young People\"\n      ],\n      \"answer\": \"Young People\"\n    },\n    {\n      \"number\": 2,\n      \"question\": \"“Aye Jawan” was performed by which Pakistani band?\",\n      \"options\": [\n        \"Junoon\",\n ",
+      "status": "SUCCESS",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/wikipdf",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 400,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"error\":\"Missing query parameter. Usage: /api/wikipdf?query=Babar Azam\"}",
+      "status": "UNKNOWN",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true,
+      "params_detected": [
+        "query"
+      ]
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/certificate",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 400,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"error\":\"Unknown action. Use ?action=templates for GET, or POST to generate a certificate.\"}",
+      "status": "PARAMETER_REQUIRED",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true,
+      "params_detected": [
+        "action"
+      ]
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/n8n",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 400,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"error\":\"Missing 'endpoint' query parameter.\"}",
+      "status": "UNKNOWN",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true,
+      "params_detected": [
+        "endpoint"
+      ]
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/courses",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 200,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"success\":true,\"title\":\"AHM7 Tech Courses 2025\",\"total\":1006,\"count\":1006,\"courses\":[{\"id\":1,\"name\":\"🎉 YouTube Automation Course By Huzaifa ❤\",\"url\":\"https://drive.google.com/drive/folders/1VblPCD09WWpM9rjGZ1oWphf19M2WMQGq\"},{\"id\":2,\"name\":\"✨ Demand Curve - Your Startup's Growth Operating System 😎\",\"url\":\"https://drive.google.com/drive/folders/1ZpE5J5nye5MYIAleW0hzPS_7mBEkbIl6\"},{\"id\":3,\"name\":\"🌟 Maria Wendt - I Love Money And Money Loves Me 📚\",\"url\":\"https://drive.google.com/drive/folders/",
+      "status": "SUCCESS",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/driveup",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 200,
+      "content_type": "text/plain; charset=utf-8",
+      "response_preview": "xSRtlL50mYGRgsBo6gKuvLhPWUQzvmN33MrVebj5dwy0rPu/T82WOm7ImWsehSjsV40gnDcIqBiIBo9tEZJoBNvik+Ob/bBX/GH+gvhPzTgbMSWxLKj8wkEhFlvjxIwpWEH/j0FNITBLx2uevyA7v419y9SxUFvLv22KiYo4BalvyYJBovDyWkEFJ1iWzZRa2/qIO2KxZXYjK3cPNniA9Vf53W48PppqsBIEFriK6WIP5ydzerMkU9gwKUu663bru4smzs/Y9T1EaFa80QU/jbfhpiIVRZQ3l2rEONOcawmjsOtZ0vueUCWaPDO0dFzk1u9EAvwlfpuEI4uiXyxRDldyD/T9U8VFk3be1jVBE1ciZoMNPlhpvFcm8Sa0SXgTGPQwUrdhcswRoV9/7eLz9xuxbjbFfL/58jDi0eDC4Cf8p+lPX9Ldiui/F7BGzb2xxqqQYPUfST1KkxHx/kOxp4BfKRiUqvQ3BSSF7GEIlkcqEnoQSWHP",
+      "status": "SUCCESS",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/driveup?action=list&folder=root",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 200,
+      "content_type": "text/plain; charset=utf-8",
+      "response_preview": "jmJsovNtVZQSk8ahoQEn5OG8cddMqAZetwk2kJgjKwwwaONeXYjseXBf/spPA82Wx8lilsExeRUE1R1VHOU26odaI8n4A3C/CvNks0Jxd/lYOhfWt2UpxqGAn5wrq8aYz7C3GJFrxjHJ4i1wiRuN0xC1YHhcirdrpPyp3tQxvcy6RqG1TCjuGOJQ8BIneJtJv5x3hR6oXSXxVxmPX0cCRw6hhrE4uCTzl9x7v+0DRfkCFOW7KnEY57J5LxlN9ihYOv0JkGkztS4WAhXuM+cl+7fyzNpe/rmZOySsV4yD/ALBH12wcSgk4zGb94MXN5NMcuIcy4eiEZX1sdSEM6nkFxWWluPpaoNJP1v3qyqeDRrQWHt1ADakRlHZFN4+2E56Qq3AipBZBwOgSBq/v5TaBxwvtp2xQ16y42o1Zycufn5UQXp4oGiJRAzgtMeajUd1Q4CGrNIpRgdhmjWMuo/5cVjAhsAOyWalzRbHaNP2oPgs6EYcEdsz",
+      "status": "SUCCESS",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/tts?text=Hello+from+AHM7&voice=en-US",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 405,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"error\":\"Method not allowed\"}",
+      "status": "METHOD_REQUIRED",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true
+    },
+    {
+      "url": "https://ahm7xmakki.com/api/tts?text=",
+      "method": "GET",
+      "evidence": "JS_HEURISTIC",
+      "source": "https://ahm7xmakki.com/",
+      "http_status": 405,
+      "content_type": "application/json; charset=utf-8",
+      "response_preview": "{\"error\":\"Method not allowed\"}",
+      "status": "METHOD_REQUIRED",
+      "auth": "UNKNOWN",
+      "cors": "N/A_LOCAL",
+      "tested": true
+    }
+  ],
+  "website_pages": [
+    {
+      "url": "https://ahm7xmakki.com/"
+    },
+    {
+      "url": "https://ahm7xmakki.com/#apis"
+    },
+    {
+      "url": "https://ahm7xmakki.com/about"
+    },
+    {
+      "url": "https://ahm7xmakki.com/contact"
+    },
+    {
+      "url": "https://ahm7xmakki.com/#apis"
+    },
+    {
+      "url": "https://ahm7xmakki.com/#apis"
+    },
+    {
+      "url": "https://ahm7xmakki.com/#playground"
+    },
+    {
+      "url": "https://ahm7xmakki.com/driveup"
+    },
+    {
+      "url": "https://ahm7xmakki.com/speech"
+    },
+    {
+      "url": "https://ahm7xmakki.com/#apis"
+    },
+    {
+      "url": "https://ahm7xmakki.com/"
+    },
+    {
+      "url": "https://ahm7xmakki.com/websnap"
+    },
+    {
+      "url": "https://ahm7xmakki.com/driveup"
+    },
+    {
+      "url": "https://ahm7xmakki.com/speech"
+    },
+    {
+      "url": "https://ahm7xmakki.com/alldl"
+    },
+    {
+      "url": "https://ahm7xmakki.com/imgchat"
+    },
+    {
+      "url": "https://ahm7xmakki.com/manga"
+    },
+    {
+      "url": "https://ahm7xmakki.com/novel"
+    },
+    {
+      "url": "https://ahm7xmakki.com/medster"
+    },
+    {
+      "url": "https://ahm7xmakki.com/wikipdf"
+    },
+    {
+      "url": "https://ahm7xmakki.com/about"
+    },
+    {
+      "url": "https://ahm7xmakki.com/contact"
+    },
+    {
+      "url": "https://ahm7xmakki.com/privacy"
+    },
+    {
+      "url": "https://ahm7xmakki.com/terms"
+    },
+    {
+      "url": "https://ahm7xmakki.com/changelog"
+    },
+    {
+      "url": "https://ahm7xmakki.com/sitemap.xml"
+    },
+    {
+      "url": "https://ahm7xmakki.com/privacy"
+    },
+    {
+      "url": "https://ahm7xmakki.com/terms"
+    },
+    {
+      "url": "https://ahm7xmakki.com/sitemap.xml"
+    },
+    {
+      "url": "https://ahm7xmakki.com/$%7Ba.url%7D"
+    }
+  ],
+  "documentation": [
+    {
+      "url": "https://ahm7xmakki.com/docs"
+    },
+    {
+      "url": "https://ahm7xmakki.com/docs"
+    }
+  ],
+  "static_resources": [
+    {
+      "url": "https://ahm7xmakki.com/pixelster"
+    },
+    {
+      "url": "https://ahm7xmakki.com/pixelster"
+    }
+  ],
+  "errors": []
+}

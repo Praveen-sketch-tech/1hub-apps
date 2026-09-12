@@ -419,6 +419,14 @@ export const APP_REGISTRY: AppDefinition[] = [
     tags: ["Invoice Maker","GST Invoice","Billing","Small Business"],
     visibility: 'public',
   },
+  {
+    id: 'web-publisher',
+    number: '046',
+    name: "Web Publisher",
+    description: "Upload HTML/CSS/JS website files, preview them live in your browser, and publish directly to your GitHub repository as an instant static website.",
+    path: '/apps/web-publisher',
+    tags: ["Web Publisher", "Static Site", "GitHub", "Developer Tools"],
+  },
 ]
 
 // Look up an app's display number from its id, instead of hardcoding the

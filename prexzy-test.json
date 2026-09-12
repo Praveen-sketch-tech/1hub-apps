@@ -1,0 +1,12 @@
+{
+  "website": "https://prexzyapis.com/",
+  "scan_time": "2026-09-11T14:27:56.736Z",
+  "mode": "static",
+  "api_candidates": [],
+  "website_pages": [],
+  "documentation": [],
+  "static_resources": [],
+  "errors": [
+    "Fetch failed: fetch failed"
+  ]
+}

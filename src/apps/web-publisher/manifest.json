@@ -1,0 +1,9 @@
+{
+  "id": "web-publisher",
+  "number": "046",
+  "name": "Web Publisher",
+  "description": "Upload HTML/CSS/JS website files, preview them live, and publish directly to your GitHub repository as an instant static website.",
+  "path": "/apps/web-publisher",
+  "icon": "Globe",
+  "category": "developer-tools"
+}

@@ -440,4 +440,13 @@ export const APP_LOADERS: AppLoaderDefinition[] = [
       }))
     ),
   },
+  {
+    path: '/apps/web-publisher',
+    name: "Web Publisher",
+    component: lazy(() =>
+      import('@apps/web-publisher').then((module) => ({
+        default: module.WebPublisherPage,
+      }))
+    ),
+  },
 ]
