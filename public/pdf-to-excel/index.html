@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF to Excel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+  :root {
+    --bg: #f0f4f9;
+    --text: #1a2a3a;
+    --text-muted: #54738b;
+    --card-bg: #ffffff;
+    --card-border: #e6edf4;
+    --accent: #1e6f9f;
+    --accent-dark: #155a80;
+    --accent-light: #e3f2fd;
+    --accent-light-border: #bbdefb;
+    --drop-border: #cbd5e1;
+    --drop-hover-bg: #f0f7ff;
+    --info-bg: #f4f9fe;
+    --table-header-bg: #eef4fa;
+    --table-border: #cbdbe9;
+    --table-row-border: #e2eaf1;
+    --table-row-alt: #fafcfe;
+    --warning-bg: #fff8e7;
+    --warning-border: #f5b342;
+    --ok-bg: #dff0d8;
+    --ok-text: #2e5d2e;
+    --err-bg: #f8d7da;
+    --err-text: #721c24;
+    --info-badge-bg: #e2eaf5;
+    --info-badge-text: #1e4b7a;
+    --shadow: 0 8px 24px rgba(0,0,0,.05);
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: var(--bg);
+    margin: 0;
+    padding: 24px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .app { max-width: 1400px; margin: 0 auto; }
+  .header-row { display:flex; align-items:center; gap:14px; margin-bottom:6px; flex-wrap:wrap; }
+  h1 { font-weight: 600; font-size: 1.6rem; margin: 0; letter-spacing:-.01em; }
+  .subtitle { color: var(--text-muted); font-size: .92rem; margin: 4px 0 18px; }
+  .badge {
+    background: var(--accent-light); color: #0b4b7a;
+    padding: 6px 14px; border-radius: 30px; font-size: .82rem;
+    display: inline-flex; align-items:center; gap: 6px;
+    border: 1px solid var(--accent-light-border); margin-bottom: 22px;
+  }
+  .badge::before { content: "🔒"; }
+  .drop-area {
+    background: var(--card-bg); border: 2px dashed var(--drop-border);
+    border-radius: 24px; padding: 52px 24px; text-align: center;
+    margin-bottom: 24px; transition: .18s ease; position: relative;
+  }
+  .drop-area:hover, .drop-area.dragover {
+    border-color: var(--accent); background: var(--drop-hover-bg);
+    transform: translateY(-1px);
+  }
+  .drop-icon { font-size: 3rem; margin-bottom: 4px; }
+  .drop-area p { margin: 4px 0; font-size: 1.05rem; font-weight: 500; }
+  .btn {
+    background: var(--accent); color: #fff; border: none;
+    padding: 12px 28px; border-radius: 40px; font-size: .95rem;
+    font-weight: 500; cursor: pointer; margin: 4px;
+    transition: background .15s, transform .1s;
+    display: inline-flex; align-items:center; gap: 8px;
+  }
+  .btn:hover:not(:disabled) { background: var(--accent-dark); }
+  .btn:active:not(:disabled) { transform: scale(.98); }
+  .btn:disabled { background: #a0b8c9; cursor: not-allowed; opacity:.75; }
+  .btn-secondary { background: var(--card-bg); color: var(--accent); border: 1.5px solid var(--accent); }
+  .btn-secondary:hover:not(:disabled) { background: var(--drop-hover-bg); }
+  .card {
+    background: var(--card-bg); border-radius: 20px; padding: 26px;
+    box-shadow: var(--shadow); border: 1px solid var(--card-border);
+    margin-bottom: 24px;
+  }
+  .info-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 14px; margin: 18px 0; }
+  .info-item { background: var(--info-bg); border-radius: 16px; padding: 14px 18px; }
+  .info-label { font-size: .72rem; text-transform: uppercase; letter-spacing:.04em; color: var(--text-muted); margin-bottom: 6px; }
+  .info-value { font-size: 1.25rem; font-weight: 600; color: var(--text); }
+  .hidden { display: none !important; }
+  .progress-bar { width: 100%; height: 8px; background: #e0e9f2; border-radius: 20px; overflow: hidden; margin: 16px 0 8px; }
+  .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width .25s ease; }
+  .spinner {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 3px solid var(--accent-light-border); border-top-color: var(--accent);
+    animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; margin-right: 10px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .preview-table-wrap {
+    overflow-x: auto; max-height: 500px; border-radius: 16px;
+    border: 1px solid var(--table-row-border); background: var(--card-bg); margin-top: 12px;
+  }
+  table.preview { border-collapse: collapse; font-size: .8rem; width: 100%; white-space: nowrap; }
+  table.preview th {
+    background: var(--table-header-bg); font-weight: 600; padding: 9px 12px;
+    text-align: left; border-bottom: 2px solid var(--table-border);
+    position: sticky; top: 0; z-index: 2;
+  }
+  table.preview td { padding: 7px 12px; border-bottom: 1px solid var(--table-row-border); color: var(--text); }
+  table.preview tr:nth-child(even) { background: var(--table-row-alt); }
+  table.preview tr:hover { background: var(--drop-hover-bg); }
+  .warning-box {
+    background: var(--warning-bg); border-left: 4px solid var(--warning-border);
+    padding: 14px 20px; border-radius: 12px; margin: 0 0 16px; font-size: .9rem;
+  }
+  .flex-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .text-muted { color: var(--text-muted); font-size: .9rem; }
+  .tab-bar {
+    display: flex; gap: 4px; border-bottom: 1px solid var(--table-row-border);
+    margin-bottom: 16px; flex-wrap: wrap; max-height: 120px; overflow-y: auto;
+  }
+  .tab {
+    padding: 8px 16px; border-radius: 8px 8px 0 0; cursor: pointer;
+    font-size: .85rem; background: var(--bg); border: 1px solid transparent;
+    border-bottom: none; white-space: nowrap; transition: background .12s;
+  }
+  .tab.active { background: var(--card-bg); border-color: var(--table-row-border); font-weight: 600; color: var(--accent); }
+  .tab:hover:not(.active) { background: #e6eef6; }
+  .status-badge { padding: 5px 14px; border-radius: 40px; font-size: .85rem; font-weight: 500; white-space:nowrap; }
+  .status-ok { background: var(--ok-bg); color: var(--ok-text); }
+  .status-err { background: var(--err-bg); color: var(--err-text); }
+  .status-info { background: var(--info-badge-bg); color: var(--info-badge-text); }
+  input[type="password"] {
+    padding: 12px 16px; border-radius: 12px; border: 1px solid #bdd3e8;
+    width: 100%; max-width: 300px; margin: 12px 0; font-size: .95rem;
+  }
+  input[type="password"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .sheet-mode-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:18px; }
+  .sheet-mode-label { font-size:.85rem; color:var(--text-muted); font-weight:500; }
+  .segmented { display:inline-flex; background:var(--info-bg); border-radius:40px; padding:3px; border:1px solid var(--card-border); }
+  .segmented button {
+    border:none; background:transparent; padding:7px 16px; border-radius:36px;
+    font-size:.85rem; font-weight:500; color:var(--text-muted); cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .segmented button.active { background:var(--accent); color:#fff; }
+  .segmented button:hover:not(.active) { color:var(--accent); }
+  .section-subtitle { font-size:.95rem; font-weight:600; color:var(--text); margin:22px 0 10px; }
+  .bank-callout {
+    display:flex; align-items:center; gap:10px; background:var(--accent-light);
+    border:1px solid var(--accent-light-border); border-radius:14px;
+    padding:12px 16px; margin-bottom:18px; font-size:.85rem; color:var(--text);
+  }
+  .bank-callout .icon { font-size:1.3rem; }
+  .kpi-card {
+    background:var(--info-bg); border-radius:16px; padding:14px 18px;
+    border-left:3px solid var(--accent);
+  }
+  .kpi-card.green { border-left-color:var(--ok-text); }
+  .kpi-card.red { border-left-color:var(--err-text); }
+  .kpi-card .kpi-label { font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted); margin-bottom:6px; }
+  .kpi-card .kpi-value { font-size:1.2rem; font-weight:700; color:var(--text); }
+  .kpi-card .kpi-value.green { color:var(--ok-text); }
+  .kpi-card .kpi-value.red { color:var(--err-text); }
+  table.preview td.num, table.preview th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  td.credit-cell { color:var(--ok-text); font-weight:600; }
+  td.debit-cell { color:var(--err-text); font-weight:600; }
+  .carry-badge {
+    display:inline-block; background:var(--warning-bg); color:var(--text);
+    border:1px solid var(--warning-border); font-size:.68rem; font-weight:600;
+    padding:2px 8px; border-radius:20px; margin-left:6px; white-space:nowrap;
+  }
+  .eod-input-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:6px 0 4px; }
+  .eod-input-row label { font-size:.85rem; color:var(--text-muted); font-weight:500; }
+  .eod-input-row input[type="number"] {
+    padding:10px 14px; border-radius:12px; border:1px solid #bdd3e8;
+    font-size:.95rem; width:80px;
+  }
+  .eod-input-row input[type="number"]:focus { outline:2px solid var(--accent); outline-offset:1px; }
+  @media (max-width: 640px) {
+    body { padding: 14px; }
+    .card { padding: 18px; border-radius: 16px; }
+    .drop-area { padding: 34px 16px; border-radius: 18px; }
+    h1 { font-size: 1.3rem; }
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1720; --text: #e6edf4; --text-muted: #93a6b8;
+      --card-bg: #17212c; --card-border: #26333f; --accent: #4ba3d3;
+      --accent-dark: #6cb8e0; --accent-light: #16344a; --accent-light-border: #1f4863;
+      --drop-border: #2c3c4b; --drop-hover-bg: #132433; --info-bg: #1c2733;
+      --table-header-bg: #1c2733; --table-border: #2c3c4b; --table-row-border: #223040;
+      --table-row-alt: #131c25; --warning-bg: #3a2f10; --warning-border: #caa23c;
+      --ok-bg: #1c3524; --ok-text: #8fd6a5; --err-bg: #3b1c22; --err-text: #f2a3ac;
+      --info-badge-bg: #1c2c40; --info-badge-text: #9cc4ea; --shadow: 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1720; --text: #e6edf4; --text-muted: #93a6b8;
+    --card-bg: #17212c; --card-border: #26333f; --accent: #4ba3d3;
+    --accent-dark: #6cb8e0; --accent-light: #16344a; --accent-light-border: #1f4863;
+    --drop-border: #2c3c4b; --drop-hover-bg: #132433; --info-bg: #1c2733;
+    --table-header-bg: #1c2733; --table-border: #2c3c4b; --table-row-border: #223040;
+    --table-row-alt: #131c25; --warning-bg: #3a2f10; --warning-border: #caa23c;
+    --ok-bg: #1c3524; --ok-text: #8fd6a5; --err-bg: #3b1c22; --err-text: #f2a3ac;
+    --info-badge-bg: #1c2c40; --info-badge-text: #9cc4ea; --shadow: 0 8px 24px rgba(0,0,0,.35);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header-row"><h1>📄 → 📊 PDF to Excel</h1></div>
+  <div class="subtitle">Convert digital PDFs into clean Excel spreadsheets, right in your browser.</div>
+  <div class="badge">Your PDF is processed locally in your browser. The file is not uploaded to a server.</div>
+
+  <div id="uploadScreen">
+    <div class="drop-area" id="dropArea">
+      <div class="drop-icon">📁</div>
+      <p>Drag &amp; drop a PDF here</p>
+      <span class="text-muted">or</span>
+      <div style="margin-top:16px;">
+        <button class="btn" id="selectBtn" type="button">Select PDF</button>
+      </div>
+      <input type="file" id="fileInput" accept="application/pdf" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none;">
+      <p class="text-muted" style="margin-top:24px;">Digital PDFs · No OCR · No server</p>
+    </div>
+  </div>
+
+  <div id="infoScreen" class="hidden">
+    <div class="card">
+      <div class="flex-row" style="justify-content:space-between;">
+        <h2 style="font-weight:500;margin:0;font-size:1.15rem;" id="infoFileName">document.pdf</h2>
+        <span class="status-badge status-ok" id="infoStatus">Ready</span>
+      </div>
+      <div class="info-grid" id="infoGrid"></div>
+      <div style="margin-top:16px;">
+        <button class="btn" id="startConvertBtn" type="button">Start Conversion</button>
+        <button class="btn btn-secondary" id="cancelInfoBtn" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="passwordScreen" class="hidden">
+    <div class="card">
+      <h3 style="margin-top:0;">🔐 This PDF is password protected.</h3>
+      <input type="password" id="pdfPasswordInput" placeholder="Password">
+      <div>
+        <button class="btn" id="submitPasswordBtn" type="button">Unlock PDF</button>
+        <button class="btn btn-secondary" id="cancelPasswordBtn" type="button">Cancel</button>
+      </div>
+      <div id="passwordError" style="color:#c0392b;margin-top:12px;font-size:.9rem;"></div>
+    </div>
+  </div>
+
+  <div id="progressScreen" class="hidden">
+    <div class="card">
+      <h3 id="progressTitle" style="margin-top:0;"><span class="spinner"></span>Extracting PDF...</h3>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div id="progressDetail" class="text-muted">Page 0 / 0</div>
+    </div>
+  </div>
+
+  <div id="previewScreen" class="hidden">
+    <div class="card">
+      <div class="flex-row" style="justify-content:space-between;">
+        <h2 style="font-weight:500;margin:0;font-size:1.15rem;">Preview</h2>
+        <span class="status-badge status-info" id="previewSummary"></span>
+      </div>
+      <div id="warningsContainer" style="margin-top:14px;"></div>
+      <div class="tab-bar" id="tabBar"></div>
+      <div id="previewContent"></div>
+      <div class="sheet-mode-row" id="sheetModeRow">
+        <span class="sheet-mode-label">Excel output:</span>
+        <div class="segmented">
+          <button type="button" id="modeSeparateBtn" class="active">Separate sheet per table</button>
+          <button type="button" id="modeSingleBtn">One single sheet</button>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <button class="btn" id="downloadExcelBtn" type="button">⬇️ Download Excel</button>
+        <button class="btn btn-secondary" id="convertAnotherBtn" type="button">Convert Another PDF</button>
+      </div>
+      <div id="downloadStatus" style="margin-top:12px;font-size:.9rem;"></div>
+    </div>
+
+    <div id="bankSection" class="card hidden">
+      <div class="bank-callout">
+        <span class="icon">🏦</span>
+        <span>This looks like a bank statement — transactions were pulled out and summarized below.</span>
+      </div>
+      <div class="flex-row" style="justify-content:space-between;">
+        <h2 style="font-weight:500;margin:0;font-size:1.15rem;">Bank Statement Analysis</h2>
+        <span class="status-badge status-info" id="bankBadge"></span>
+      </div>
+      <div class="tab-bar" id="bankTabBar" style="margin-top:16px;">
+        <div class="tab active" data-btab="summary">Summary</div>
+        <div class="tab" data-btab="ledger">Ledger</div>
+        <div class="tab" data-btab="eod">EOD Balance</div>
+      </div>
+
+      <div id="bankPanelSummary" class="bank-panel">
+        <div class="info-grid" id="bankKpiGrid"></div>
+        <div class="section-subtitle">Month-wise summary</div>
+        <div class="preview-table-wrap">
+          <table class="preview">
+            <thead><tr><th>Month</th><th class="num">Credit count</th><th class="num">Debit count</th><th class="num">Total inward</th><th class="num">Total outward</th></tr></thead>
+            <tbody id="monthSummaryBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="bankPanelLedger" class="bank-panel hidden">
+        <div class="preview-table-wrap">
+          <table class="preview">
+            <thead><tr><th>Date</th><th>Narration</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr></thead>
+            <tbody id="ledgerBody2"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="bankPanelEod" class="bank-panel hidden">
+        <div class="eod-input-row">
+          <label for="eodDateInput">Day of month for EOD balance:</label>
+          <input type="number" id="eodDateInput" min="1" max="31" value="5">
+          <button class="btn" id="generateEodBtn" type="button">Generate</button>
+        </div>
+        <p class="text-muted" style="margin:8px 0 0;">If that date has no transaction in a given month, the balance from the closest earlier date is carried forward and marked below.</p>
+        <div class="preview-table-wrap" style="margin-top:14px;">
+          <table class="preview">
+            <thead><tr><th>Month</th><th>Requested date</th><th>Balance date used</th><th class="num">EOD balance</th></tr></thead>
+            <tbody id="eodBody2"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  var currentFile = null;
+  var pdfDoc = null;
+  var totalPages = 0;
+  var totalChars = 0;
+  var totalCharsNoSpace = 0;
+  var pagesData = [];
+  var detectedTables = [];
+  var activeTab = 0;
+  var sheetMode = 'separate'; // 'separate' = one sheet per table, 'single' = all tables in one sheet
+  var bankTxns = [];
+  var bankMonthly = [];
+  var isBankStatement = false;
+  var activeBankTab = 'summary';
+
+  var $ = function(id){ return document.getElementById(id); };
+  var screens = ['uploadScreen','infoScreen','passwordScreen','progressScreen','previewScreen'];
+  function showScreen(name){
+    screens.forEach(function(s){
+      var el = $(s); if(!el) return;
+      el.classList.toggle('hidden', s !== name);
+    });
+  }
+
+  // ============================================================
+  //  FILE INPUT
+  // ============================================================
+  var dropArea  = $('dropArea');
+  var fileInput = $('fileInput');
+  var selectBtn = $('selectBtn');
+
+  selectBtn.addEventListener('click', function(){ fileInput.click(); });
+  fileInput.addEventListener('change', function(e){
+    var f = e.target.files && e.target.files[0];
+    if(f) handleFile(f);
+    fileInput.value = '';
+  });
+  dropArea.addEventListener('dragover', function(e){
+    e.preventDefault(); e.stopPropagation();
+    dropArea.classList.add('dragover');
+  });
+  dropArea.addEventListener('dragleave', function(e){
+    e.preventDefault(); e.stopPropagation();
+    dropArea.classList.remove('dragover');
+  });
+  dropArea.addEventListener('drop', function(e){
+    e.preventDefault(); e.stopPropagation();
+    dropArea.classList.remove('dragover');
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if(files && files.length > 0){
+      var f = files[0];
+      if(f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) handleFile(f);
+      else alert('Please select a PDF file.');
+    }
+  });
+
+  function handleFile(file){
+    if(!file) return;
+    currentFile = file;
+    loadPdf(file, null);
+  }
+
+  // ============================================================
+  //  PDF LOADING
+  // ============================================================
+  function loadPdf(file, password){
+    showScreen('progressScreen');
+    $('progressTitle').innerHTML = '<span class="spinner"></span>Loading PDF...';
+    $('progressFill').style.width = '5%';
+    $('progressDetail').textContent = '';
+
+    var reader = new FileReader();
+    reader.onload = function(){
+      var buffer = reader.result;
+      var loadingTask = pdfjsLib.getDocument({ data: buffer, password: password || undefined });
+      loadingTask.promise
+        .then(function(doc){
+          pdfDoc = doc;
+          totalPages = doc.numPages;
+          return inspectPdf(file);
+        })
+        .then(function(){ showScreen('infoScreen'); })
+        .catch(function(err){
+          console.error('PDF load error:', err);
+          if(err && (err.name === 'PasswordException' || /password/i.test(err.message || ''))){
+            // FIX: distinguish "first prompt" from "wrong password entered" so the
+            // user gets clear feedback instead of the screen silently re-appearing.
+            showScreen('passwordScreen');
+            if(password){
+              $('passwordError').textContent = '✗ Incorrect password. Please try again.';
+            } else {
+              $('passwordError').textContent = '';
+            }
+          } else {
+            alert('Unable to open PDF: ' + (err.message || err));
+            showScreen('uploadScreen');
+          }
+        });
+    };
+    reader.onerror = function(){
+      alert('Failed to read the file.');
+      showScreen('uploadScreen');
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  $('submitPasswordBtn').addEventListener('click', function(){
+    var pwd = $('pdfPasswordInput').value;
+    if(!pwd){ $('passwordError').textContent = 'Please enter a password.'; return; }
+    $('passwordError').textContent = '';
+    loadPdf(currentFile, pwd);
+  });
+  $('cancelPasswordBtn').addEventListener('click', function(){
+    showScreen('uploadScreen');
+    $('pdfPasswordInput').value = '';
+    $('passwordError').textContent = '';
+    pdfDoc = null; currentFile = null;
+  });
+
+  // ============================================================
+  //  INSPECT
+  // ============================================================
+  function inspectPdf(file){
+    showScreen('progressScreen');
+    $('progressTitle').innerHTML = '<span class="spinner"></span>Inspecting document...';
+    $('progressFill').style.width = '10%';
+
+    var pagesWithText = 0, pagesWithoutText = 0;
+    var withSpaces = 0, noSpaces = 0;
+    var chain = Promise.resolve();
+
+    for(var i = 1; i <= totalPages; i++){
+      (function(pageNum){
+        chain = chain.then(function(){
+          return pdfDoc.getPage(pageNum).then(function(page){
+            return page.getTextContent().then(function(tc){
+              var text = tc.items.map(function(it){ return it.str; }).join(' ');
+              withSpaces += text.length;
+              noSpaces += text.replace(/\s+/g,'').length;
+              if(text.replace(/\s+/g,'').length > 0) pagesWithText++; else pagesWithoutText++;
+              var pct = 10 + Math.round((pageNum / totalPages) * 55);
+              $('progressFill').style.width = pct + '%';
+              $('progressDetail').textContent = 'Page ' + pageNum + ' / ' + totalPages;
+            });
+          });
+        });
+      })(i);
+    }
+
+    return chain.then(function(){
+      // FIX: this is the single source of truth for character counts.
+      // (Previously runConversion() added to these again, silently doubling the totals.)
+      totalChars = withSpaces;
+      totalCharsNoSpace = noSpaces;
+      $('infoFileName').textContent = file.name;
+      $('infoGrid').innerHTML =
+        '<div class="info-item"><div class="info-label">File size</div><div class="info-value">' + (file.size/1024).toFixed(1) + ' KB</div></div>' +
+        '<div class="info-item"><div class="info-label">Pages</div><div class="info-value">' + totalPages + '</div></div>' +
+        '<div class="info-item"><div class="info-label">Characters (total)</div><div class="info-value">' + withSpaces.toLocaleString() + '</div></div>' +
+        '<div class="info-item"><div class="info-label">Characters (non-space)</div><div class="info-value">' + noSpaces.toLocaleString() + '</div></div>' +
+        '<div class="info-item"><div class="info-label">Text pages</div><div class="info-value">' + pagesWithText + ' / ' + totalPages + '</div></div>' +
+        '<div class="info-item"><div class="info-label">Empty pages</div><div class="info-value">' + pagesWithoutText + '</div></div>' +
+        '<div class="info-item"><div class="info-label">Tables</div><div class="info-value" style="font-size:.85rem;color:var(--text-muted);font-weight:500;">Detecting during conversion</div></div>';
+
+      if(pagesWithText === 0){
+        $('infoStatus').textContent = 'No readable text';
+        $('infoStatus').className = 'status-badge status-err';
+        $('startConvertBtn').disabled = true;
+      } else {
+        $('infoStatus').textContent = 'Ready to convert';
+        $('infoStatus').className = 'status-badge status-ok';
+        $('startConvertBtn').disabled = false;
+      }
+    });
+  }
+
+  $('cancelInfoBtn').addEventListener('click', function(){
+    showScreen('uploadScreen');
+    pdfDoc = null; currentFile = null;
+  });
+
+  // ============================================================
+  //  CONVERSION
+  // ============================================================
+  $('startConvertBtn').addEventListener('click', function(){
+    if(!pdfDoc) return;
+    showScreen('progressScreen');
+    runConversion();
+  });
+
+  function runConversion(){
+    pagesData = []; detectedTables = [];
+    $('progressTitle').innerHTML = '<span class="spinner"></span>Extracting text with coordinates...';
+    $('progressFill').style.width = '0%';
+
+    var chain = Promise.resolve();
+
+    for(var i = 1; i <= totalPages; i++){
+      (function(pageNum){
+        chain = chain.then(function(){
+          return pdfDoc.getPage(pageNum).then(function(page){
+            return page.getTextContent().then(function(tc){
+              var items = tc.items.map(function(it){
+                return {
+                  str: it.str,
+                  x: it.transform[4],
+                  y: it.transform[5],
+                  width: it.width || 0,
+                  height: it.height || 0
+                };
+              }).filter(function(it){ return it.str.length > 0; });
+
+              var charCount = items.reduce(function(a, it){
+                return a + it.str.length;
+              }, 0);
+              // FIX: removed "totalChars += charCount" here — totalChars is already
+              // set once in inspectPdf(); adding to it again was doubling the count
+              // shown on the preview/info screens.
+
+              // Build rows using V5 approach (which worked)
+              var rows = buildRowBands(items);
+              var bandYs = computeBandYs(items);
+
+              pagesData.push({
+                pageNum: pageNum,
+                items: items,
+                rows: rows,
+                bandYs: bandYs,
+                charCount: charCount
+              });
+
+              var pct = Math.round((pageNum / totalPages) * 45);
+              $('progressFill').style.width = pct + '%';
+              $('progressDetail').textContent = 'Page ' + pageNum + ' / ' + totalPages;
+            });
+          });
+        });
+      })(i);
+    }
+
+    chain
+      .then(function(){
+        $('progressTitle').innerHTML = '<span class="spinner"></span>Detecting tables...';
+        $('progressFill').style.width = '55%';
+        return new Promise(function(r){ setTimeout(r, 10); });
+      })
+      .then(function(){
+        for(var p = 0; p < pagesData.length; p++){
+          var tables = detectTablesOnPage(pagesData[p]);
+          for(var t = 0; t < tables.length; t++) detectedTables.push(tables[t]);
+        }
+        detectedTables = mergeMultiPageTables(detectedTables);
+        $('progressTitle').innerHTML = '<span class="spinner"></span>Rendering preview...';
+        $('progressFill').style.width = '85%';
+        return new Promise(function(r){ setTimeout(r, 10); });
+      })
+      .then(function(){
+        activeTab = 0;
+        renderPreview();
+        // Bank-statement detection/analysis is entirely additive: it never
+        // touches pagesData/detectedTables and any internal error is caught
+        // so the normal preview/download flow above is unaffected either way.
+        analyzeBankStatement();
+        $('progressFill').style.width = '100%';
+        $('progressDetail').textContent = 'Done';
+        return new Promise(function(r){ setTimeout(r, 200); });
+      })
+      .then(function(){ showScreen('previewScreen'); })
+      .catch(function(err){
+        console.error('Conversion error:', err);
+        alert('Conversion error: ' + (err.message || err));
+        showScreen('uploadScreen');
+      });
+  }
+
+  // ============================================================
+  //  ROW BANDS (V5 approach — this worked for bank statements)
+  // ============================================================
+  function buildRowBands(items){
+    if(!items || !items.length) return [];
+    var sorted = items.slice().sort(function(a,b){ return b.y - a.y; });
+    var bands = [];
+    var currentBand = [sorted[0]];
+    for(var i = 1; i < sorted.length; i++){
+      var it = sorted[i];
+      var lastY = currentBand[currentBand.length - 1].y;
+      if(Math.abs(it.y - lastY) < 6.0) currentBand.push(it);
+      else { bands.push(currentBand); currentBand = [it]; }
+    }
+    if(currentBand.length) bands.push(currentBand);
+
+    return bands.map(function(band){
+      band.sort(function(a,b){ return a.x - b.x; });
+      var cells = [];
+      var current = '';
+      var lastRight = null;
+      for(var k = 0; k < band.length; k++){
+        var it = band[k];
+        if(lastRight === null){
+          current = it.str;
+          lastRight = it.x + it.width;
+        } else {
+          var gap = it.x - lastRight;
+          // V5 rule: gap < 3 means same word fragment, else new cell
+          if(gap < 3){
+            current += it.str;
+          } else {
+            if(current.trim()) cells.push(current.trim());
+            current = it.str;
+          }
+          lastRight = it.x + it.width;
+        }
+      }
+      if(current.trim()) cells.push(current.trim());
+      return cells;
+    }).filter(function(band){ return band.length > 0; });
+  }
+
+  function computeBandYs(items){
+    if(!items || !items.length) return [];
+    var sorted = items.slice().sort(function(a,b){ return b.y - a.y; });
+    var ys = [];
+    var cur = [sorted[0]];
+    for(var i = 1; i < sorted.length; i++){
+      var it = sorted[i];
+      var lastY = cur[cur.length - 1].y;
+      if(Math.abs(it.y - lastY) < 6.0) cur.push(it);
+      else {
+        ys.push(cur.reduce(function(a,b){ return a + b.y; }, 0) / cur.length);
+        cur = [it];
+      }
+    }
+    if(cur.length) ys.push(cur.reduce(function(a,b){ return a + b.y; }, 0) / cur.length);
+    return ys;
+  }
+
+  // ============================================================
+  //  TABLE DETECTION (V5 approach — proven to work)
+  //  - Columns = X positions appearing in >= 2 items
+  //  - Assign each item to nearest column
+  //  - Build matrix from bandYs
+  // ============================================================
+  function detectTablesOnPage(page){
+    var rows = page.rows;
+    if(!rows || rows.length < 2) return [];
+
+    // 1. X frequency
+    var xFreq = {};
+    page.items.forEach(function(it){
+      var x = Math.round(it.x);
+      xFreq[x] = (xFreq[x] || 0) + 1;
+    });
+
+    // 2. Candidates >= 2
+    var candidates = Object.keys(xFreq)
+      .map(Number)
+      .filter(function(x){ return xFreq[x] >= 2; })
+      .sort(function(a,b){ return a - b; });
+
+    // 3. Cluster within 15px
+    var cols = [];
+    var cluster = [];
+    for(var ci = 0; ci < candidates.length; ci++){
+      var x = candidates[ci];
+      if(!cluster.length) cluster.push(x);
+      else if(x - cluster[cluster.length - 1] < 15) cluster.push(x);
+      else {
+        cols.push(Math.round(cluster.reduce(function(a,b){ return a + b; }, 0) / cluster.length));
+        cluster = [x];
+      }
+    }
+    if(cluster.length){
+      cols.push(Math.round(cluster.reduce(function(a,b){ return a + b; }, 0) / cluster.length));
+    }
+
+    if(cols.length < 2) return [];
+
+    // 4. Build matrix from bandYs
+    var bandYs = page.bandYs || [];
+    var matrix = bandYs.map(function(){
+      var r = new Array(cols.length);
+      for(var j = 0; j < cols.length; j++) r[j] = '';
+      return r;
+    });
+
+    page.items.forEach(function(it){
+      // nearest band
+      var bandIdx = 0, bestBandDist = Infinity;
+      for(var b = 0; b < bandYs.length; b++){
+        var d = Math.abs(it.y - bandYs[b]);
+        if(d < bestBandDist){ bestBandDist = d; bandIdx = b; }
+      }
+      // nearest column
+      var colIdx = 0, bestColDist = Infinity;
+      for(var c = 0; c < cols.length; c++){
+        var dc = Math.abs(it.x - cols[c]);
+        if(dc < bestColDist){ bestColDist = dc; colIdx = c; }
+      }
+      var prev = matrix[bandIdx][colIdx];
+      matrix[bandIdx][colIdx] = prev ? prev + ' ' + it.str : it.str;
+    });
+
+    // 5. Keep non-empty rows
+    var nonEmpty = [];
+    for(var r2 = 0; r2 < matrix.length; r2++){
+      var row = matrix[r2];
+      var has = false;
+      for(var c2 = 0; c2 < row.length; c2++){
+        if(row[c2] && row[c2].trim().length > 0){ has = true; break; }
+      }
+      if(has) nonEmpty.push(row.map(function(cell){ return (cell || '').trim(); }));
+    }
+    if(nonEmpty.length < 2) return [];
+
+    // 6. Header detection — shape + keyword
+    var first = nonEmpty[0];
+    var headerKeywords = /date|narration|withdrawal|deposit|balance|chq|particular|amount|debit|credit|विवरण|दिनांक|रकम|शेष|कर्मचारी|पासबुक|वेतन|अंशदान|पेंशन/i;
+    var filledCount = 0, keywordHit = false, shortCells = 0;
+    for(var fi = 0; fi < first.length; fi++){
+      if(first[fi] && first[fi].length > 0){ filledCount++; if(first[fi].length < 25) shortCells++; }
+      if(first[fi] && headerKeywords.test(first[fi])) keywordHit = true;
+    }
+    var isHeader = (filledCount >= Math.ceil(first.length * 0.5)) && (keywordHit || shortCells >= first.length * 0.7);
+
+    return [{
+      pageNum: page.pageNum,
+      columns: cols,
+      headerRow: isHeader ? first : null,
+      dataRows: isHeader ? nonEmpty.slice(1) : nonEmpty,
+      hasHeader: isHeader,
+      colCount: cols.length
+    }];
+  }
+
+  // ============================================================
+  //  MULTI-PAGE MERGE
+  //  FIX: previously compared every candidate page to the *first*
+  //  page of the group (base.pageNum + 1), so a table spanning 3+
+  //  consecutive pages only ever merged page 2 and silently dropped
+  //  page 3 onward as a separate table. Now we track the last page
+  //  actually merged into the group and chain from there.
+  // ============================================================
+  function mergeMultiPageTables(tables){
+    if(tables.length < 2) return tables;
+    var used = {};
+    var result = [];
+    for(var i = 0; i < tables.length; i++){
+      if(used[i]) continue;
+      var base = tables[i];
+      var group = [base];
+      used[i] = true;
+      var lastPageNum = base.pageNum;
+      for(var j = i + 1; j < tables.length; j++){
+        if(used[j]) continue;
+        var c = tables[j];
+        if(c.colCount === base.colCount &&
+           c.columns.every(function(x, k){ return Math.abs(x - base.columns[k]) < 25; }) &&
+           c.pageNum === lastPageNum + 1){
+          group.push(c);
+          used[j] = true;
+          lastPageNum = c.pageNum;
+        }
+      }
+      if(group.length > 1){
+        var allRows = [];
+        if(base.hasHeader && base.headerRow) allRows.push(base.headerRow);
+        group.forEach(function(t){
+          if(t.hasHeader && t.headerRow){
+            var dup = allRows.length && allRows[0].join('|') === t.headerRow.join('|');
+            if(!dup){
+              for(var k = 0; k < t.dataRows.length; k++) allRows.push(t.dataRows[k]);
+            }
+          } else {
+            for(var k2 = 0; k2 < t.dataRows.length; k2++) allRows.push(t.dataRows[k2]);
+          }
+        });
+        result.push({
+          pageNum: base.pageNum,
+          pageEnd: lastPageNum,
+          columns: base.columns,
+          headerRow: base.headerRow,
+          dataRows: base.hasHeader ? allRows.slice(1) : allRows,
+          hasHeader: base.hasHeader,
+          colCount: base.colCount,
+          multiPage: true
+        });
+      } else result.push(base);
+    }
+    return result;
+  }
+
+  // ============================================================
+  //  PREVIEW
+  // ============================================================
+  function renderPreview(){
+    $('previewSummary').textContent = totalPages + ' pages · ' +
+      totalChars.toLocaleString() + ' characters · ' +
+      detectedTables.length + ' table' + (detectedTables.length === 1 ? '' : 's');
+
+    var tabBar = $('tabBar');
+    tabBar.innerHTML = '';
+    if(detectedTables.length === 0){
+      var tab = document.createElement('div');
+      tab.className = 'tab active';
+      tab.textContent = 'Plain text';
+      tabBar.appendChild(tab);
+    } else {
+      detectedTables.forEach(function(t, i){
+        var tb = document.createElement('div');
+        tb.className = 'tab' + (i === activeTab ? ' active' : '');
+        var label = 'Table ' + (i+1) + ' (p.' + t.pageNum;
+        if(t.multiPage && t.pageEnd > t.pageNum) label += '–' + t.pageEnd;
+        label += ')';
+        tb.textContent = label;
+        tb.onclick = (function(idx){
+          return function(){ activeTab = idx; renderPreview(); };
+        })(i);
+        tabBar.appendChild(tb);
+      });
+    }
+
+    var warnings = $('warningsContainer');
+    warnings.innerHTML = '';
+    if(detectedTables.length === 0){
+      warnings.innerHTML = '<div class="warning-box">No tables detected. Showing plain text lines.</div>';
+    }
+
+    // Only meaningful to offer "one sheet" when there's more than one table;
+    // otherwise it would just be identical to the default.
+    $('sheetModeRow').classList.toggle('hidden', detectedTables.length <= 1);
+
+    var content = $('previewContent');
+    content.innerHTML = '';
+
+    if(detectedTables.length === 0){
+      var html = '<div style="background:var(--info-bg);padding:16px;border-radius:12px;max-height:500px;overflow:auto;font-size:.9rem;">';
+      var pagesToShow = Math.min(pagesData.length, 10);
+      for(var pi = 0; pi < pagesToShow; pi++){
+        var p = pagesData[pi];
+        html += '<p style="margin:0 0 8px 0;"><strong>Page ' + p.pageNum + '</strong></p>';
+        p.rows.forEach(function(row){
+          html += '<div>' + escapeHtml(row.join('  ')) + '</div>';
+        });
+      }
+      html += '</div>';
+      content.innerHTML = html;
+      return;
+    }
+
+    var t = detectedTables[activeTab];
+    if(!t){ activeTab = 0; t = detectedTables[0]; }
+
+    var out = '<div class="preview-table-wrap"><table class="preview"><thead><tr>';
+    if(t.hasHeader && t.headerRow){
+      t.headerRow.forEach(function(h){ out += '<th>' + escapeHtml(h) + '</th>'; });
+    } else {
+      for(var c = 0; c < t.colCount; c++) out += '<th>Col ' + (c+1) + '</th>';
+    }
+    out += '</tr></thead><tbody>';
+
+    var rowsToShow = t.dataRows;
+    var maxRows = Math.min(rowsToShow.length, 80);
+    for(var r = 0; r < maxRows; r++){
+      out += '<tr>';
+      rowsToShow[r].forEach(function(cell){
+        out += '<td>' + escapeHtml(cell || '') + '</td>';
+      });
+      out += '</tr>';
+    }
+    if(rowsToShow.length > maxRows){
+      out += '<tr><td colspan="' + t.colCount + '" style="text-align:center;color:var(--text-muted);">… ' +
+             (rowsToShow.length - maxRows) + ' more rows</td></tr>';
+    }
+    out += '</tbody></table></div>';
+    content.innerHTML = out;
+  }
+
+  function escapeHtml(text){
+    if(text == null) return '';
+    return String(text).replace(/[&<>"']/g, function(m){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m];
+    });
+  }
+
+  // FIX: strip characters that are illegal (or awkward) in filenames on
+  // Windows/macOS/Linux so a weird source filename never breaks the save.
+  function sanitizeFilename(name){
+    return name.replace(/[\\/:*?"<>|]+/g, '_').replace(/\s+/g, ' ').trim() || 'converted';
+  }
+
+  // ============================================================
+  //  BANK STATEMENT DETECTION & ANALYSIS
+  //  Runs automatically after every conversion, on top of the generic
+  //  column-detected tables above — no bank-specific parsing, so it works
+  //  the same way regardless of which bank issued the statement. If a
+  //  table doesn't look financial, or anything here throws, the normal
+  //  PDF->Excel preview/download flow is completely unaffected.
+  // ============================================================
+  var MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var MONTH_INDEX = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+
+  function pad2(n){ return (n < 10 ? '0' : '') + n; }
+  function daysInMonth(year, month){ return new Date(year, month, 0).getDate(); } // month is 1-12
+
+  // Parses common Indian bank-statement date formats. Returns 'YYYY-MM-DD' or null.
+  function parseFlexibleDate(str){
+    if(!str) return null;
+    var s = String(str).trim();
+    if(!s) return null;
+
+    var m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m) return m[1] + '-' + pad2(+m[2]) + '-' + pad2(+m[3]);
+
+    m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+    if(m){
+      var d = +m[1], mo = +m[2], y = +m[3];
+      if(y < 100) y += (y < 70 ? 2000 : 1900);
+      if(mo > 12 && d <= 12){ var tmp = d; d = mo; mo = tmp; } // looked like mm/dd instead
+      if(mo >= 1 && mo <= 12 && d >= 1 && d <= 31) return y + '-' + pad2(mo) + '-' + pad2(d);
+      return null;
+    }
+
+    m = s.match(/^(\d{1,2})[\s\-]([A-Za-z]{3,})[\s\-](\d{2,4})/);
+    if(m){
+      var mmk = m[2].toLowerCase().slice(0,3);
+      if(MONTH_INDEX[mmk]){
+        var yy = +m[3]; if(yy < 100) yy += (yy < 70 ? 2000 : 1900);
+        return yy + '-' + pad2(MONTH_INDEX[mmk]) + '-' + pad2(+m[1]);
+      }
+    }
+    return null;
+  }
+
+  // Loose check for whether a cell "looks like" a monetary amount.
+  function looksLikeAmount(str){
+    if(!str) return false;
+    var s = String(str).trim();
+    if(!s || s === '-' || s === '--') return false;
+    return /^₹?\(?-?[\d,]+\.?\d{0,2}\)?\s*(dr|cr)?$/i.test(s) && /\d/.test(s);
+  }
+
+  // Parses a monetary cell into { value, indicator }, where indicator is
+  // 'DR'/'CR' if the cell had an explicit suffix, and value is negative
+  // when parentheses were used (a common negative-amount convention).
+  function parseAmountCell(str){
+    if(!str) return { value: 0, indicator: null };
+    var s = String(str).trim();
+    var indicator = null;
+    var m = s.match(/(dr|cr)\s*$/i);
+    if(m){ indicator = m[1].toUpperCase(); s = s.slice(0, m.index).trim(); }
+    var neg = /^\(.*\)$/.test(s);
+    s = s.replace(/[₹,()]/g, '');
+    var val = parseFloat(s);
+    if(isNaN(val)) val = 0;
+    if(neg) val = -val;
+    return { value: val, indicator: indicator };
+  }
+
+  function fmtINR(n){
+    if(n == null || isNaN(n)) return '—';
+    var neg = n < 0;
+    var v = '₹' + Math.abs(n).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+    return neg ? '-' + v : v;
+  }
+
+  function formatMonthLabel(ym){
+    var parts = ym.split('-');
+    var mi = +parts[1] - 1;
+    return (MONTH_NAMES[mi] || parts[1]) + ' ' + parts[0];
+  }
+
+  function formatDateDisplay(iso){
+    if(!iso) return '—';
+    var p = iso.split('-');
+    return p[2] + '-' + p[1] + '-' + p[0];
+  }
+
+  // Decides whether a single detected table looks like a transaction table,
+  // and if so, which column plays which role (date / debit / credit / balance).
+  function analyzeTableColumns(t){
+    var rows = t.dataRows;
+    if(!rows || rows.length < 5) return null;
+
+    var n = t.colCount;
+    var dateHits = new Array(n).fill(0);
+    var amtHits = new Array(n).fill(0);
+    var nonEmpty = new Array(n).fill(0);
+
+    rows.forEach(function(row){
+      for(var c = 0; c < n; c++){
+        var cell = row[c];
+        if(!cell) continue;
+        nonEmpty[c]++;
+        if(parseFlexibleDate(cell)) dateHits[c]++;
+        else if(looksLikeAmount(cell)) amtHits[c]++;
+      }
+    });
+
+    var dateCol = -1, bestDateScore = 0;
+    for(var c1 = 0; c1 < n; c1++){
+      var dscore = nonEmpty[c1] ? dateHits[c1] / nonEmpty[c1] : 0;
+      if(dscore >= 0.5 && dscore > bestDateScore){ bestDateScore = dscore; dateCol = c1; }
+    }
+    if(dateCol === -1) return null;
+
+    var numericCols = [];
+    for(var c2 = 0; c2 < n; c2++){
+      if(c2 === dateCol) continue;
+      var nscore = nonEmpty[c2] ? amtHits[c2] / nonEmpty[c2] : 0;
+      if(nscore >= 0.5) numericCols.push(c2);
+    }
+    if(numericCols.length < 2) return null;
+
+    // Prefer header text for role assignment when a header row was detected.
+    var roles = {};
+    if(t.hasHeader && t.headerRow){
+      numericCols.forEach(function(c){
+        var h = (t.headerRow[c] || '').toLowerCase();
+        if(/debit|withdrawal|\bdr\b/.test(h)) roles[c] = 'debit';
+        else if(/credit|deposit|\bcr\b/.test(h)) roles[c] = 'credit';
+        else if(/balance|closing/.test(h)) roles[c] = 'balance';
+        else if(/amount/.test(h)) roles[c] = 'amount';
+      });
+    }
+
+    var hasBalance = Object.keys(roles).some(function(k){ return roles[k] === 'balance'; });
+    if(!hasBalance){
+      var lastNumeric = numericCols[numericCols.length - 1];
+      if(!roles[lastNumeric]) roles[lastNumeric] = 'balance';
+    }
+
+    var remaining = numericCols.filter(function(c){ return !roles[c]; });
+    if(remaining.length === 2){
+      roles[remaining[0]] = roles[remaining[0]] || 'debit';
+      roles[remaining[1]] = roles[remaining[1]] || 'credit';
+    } else if(remaining.length === 1){
+      roles[remaining[0]] = 'amount';
+    } else if(remaining.length > 2){
+      roles[remaining[0]] = 'debit';
+      roles[remaining[1]] = 'credit';
+    }
+
+    var debitCol = null, creditCol = null, balanceCol = null, amountCol = null;
+    Object.keys(roles).forEach(function(k){
+      var idx = +k;
+      if(roles[k] === 'debit') debitCol = idx;
+      else if(roles[k] === 'credit') creditCol = idx;
+      else if(roles[k] === 'balance') balanceCol = idx;
+      else if(roles[k] === 'amount') amountCol = idx;
+    });
+
+    var used = {}; used[dateCol] = true;
+    numericCols.forEach(function(c){ used[c] = true; });
+    var textCols = [];
+    for(var c3 = 0; c3 < n; c3++){ if(!used[c3]) textCols.push(c3); }
+
+    var score = (t.hasHeader ? 1 : 0) + 1 + 1 + (rows.length >= 5 ? 1 : 0);
+
+    return {
+      dateCol: dateCol, debitCol: debitCol, creditCol: creditCol,
+      balanceCol: balanceCol, amountCol: amountCol, textCols: textCols, score: score
+    };
+  }
+
+  function analyzeBankStatement(){
+    isBankStatement = false;
+    bankTxns = [];
+    bankMonthly = [];
+
+    try {
+      var best = null, bestMeta = null;
+      detectedTables.forEach(function(t){
+        var meta = analyzeTableColumns(t);
+        if(meta && (!best || meta.score > bestMeta.score)){ best = t; bestMeta = meta; }
+      });
+      if(!best){ $('bankSection').classList.add('hidden'); return; }
+
+      var txns = [];
+      best.dataRows.forEach(function(row){
+        var dateISO = parseFlexibleDate(row[bestMeta.dateCol]);
+        if(!dateISO) return;
+
+        var narration = bestMeta.textCols.map(function(c){ return row[c] || ''; })
+          .join(' ').replace(/\s+/g, ' ').trim();
+
+        var debit = 0, credit = 0, balance = null, ambiguous = null;
+        if(bestMeta.debitCol != null) debit = parseAmountCell(row[bestMeta.debitCol]).value || 0;
+        if(bestMeta.creditCol != null) credit = parseAmountCell(row[bestMeta.creditCol]).value || 0;
+        if(bestMeta.balanceCol != null){
+          var b = parseAmountCell(row[bestMeta.balanceCol]);
+          balance = isNaN(b.value) ? null : b.value;
+        }
+        if(bestMeta.amountCol != null){
+          var a = parseAmountCell(row[bestMeta.amountCol]);
+          if(a.indicator === 'DR') debit = Math.abs(a.value);
+          else if(a.indicator === 'CR') credit = Math.abs(a.value);
+          else if(a.value < 0) debit = Math.abs(a.value);
+          else ambiguous = Math.abs(a.value); // resolved below via balance delta
+        }
+
+        if(!narration && debit === 0 && credit === 0 && ambiguous == null) return;
+        txns.push({ dateISO: dateISO, narration: narration || '—', debit: debit, credit: credit, balance: balance, ambiguous: ambiguous });
+      });
+
+      if(txns.length < 3){ $('bankSection').classList.add('hidden'); return; }
+
+      // Statements are sometimes printed newest-first — normalize to chronological order.
+      txns.sort(function(a, b){ return a.dateISO < b.dateISO ? -1 : a.dateISO > b.dateISO ? 1 : 0; });
+
+      // Resolve rows where only a single "amount" column existed (no Dr/Cr marker)
+      // using the balance delta against the previous transaction, same technique
+      // used for statements that only print a running balance.
+      for(var i = 0; i < txns.length; i++){
+        var cur = txns[i];
+        if(cur.ambiguous == null) continue;
+        var prev = i > 0 ? txns[i - 1] : null;
+        if(prev && prev.balance != null && cur.balance != null){
+          var delta = +(cur.balance - prev.balance).toFixed(2);
+          if(delta >= 0) cur.credit = cur.ambiguous; else cur.debit = cur.ambiguous;
+        } else {
+          cur.credit = cur.ambiguous;
+        }
+      }
+
+      bankTxns = txns;
+      isBankStatement = true;
+
+      var monthMap = {};
+      txns.forEach(function(t){
+        var ym = t.dateISO.slice(0, 7);
+        if(!monthMap[ym]) monthMap[ym] = { month: ym, creditCount: 0, debitCount: 0, inward: 0, outward: 0 };
+        if(t.credit > 0){ monthMap[ym].creditCount++; monthMap[ym].inward += t.credit; }
+        if(t.debit > 0){ monthMap[ym].debitCount++; monthMap[ym].outward += t.debit; }
+      });
+      bankMonthly = Object.keys(monthMap).sort().map(function(k){ return monthMap[k]; });
+
+      renderBankAnalysis();
+      $('bankSection').classList.remove('hidden');
+    } catch(err){
+      console.error('Bank statement analysis skipped due to error:', err);
+      $('bankSection').classList.add('hidden');
+    }
+  }
+
+  function renderBankAnalysis(){
+    var totalCredit = 0, totalDebit = 0;
+    bankTxns.forEach(function(t){ totalCredit += t.credit; totalDebit += t.debit; });
+    var lastBalance = null;
+    for(var bi = bankTxns.length - 1; bi >= 0; bi--){
+      if(bankTxns[bi].balance != null){ lastBalance = bankTxns[bi].balance; break; }
+    }
+
+    $('bankBadge').textContent = bankTxns.length + ' transactions · ' + bankMonthly.length + ' month' + (bankMonthly.length === 1 ? '' : 's');
+
+    var kpis = [
+      { label: 'Total credit', value: fmtINR(totalCredit), cls: 'green' },
+      { label: 'Total debit', value: fmtINR(totalDebit), cls: 'red' },
+      { label: 'Net change', value: fmtINR(totalCredit - totalDebit), cls: (totalCredit - totalDebit) >= 0 ? 'green' : 'red' },
+      { label: 'Latest balance', value: lastBalance != null ? fmtINR(lastBalance) : '—', cls: '' },
+      { label: 'Transactions', value: String(bankTxns.length), cls: '' }
+    ];
+    $('bankKpiGrid').innerHTML = kpis.map(function(k){
+      return '<div class="kpi-card' + (k.cls ? ' ' + k.cls : '') + '"><div class="kpi-label">' + k.label +
+        '</div><div class="kpi-value' + (k.cls ? ' ' + k.cls : '') + '">' + k.value + '</div></div>';
+    }).join('');
+
+    $('monthSummaryBody').innerHTML = bankMonthly.map(function(m){
+      return '<tr><td>' + formatMonthLabel(m.month) + '</td>' +
+        '<td class="num">' + m.creditCount + '</td>' +
+        '<td class="num">' + m.debitCount + '</td>' +
+        '<td class="num credit-cell">' + fmtINR(m.inward) + '</td>' +
+        '<td class="num debit-cell">' + fmtINR(m.outward) + '</td></tr>';
+    }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">No data</td></tr>';
+
+    renderLedgerTable();
+    generateEodReport();
+  }
+
+  function renderLedgerTable(){
+    var maxRows = Math.min(bankTxns.length, 500);
+    var rows = '';
+    for(var i = 0; i < maxRows; i++){
+      var t = bankTxns[i];
+      rows += '<tr><td>' + formatDateDisplay(t.dateISO) + '</td>' +
+        '<td>' + escapeHtml(t.narration) + '</td>' +
+        '<td class="num debit-cell">' + (t.debit > 0 ? t.debit.toFixed(2) : '') + '</td>' +
+        '<td class="num credit-cell">' + (t.credit > 0 ? t.credit.toFixed(2) : '') + '</td>' +
+        '<td class="num">' + (t.balance != null ? t.balance.toFixed(2) : '—') + '</td></tr>';
+    }
+    if(bankTxns.length > maxRows){
+      rows += '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">… ' + (bankTxns.length - maxRows) + ' more transactions</td></tr>';
+    }
+    $('ledgerBody2').innerHTML = rows || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">No transactions</td></tr>';
+  }
+
+  // EOD report: for every month present in the statement, find the balance
+  // on the user-requested day-of-month, carrying forward from the closest
+  // earlier known date when that exact day has no transaction.
+  function generateEodReport(){
+    var day = parseInt($('eodDateInput').value, 10);
+    if(isNaN(day) || day < 1) day = 1;
+    if(day > 31) day = 31;
+
+    var balanceByDate = {};
+    bankTxns.forEach(function(t){
+      if(t.balance != null) balanceByDate[t.dateISO] = t.balance; // already chronological, last write wins
+    });
+    var knownDates = Object.keys(balanceByDate).sort();
+
+    var rows = bankMonthly.map(function(m){
+      var parts = m.month.split('-');
+      var y = +parts[0], mo = +parts[1];
+      var actualDay = Math.min(day, daysInMonth(y, mo));
+      var targetISO = y + '-' + pad2(mo) + '-' + pad2(actualDay);
+
+      var usedDate = null, balance = null;
+      if(balanceByDate[targetISO] != null){
+        usedDate = targetISO; balance = balanceByDate[targetISO];
+      } else {
+        for(var i = knownDates.length - 1; i >= 0; i--){
+          if(knownDates[i] <= targetISO){ usedDate = knownDates[i]; balance = balanceByDate[usedDate]; break; }
+        }
+      }
+      return { month: m.month, targetISO: targetISO, usedDate: usedDate, balance: balance };
+    });
+
+    $('eodBody2').innerHTML = rows.map(function(r){
+      var carried = r.usedDate && r.usedDate !== r.targetISO;
+      var usedCell = r.usedDate ? formatDateDisplay(r.usedDate) + (carried ? '<span class="carry-badge">carried fwd</span>' : '') : '—';
+      return '<tr><td>' + formatMonthLabel(r.month) + '</td>' +
+        '<td>' + formatDateDisplay(r.targetISO) + '</td>' +
+        '<td>' + usedCell + '</td>' +
+        '<td class="num">' + (r.balance != null ? fmtINR(r.balance) : 'No data') + '</td></tr>';
+    }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">No data</td></tr>';
+  }
+
+  $('bankTabBar').addEventListener('click', function(e){
+    var tabEl = e.target.closest('.tab');
+    if(!tabEl) return;
+    activeBankTab = tabEl.dataset.btab;
+    $('bankTabBar').querySelectorAll('.tab').forEach(function(el){ el.classList.toggle('active', el === tabEl); });
+    ['summary','ledger','eod'].forEach(function(name){
+      $('bankPanel' + name.charAt(0).toUpperCase() + name.slice(1)).classList.toggle('hidden', name !== activeBankTab);
+    });
+  });
+
+  $('generateEodBtn').addEventListener('click', generateEodReport);
+
+  // ============================================================
+  //  EXCEL DOWNLOAD
+  //  FIX 1: anchor element is created up-front (still inside the click
+  //         handler, so it's part of the same user-gesture call stack)
+  //         instead of only after the async writeBuffer() resolves —
+  //         this keeps Safari/iOS from treating the eventual a.click()
+  //         as a non-gesture, script-only trigger.
+  //  FIX 2: filename is sanitized.
+  //  FIX 3: revoke delay increased and made more defensive so large
+  //         files/slow devices don't get their blob URL revoked before
+  //         the browser has actually started the download.
+  //  FIX 4: removed the dead IE-only msSaveOrOpenBlob branch (no
+  //         supported browser uses it any more).
+  //  FIX 5: column width is computed from the row data we already have
+  //         in memory instead of re-walking every ExcelJS cell — avoids
+  //         a slow synchronous scan (and UI freeze) on large tables.
+  // ============================================================
+  $('downloadExcelBtn').addEventListener('click', function(){
+    var btn = this;
+    var status = $('downloadStatus');
+    btn.disabled = true;
+    var orig = btn.textContent;
+    btn.textContent = 'Generating…';
+    status.textContent = '';
+    status.style.color = 'var(--text-muted)';
+
+    function reset(){ btn.disabled = false; btn.textContent = orig; }
+
+    try {
+      var wb = new ExcelJS.Workbook();
+      wb.creator = 'PDF to Excel';
+
+      var sheetCount = 0;
+
+      if(detectedTables.length === 0){
+        var ws = wb.addWorksheet('Document');
+        sheetCount++;
+        pagesData.forEach(function(p){
+          ws.addRow(['--- Page ' + p.pageNum + ' ---']);
+          p.rows.forEach(function(row){ ws.addRow([row.join('  ')]); });
+          ws.addRow([]);
+        });
+        ws.getColumn(1).width = 100;
+      } else if(sheetMode === 'single'){
+        // ---- ONE COMBINED SHEET: every detected table is stacked into a
+        // single worksheet, each preceded by a small title row so the
+        // user can still tell where one table ends and the next begins.
+        var sheet1 = wb.addWorksheet('Data');
+        sheetCount++;
+
+        var maxCols = 0;
+        detectedTables.forEach(function(t){ if(t.colCount > maxCols) maxCols = t.colCount; });
+
+        // Column widths: widest cell for that column across ALL tables.
+        var widths1 = new Array(maxCols).fill(8);
+        detectedTables.forEach(function(t){
+          var rowsForWidth = [];
+          if(t.hasHeader && t.headerRow) rowsForWidth.push(t.headerRow);
+          rowsForWidth = rowsForWidth.concat(t.dataRows);
+          rowsForWidth.forEach(function(row){
+            for(var c = 0; c < row.length; c++){
+              var v = row[c] ? String(row[c]) : '';
+              if(v.length > widths1[c]) widths1[c] = Math.min(v.length, 40);
+            }
+          });
+        });
+        for(var wcol1 = 0; wcol1 < maxCols; wcol1++){
+          sheet1.getColumn(wcol1 + 1).width = Math.min(widths1[wcol1] + 2, 45);
+        }
+
+        detectedTables.forEach(function(t, i){
+          var titleText = 'Table ' + (i + 1) + ' — page ' + t.pageNum +
+            (t.multiPage && t.pageEnd > t.pageNum ? '–' + t.pageEnd : '');
+          var titleRow = sheet1.addRow([titleText]);
+          titleRow.getCell(1).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF1E6F9F' } };
+          sheet1.mergeCells(titleRow.number, 1, titleRow.number, Math.max(t.colCount, 1));
+
+          var allRows1 = [];
+          if(t.hasHeader && t.headerRow) allRows1.push(t.headerRow);
+          for(var k1 = 0; k1 < t.dataRows.length; k1++) allRows1.push(t.dataRows[k1]);
+
+          allRows1.forEach(function(row, rIdx){
+            var excelRow = sheet1.addRow(row.map(function(c){ return c || ''; }));
+            excelRow.eachCell(function(cell){
+              cell.font = { name: 'Arial', size: 10, bold: (rIdx === 0 && t.hasHeader) };
+              cell.alignment = { vertical: 'top', wrapText: true };
+              cell.border = {
+                top:{style:'thin',color:{argb:'FFD0DDE9'}},
+                left:{style:'thin',color:{argb:'FFD0DDE9'}},
+                bottom:{style:'thin',color:{argb:'FFD0DDE9'}},
+                right:{style:'thin',color:{argb:'FFD0DDE9'}}
+              };
+              if(rIdx === 0 && t.hasHeader){
+                cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEEF4FA'} };
+                cell.alignment = { vertical:'top', wrapText:true, horizontal:'center' };
+              }
+            });
+          });
+
+          sheet1.addRow([]); // blank separator row before the next table
+        });
+      } else {
+        // ---- SEPARATE SHEETS: one worksheet per detected table (default).
+        detectedTables.forEach(function(t, i){
+          var name = ('Table ' + (i+1)).replace(/[\\/*?\[\]:]/g,'_').substring(0,31);
+          var sheet = wb.addWorksheet(name);
+          sheetCount++;
+
+          var allRows = [];
+          if(t.hasHeader && t.headerRow) allRows.push(t.headerRow);
+          for(var k = 0; k < t.dataRows.length; k++) allRows.push(t.dataRows[k]);
+
+          // Compute column widths from plain row data first (fast, single pass)
+          var widths = new Array(t.colCount).fill(8);
+          allRows.forEach(function(row){
+            for(var c = 0; c < t.colCount; c++){
+              var v = row[c] ? String(row[c]) : '';
+              if(v.length > widths[c]) widths[c] = Math.min(v.length, 40);
+            }
+          });
+          for(var wcol = 0; wcol < t.colCount; wcol++){
+            sheet.getColumn(wcol + 1).width = Math.min(widths[wcol] + 2, 45);
+          }
+
+          allRows.forEach(function(row, rIdx){
+            var excelRow = sheet.addRow(row.map(function(c){ return c || ''; }));
+            excelRow.eachCell(function(cell){
+              cell.font = { name: 'Arial', size: 10, bold: (rIdx === 0 && t.hasHeader) };
+              cell.alignment = { vertical: 'top', wrapText: true };
+              cell.border = {
+                top:{style:'thin',color:{argb:'FFD0DDE9'}},
+                left:{style:'thin',color:{argb:'FFD0DDE9'}},
+                bottom:{style:'thin',color:{argb:'FFD0DDE9'}},
+                right:{style:'thin',color:{argb:'FFD0DDE9'}}
+              };
+              if(rIdx === 0 && t.hasHeader){
+                cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFEEF4FA'} };
+                cell.alignment = { vertical:'top', wrapText:true, horizontal:'center' };
+              }
+            });
+          });
+        });
+      }
+
+      status.textContent = 'Writing ' + sheetCount + ' sheet(s)…';
+
+      // Anchor is prepared now, while we're still inside the click handler's
+      // call stack — only its href/click happen after the async write.
+      var a = document.createElement('a');
+      a.style.display = 'none';
+      document.body.appendChild(a);
+
+      wb.xlsx.writeBuffer().then(function(buffer){
+        try {
+          var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          var baseName = currentFile ? currentFile.name.replace(/\.pdf$/i,'') : 'converted';
+          var filename = sanitizeFilename(baseName) + '.xlsx';
+
+          var url = URL.createObjectURL(blob);
+          a.href = url;
+          a.download = filename;
+          a.click();
+
+          setTimeout(function(){
+            try { document.body.removeChild(a); } catch(e){}
+            try { URL.revokeObjectURL(url); } catch(e){}
+          }, 4000);
+
+          status.style.color = 'var(--ok-text)';
+          status.textContent = '✓ Downloaded: ' + filename + ' (' + sheetCount + ' sheet' + (sheetCount === 1 ? '' : 's') + ', ' + (blob.size/1024).toFixed(1) + ' KB)';
+          reset();
+        } catch(innerErr){
+          console.error('Download step failed:', innerErr);
+          try { document.body.removeChild(a); } catch(e){}
+          status.style.color = 'var(--err-text)';
+          status.textContent = '✗ Download failed: ' + innerErr.message;
+          reset();
+        }
+      }).catch(function(err){
+        console.error('writeBuffer failed:', err);
+        try { document.body.removeChild(a); } catch(e){}
+        status.style.color = 'var(--err-text)';
+        status.textContent = '✗ Excel generation failed: ' + (err.message || err);
+        reset();
+      });
+    } catch(e){
+      console.error('Excel exception:', e);
+      status.style.color = 'var(--err-text)';
+      status.textContent = '✗ Excel generation failed: ' + e.message;
+      reset();
+    }
+  });
+
+  $('modeSeparateBtn').addEventListener('click', function(){
+    sheetMode = 'separate';
+    $('modeSeparateBtn').classList.add('active');
+    $('modeSingleBtn').classList.remove('active');
+  });
+  $('modeSingleBtn').addEventListener('click', function(){
+    sheetMode = 'single';
+    $('modeSingleBtn').classList.add('active');
+    $('modeSeparateBtn').classList.remove('active');
+  });
+
+  $('convertAnotherBtn').addEventListener('click', function(){
+    showScreen('uploadScreen');
+    pdfDoc = null; currentFile = null;
+    pagesData = []; detectedTables = [];
+    totalChars = 0; totalCharsNoSpace = 0; totalPages = 0; activeTab = 0;
+    sheetMode = 'separate';
+    $('modeSeparateBtn').classList.add('active');
+    $('modeSingleBtn').classList.remove('active');
+    fileInput.value = '';
+    $('downloadStatus').textContent = '';
+
+    // Reset bank-statement analysis so results from the previous PDF
+    // don't linger while the next one is being converted.
+    bankTxns = []; bankMonthly = []; isBankStatement = false; activeBankTab = 'summary';
+    $('bankSection').classList.add('hidden');
+    $('bankTabBar').querySelectorAll('.tab').forEach(function(el){ el.classList.toggle('active', el.dataset.btab === 'summary'); });
+    $('bankPanelSummary').classList.remove('hidden');
+    $('bankPanelLedger').classList.add('hidden');
+    $('bankPanelEod').classList.add('hidden');
+  });
+
+})();
+</script>
+</body>
+</html>
