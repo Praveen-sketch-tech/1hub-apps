@@ -1,0 +1,2503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Universal Bank Statement Analyzer</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; line-height: 1.5; }
+header { background: linear-gradient(135deg, #1e293b, #0f172a); border-bottom: 1px solid #334155; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+header h1 { font-size: 18px; font-weight: 600; color: #f1f5f9; }
+header h1 span { color: #38bdf8; }
+.badge { background: #1e293b; border: 1px solid #334155; padding: 4px 10px; border-radius: 6px; font-size: 12px; color: #94a3b8; }
+.container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid #334155; margin-bottom: 24px; overflow-x: auto; }
+.tab { padding: 10px 16px; background: transparent; border: none; color: #94a3b8; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; border-bottom: 2px solid transparent; transition: all 0.15s; }
+.tab:hover { color: #e2e8f0; }
+.tab.active { color: #38bdf8; border-bottom-color: #38bdf8; }
+.panel { display: none; }
+.panel.active { display: block; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 16px; }
+.kpi .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 6px; }
+.kpi .value { font-size: 20px; font-weight: 600; color: #f1f5f9; }
+.kpi .value.green { color: #4ade80; }
+.kpi .value.red { color: #f87171; }
+.kpi .value.yellow { color: #facc15; }
+.kpi .sub { font-size: 11px; color: #64748b; margin-top: 4px; }
+.chart-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+.chart-card h3 { font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 16px; }
+.chart-wrap { position: relative; height: 320px; }
+.table-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
+.table-header { padding: 14px 18px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.table-header h3 { font-size: 14px; font-weight: 600; color: #cbd5e1; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.filters input, .filters select { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 6px 10px; border-radius: 6px; font-size: 12px; outline: none; }
+.filters input:focus, .filters select:focus { border-color: #38bdf8; }
+.table-scroll { max-height: 600px; overflow: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th { background: #0f172a; color: #94a3b8; text-align: left; padding: 10px 12px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #334155; }
+tbody td { padding: 8px 12px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+tbody tr:hover { background: #0f172a; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.credit { color: #4ade80; }
+.debit { color: #f87171; }
+.tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+.tag-upi { background: #1e3a5f; color: #60a5fa; }
+.tag-neft { background: #3b1e5f; color: #c084fc; }
+.tag-atm { background: #5f3b1e; color: #fbbf24; }
+.tag-cash { background: #1e5f3b; color: #4ade80; }
+.tag-others { background: #334155; color: #94a3b8; }
+.sev-critical { background: #7f1d1d; color: #fca5a5; }
+.sev-warning { background: #78350f; color: #fcd34d; }
+.sev-info { background: #1e3a5f; color: #93c5fd; }
+.val-row { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid #334155; }
+.val-row:last-child { border-bottom: none; }
+.val-row .icon { font-size: 16px; width: 24px; text-align: center; }
+.val-row .msg { flex: 1; font-size: 13px; }
+.val-row .detail { font-size: 11px; color: #64748b; margin-top: 2px; }
+.dropzone { border: 2px dashed #334155; border-radius: 12px; padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.15s; background: #1e293b; }
+.dropzone:hover, .dropzone.drag { border-color: #38bdf8; }
+.dropzone .icon { font-size: 48px; margin-bottom: 12px; }
+.dropzone h3 { font-size: 16px; color: #e2e8f0; margin-bottom: 6px; }
+.dropzone p { font-size: 13px; color: #64748b; }
+.loading { text-align: center; padding: 40px; }
+.spinner { width: 40px; height: 40px; border: 3px solid #334155; border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty { text-align: center; padding: 40px; color: #64748b; font-size: 13px; }
+.btn { background: #38bdf8; color: #0f172a; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn:hover { background: #7dd3fc; }
+.btn-secondary { background: #334155; color: #e2e8f0; }
+.btn-secondary:hover { background: #475569; }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+.pill-green { background: #14532d; color: #4ade80; }
+.pill-yellow { background: #78350f; color: #fcd34d; }
+.row-flex { display: flex; align-items: center; gap: 8px; }
+.muted { color: #64748b; font-size: 11px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+.period-bar { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:20px; padding:14px 18px; background:#1e293b; border:1px solid #334155; border-radius:10px; }
+.period-bar .pill-info { background:#1e3a5f; color:#93c5fd; padding:4px 12px; border-radius:999px; font-size:12px; font-weight:600; }
+.period-bar .meta { font-size:13px; color:#94a3b8; }
+.period-bar .meta strong { color:#e2e8f0; }
+.summary-info { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-bottom:20px; }
+.summary-info .si { background:#1e293b; border:1px solid #334155; border-radius:10px; padding:14px 16px; }
+.summary-info .si .lbl { font-size:11px; text-transform:uppercase; letter-spacing:0.4px; color:#64748b; margin-bottom:4px; }
+.summary-info .si .val { font-size:14px; font-weight:600; color:#f1f5f9; word-break:break-word; }
+.summary-table-wrap { overflow:auto; border:1px solid #334155; border-radius:10px; background:#1e293b; }
+.summary-table-wrap table { min-width:1100px; }
+.summary-table-wrap th { white-space:nowrap; font-size:10px; }
+.summary-table-wrap td { white-space:nowrap; }
+.summary-table-wrap tfoot td { background:#0f172a; font-weight:600; color:#f1f5f9; border-top:2px solid #334155; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏦 Universal <span>Bank Statement</span> Analyzer <span style="font-size:11px;color:#64748b;font-weight:400">v2.8</span></h1>
+  <div class="row-flex">
+    <span class="badge" id="periodBadge" style="display:none"></span>
+    <span class="badge" id="statusBadge">No file loaded</span>
+    <button class="btn btn-secondary" id="exportBtn" style="display:none" onclick="exportXLSX()">⬇ Export XLSX</button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="uploadPanel">
+    <div class="dropzone" id="dropzone">
+      <div class="icon">📄</div>
+      <h3>Drop your bank statement here</h3>
+      <p>Supports PDF, XLSX, CSV (SBI, Bank of Baroda, HDFC, ICICI, Axis, Kotak, Perfios output)</p>
+      <input type="file" id="fileInput" accept=".pdf,.xlsx,.xls,.csv" style="display:none" />
+    </div>
+  </div>
+
+  <div id="loadingPanel" style="display:none">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p id="loadingMsg">Parsing statement…</p>
+    </div>
+  </div>
+
+  <div id="dashboard" style="display:none">
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="summary">📑 Account Summary</button>
+      <button class="tab" data-tab="overview">📊 Overview</button>
+      <button class="tab" data-tab="ledger">📋 Ledger</button>
+      <button class="tab" data-tab="eod">📈 EOD Balance</button>
+      <button class="tab" data-tab="funds">💰 Funds In/Out</button>
+      <button class="tab" data-tab="recurring">🔄 Recurring</button>
+      <button class="tab" data-tab="obligations">🏦 Obligations</button>
+      <button class="tab" data-tab="validation">✅ Validation</button>
+    </div>
+
+    <div class="panel active" id="panel-summary">
+      <div class="period-bar" id="periodBar"></div>
+      <div class="summary-info" id="summaryInfo"></div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Monthly Account Summary</h3>
+          <span class="muted">5th / 15th / 25th = EOD balance on that date (or nearest prior day)</span>
+        </div>
+        <div class="summary-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Months</th>
+                <th class="num">5th</th>
+                <th class="num">15th</th>
+                <th class="num">25th</th>
+                <th class="num">Monthly Avg</th>
+                <th class="num">No. of Debits</th>
+                <th class="num">Total Debits ₹</th>
+                <th class="num">No. of Credits</th>
+                <th class="num">Total Credits ₹</th>
+                <th class="num">I/w Bounce</th>
+                <th class="num">O/w Bounce</th>
+              </tr>
+            </thead>
+            <tbody id="summaryBody"></tbody>
+            <tfoot id="summaryFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-overview">
+      <div class="kpi-grid" id="kpiGrid"></div>
+      <div class="chart-card"><h3>Month-wise Credits vs Debits</h3><div class="chart-wrap"><canvas id="monthChart"></canvas></div></div>
+      <div class="chart-card"><h3>Payment Mode Distribution</h3><div class="chart-wrap"><canvas id="modeChart"></canvas></div></div>
+    </div>
+
+    <div class="panel" id="panel-ledger">
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Transaction Ledger <span class="muted" id="ledgerCount"></span></h3>
+          <div class="filters">
+            <input type="text" id="ledgerSearch" placeholder="Search…" />
+            <select id="ledgerType"><option value="">All types</option><option value="CREDIT">Credit</option><option value="DEBIT">Debit</option></select>
+            <select id="ledgerMode"><option value="">All modes</option></select>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Date</th><th>Mode</th><th>Narration</th><th>Counterparty</th><th>Category</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr></thead>
+            <tbody id="ledgerBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-eod">
+      <div class="chart-card"><h3>End-of-Day Balance Trend</h3><div class="chart-wrap"><canvas id="eodChart"></canvas></div></div>
+      <div class="table-card">
+        <div class="table-header"><h3>Day-wise EOD Balance</h3></div>
+        <div class="table-scroll">
+          <table><thead><tr><th>Date</th><th class="num">EOD Balance</th><th>Status</th></tr></thead><tbody id="eodBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-funds">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+        <div class="table-card">
+          <div class="table-header"><h3>Top 10 Funds Received</h3></div>
+          <div class="table-scroll"><table><thead><tr><th>Counterparty</th><th class="num">Amount</th></tr></thead><tbody id="fundsInBody"></tbody></table></div>
+        </div>
+        <div class="table-card">
+          <div class="table-header"><h3>Top 10 Funds Remitted</h3></div>
+          <div class="table-scroll"><table><thead><tr><th>Counterparty</th><th class="num">Amount</th></tr></thead><tbody id="fundsOutBody"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-recurring">
+      <div class="table-card">
+        <div class="table-header"><h3>Detected Recurring Debits</h3><span class="muted">Same counterparty + amount appearing ≥ 3 times</span></div>
+        <div class="table-scroll"><table><thead><tr><th>Counterparty</th><th class="num">Count</th><th class="num">Avg</th><th class="num">Total</th><th>First</th><th>Last</th></tr></thead><tbody id="recurringBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-obligations">
+      <div class="table-card">
+        <div class="table-header"><h3>Loan / EMI / ECS Obligations</h3><span class="muted">Auto-detected: MUTHOOT, BAJAJ, SUPREME HOUSING, TVS, TATA, ECS mandates</span></div>
+        <div class="table-scroll"><table><thead><tr><th>Date</th><th>Narration</th><th class="num">Amount</th><th>Category</th></tr></thead><tbody id="obligationsBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-validation">
+      <div class="kpi-grid" id="valKpiGrid"></div>
+      <div class="table-card"><div class="table-header"><h3>Validation Report</h3></div><div id="valBody"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+let STATE = { profile: {}, transactions: [], validation: {}, aggregates: {}, rawFileName: '', meta: {} };
+
+/* ============================================================
+   UPLOAD
+   ============================================================ */
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('drag'); if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+async function handleFile(file) {
+  STATE.rawFileName = file.name;
+  showLoading('Reading file: ' + file.name);
+  console.log('[upload]', file.name, file.size, file.type);
+
+  try {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    let parsed = { txns: [], profile: {}, meta: {} };
+
+    if (ext === 'csv') parsed = parseCSV(await file.text());
+    else if (ext === 'xlsx' || ext === 'xls') parsed = parseXLSX(await file.arrayBuffer());
+    else if (ext === 'pdf') parsed = await parsePDF(file);
+    else throw new Error('Unsupported file type: .' + ext);
+
+    console.log('[parse] raw txns:', parsed.txns.length);
+
+    if (!parsed.txns.length) throw new Error('No transactions could be extracted. Open console (F12) for details.');
+
+    showLoading('Normalizing ' + parsed.txns.length + ' transactions…');
+    // Ensure chronological type/amount fix for all sources (PDF already post-processed)
+    let rawTxns = parsed.txns;
+    if (typeof postProcessTxns === 'function' && !(parsed.meta && parsed.meta.strategy)) {
+      rawTxns = postProcessTxns(rawTxns);
+    }
+    let txns = normalizeTransactions(rawTxns);
+    console.log('[normalize] kept:', txns.length, '/', parsed.txns.length);
+
+    if (!txns.length) throw new Error('All transactions were filtered out during normalization.');
+
+    showLoading('Validating…');
+    STATE.profile = parsed.profile || {};
+    STATE.transactions = txns;
+    STATE.validation = validateTransactions(txns, parsed.meta);
+
+    showLoading('Computing aggregates…');
+    STATE.aggregates = computeAggregates(txns);
+
+    renderDashboard();
+    document.getElementById('uploadPanel').style.display = 'none';
+    document.getElementById('loadingPanel').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('exportBtn').style.display = 'inline-block';
+    const periodFrom = txns[0]?.value_date || '';
+    const periodTo = txns[txns.length - 1]?.value_date || '';
+    document.getElementById('statusBadge').textContent = `${file.name} • ${txns.length} txns • ${STATE.validation.completeness_score}%`;
+    const pb = document.getElementById('periodBadge');
+    if (periodFrom && periodTo) {
+      pb.style.display = 'inline-block';
+      pb.textContent = `📅 ${periodFrom} → ${periodTo}`;
+    }
+  } catch (err) {
+    console.error('[error]', err);
+    document.getElementById('loadingPanel').style.display = 'none';
+    document.getElementById('uploadPanel').style.display = 'block';
+    alert('❌ ' + err.message);
+  }
+}
+
+function showLoading(msg) {
+  document.getElementById('uploadPanel').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('loadingPanel').style.display = 'block';
+  document.getElementById('loadingMsg').textContent = msg;
+}
+
+/* ============================================================
+   CSV PARSER
+   ============================================================ */
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return { txns: [], profile: {}, meta: {} };
+  const headers = splitCSVLine(lines[0]).map(h => h.trim().replace(/^"|"$/g, ''));
+  const txns = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitCSVLine(lines[i]);
+    if (cols.length < 3) continue;
+    const row = {};
+    headers.forEach((h, idx) => row[h] = (cols[idx] || '').trim());
+    const t = mapRowToTxn(row);
+    if (t) txns.push(t);
+  }
+  return { txns, profile: {}, meta: {} };
+}
+function splitCSVLine(line) {
+  const out = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; continue; }
+    if (c === ',' && !inQ) { out.push(cur); cur = ''; continue; }
+    cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+/* ============================================================
+   XLSX PARSER
+   ============================================================ */
+function parseXLSX(buf) {
+  const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+  console.log('[xlsx] sheets:', wb.SheetNames);
+  let profile = {}, meta = {};
+
+  // Try to extract profile from Analysis / Summary / Profile sheets
+  for (const sheetName of wb.SheetNames) {
+    if (!/analy|profile|summary|info|account/i.test(sheetName)) continue;
+    const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' });
+    for (const row of aoa) {
+      if (!row || !row.length) continue;
+      const k = String(row[0] || '').toLowerCase().trim();
+      const v = row[1];
+      if (!k || v === '' || v == null) continue;
+      if (/name of the account|account holder|customer name|name/i.test(k) && !profile.name) profile.name = String(v);
+      else if (/^address$/i.test(k)) profile.address = String(v);
+      else if (/email/i.test(k)) profile.email = String(v);
+      else if (/^pan$/i.test(k)) profile.pan = String(v);
+      else if (/mobile|phone/i.test(k)) profile.mobile = String(v);
+      else if (/^bank$/i.test(k) || /bank name/i.test(k)) profile.bank = String(v);
+      else if (/account number|a\/c no|account no/i.test(k)) profile.account = String(v);
+      else if (/ifsc/i.test(k)) profile.ifsc = String(v);
+    }
+  }
+
+  // Collect transactions from every sheet; keep the sheet that yields the most
+  let bestTxns = [];
+  const preferred = wb.SheetNames.find(n => /^xns|transaction|statement|ledger/i.test(n));
+  const order = preferred
+    ? [preferred, ...wb.SheetNames.filter(n => n !== preferred)]
+    : wb.SheetNames;
+
+  for (const sheetName of order) {
+    const sheet = wb.Sheets[sheetName];
+    if (!sheet) continue;
+    const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+    const headerIdx = findHeaderRow(aoa);
+    if (headerIdx < 0) continue;
+    const headers = aoa[headerIdx].map(h => String(h || '').trim());
+    console.log(`[xlsx] sheet "${sheetName}" header at row ${headerIdx}:`, headers);
+    const sheetTxns = [];
+    for (let i = headerIdx + 1; i < aoa.length; i++) {
+      const row = aoa[i];
+      if (!row || !row.length) continue;
+      const obj = {};
+      headers.forEach((h, idx) => { if (h) obj[h] = row[idx]; });
+      const t = mapRowToTxn(obj);
+      if (t) sheetTxns.push(t);
+    }
+    console.log(`[xlsx] sheet "${sheetName}" → ${sheetTxns.length} txns`);
+    if (sheetTxns.length > bestTxns.length) bestTxns = sheetTxns;
+    // Early exit if we already have a large set from a preferred sheet
+    if (preferred && sheetName === preferred && sheetTxns.length > 20) break;
+  }
+
+  meta.sheets = wb.SheetNames;
+  return { txns: bestTxns, profile, meta };
+}
+function findHeaderRow(aoa) {
+  const dateRe = /date|dt|txn|value|tran/i;
+  const amtRe = /amount|debit|credit|withdrawal|deposit|balance|particulars|narration|description|remarks/i;
+  for (let i = 0; i < Math.min(aoa.length, 40); i++) {
+    const row = aoa[i].map(c => String(c || ''));
+    const joined = row.join(' ').toLowerCase();
+    const hits = row.filter(c => dateRe.test(c) || amtRe.test(c)).length;
+    if (hits >= 2 && row.length >= 3) {
+      // Prefer rows that look like headers (not data rows with actual dates)
+      const dateLike = row.filter(c => /^\d{4}-\d{2}-\d{2}/.test(c) || /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(c)).length;
+      if (dateLike === 0) return i;
+    }
+    if (/date/.test(joined) && /(amount|description|narration|balance|particulars|remarks)/.test(joined)) return i;
+  }
+  return -1;
+}
+
+/* ============================================================
+   PDF PARSER — Universal (multi-strategy)
+   ============================================================ */
+async function parsePDF(file) {
+  if (!window.pdfjsLib) {
+    await loadScript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js');
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  }
+
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  console.log('[pdf] pages:', pdf.numPages);
+
+  let fullText = '';
+  const pageTexts = [];
+  const pagesData = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const items = content.items.map(it => ({
+      str: it.str || '',
+      x: it.transform ? it.transform[4] : 0,
+      y: it.transform ? it.transform[5] : 0,
+      width: it.width || 0,
+      height: it.height || 0,
+    })).filter(it => it.str.length > 0);
+
+    const rows = buildRowBands(items);
+    const bandYs = computeBandYs(items);
+    pagesData.push({ pageNum: p, items: items, rows: rows, bandYs: bandYs });
+
+    const pageText = reconstructPageText(content.items);
+    pageTexts.push(pageText);
+    fullText += '\n' + pageText;
+  }
+  console.log('[pdf] text length:', fullText.length);
+  let coordTxns = [];
+  try {
+    coordTxns = extractTxnsFromPagesData(pagesData);
+  } catch (e) {
+    console.warn('[pdf] table extract failed:', e);
+  }
+  console.log('[pdf] coord-based txns:', coordTxns.length);
+
+
+  // Extract profile (universal heuristics)
+  const profile = extractProfileFromText(fullText);
+  console.log('[pdf] profile:', profile);
+
+  // Multi-strategy parsing — take the strategy that yields the most valid txns
+  const strategies = [
+    { name: 'coord-table', fn: () => coordTxns },
+    { name: 'date-pair', fn: () => parseDatePairTxns(fullText) },
+    { name: 'line-based', fn: () => parseLineBasedTxns(fullText) },
+    { name: 'token-stream', fn: () => parseSBITxns(fullText) },
+    { name: 'generic-regex', fn: () => parseGenericRegexTxns(fullText) },
+  ];
+
+  let bestTxns = [];
+  let bestName = '';
+  let bestScore = -1;
+  for (const s of strategies) {
+    try {
+      const txns = s.fn();
+      const realBal = txns.filter(t => {
+        const b = t.balance;
+        return b && !(b === Math.floor(b) && b >= 1 && b <= 31);
+      }).length;
+      // Prefer date-pair (structured bank PDFs) when it yields solid real balances
+      let score = realBal * 3 + txns.length;
+      if (s.name === 'coord-table' && realBal > 20) score += 200000; // best: column-aware
+      if (s.name === 'date-pair' && realBal > 20) score += 100000;
+      if (s.name === 'line-based') score -= 50000;
+      if (s.name === 'generic-regex') score -= 40000;
+      console.log(`[pdf] strategy "${s.name}" → ${txns.length} txns, realBal=${realBal}, score=${score}`);
+      if (score > bestScore) {
+        bestTxns = txns;
+        bestName = s.name;
+        bestScore = score;
+      }
+    } catch (e) {
+      console.warn(`[pdf] strategy "${s.name}" failed:`, e);
+    }
+  }
+
+  console.log(`[pdf] best strategy: ${bestName} with ${bestTxns.length} txns (score ${bestScore})`);
+
+  // Post-process: sort, fix types via balance delta, dedupe
+  bestTxns = postProcessTxns(bestTxns);
+
+  // Infer bank from IFSC if missing
+  if (!profile.bank && profile.ifsc) {
+    const code = profile.ifsc.slice(0, 4).toUpperCase();
+    const map = { BARB: 'Bank of Baroda', SBIN: 'State Bank of India', HDFC: 'HDFC Bank', ICIC: 'ICICI Bank', UTIB: 'Axis Bank', KKBK: 'Kotak Mahindra Bank', PUNB: 'Punjab National Bank', CNRB: 'Canara Bank' };
+    if (map[code]) profile.bank = map[code];
+  }
+  if (!profile.bank && /baroda|bob/i.test(fullText)) profile.bank = 'Bank of Baroda';
+  return { txns: bestTxns, profile, meta: { pages: pdf.numPages, strategy: bestName } };
+
+}
+
+function extractProfileFromText(fullText) {
+  const profile = {};
+  const patterns = [
+    [/Main Account Holder Name\s*:?\s*([A-Z][A-Z\s.'-]{2,50})/i, 'name'],
+    [/(?:Account Holder|Customer Name|Name of the Account Holder|A\/c Holder)\s*:?\s*([A-Z][A-Z\s.'-]{2,50})/i, 'name'],
+    [/(?:Name|PROFILE\s*Name)\s*:?\s*([A-Z][A-Z\s.'-]{2,40}?)(?=\s+\d{4}|\s+[A-Z]{5}\d|$)/i, 'name'],
+    [/([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i, 'email'],
+    [/\b([A-Z]{5}\d{4}[A-Z])\b/, 'pan'],
+    [/\b([6-9]\d{9})\b/, 'mobile'],
+    [/\b([A-Z]{4}0[A-Z0-9]{6})\b/, 'ifsc'],
+    [/(?:Account No|Account Number|A\/c No|A\/c Number)\s*:?\s*([X*\d]{6,20})/i, 'account'],
+    [/(?:Bank Name|Bank)\s*:?\s*([A-Z][A-Za-z\s]{3,40}?)(?=\s+Branch|\s+IFSC|$)/i, 'bank'],
+  ];
+  for (const [re, key] of patterns) {
+    if (profile[key]) continue;
+    const m = fullText.match(re);
+    if (m) profile[key] = m[1].trim();
+  }
+  return profile;
+}
+
+/* ------------------------------------------------------------
+   Reconstruct text from pdf.js items — improved y-bucketing
+   ------------------------------------------------------------ */
+function reconstructPageText(items) {
+  if (!items.length) return '';
+  // Group by Y with wider bucket so date + narration + amounts on same visual row stay together
+  const lines = new Map();
+  for (const it of items) {
+    if (!it.str || !it.transform) continue;
+    const y = Math.round(it.transform[5]);
+    const key = Math.round(y / 3) * 3;
+    if (!lines.has(key)) lines.set(key, []);
+    lines.get(key).push({ x: it.transform[4], str: it.str });
+  }
+  const sortedYs = [...lines.keys()].sort((a, b) => b - a);
+  const out = [];
+  for (const y of sortedYs) {
+    const parts = lines.get(y).sort((a, b) => a.x - b.x);
+    out.push(parts.map(p => p.str).join(' ').replace(/\s+/g, ' ').trim());
+  }
+  return out.filter(l => l.length).join('\n');
+}
+
+/* ------------------------------------------------------------
+   Strategy 1: Date-pair rows (BoB, many PSUs, some private banks)
+   Handles both "dd/mm/yyyy dd/mm/yyyy" and glued "dd/mm/yyyydd/mm/yyyy"
+   ------------------------------------------------------------ */
+
+
+/* ============================================================
+   COORDINATE-BASED TABLE EXTRACTION (exact V5 from working PDF→Excel)
+   + map table cells → bank transactions (DR/CR from columns, no invent)
+   ============================================================ */
+function buildRowBands(items) {
+  if (!items || !items.length) return [];
+  var sorted = items.slice().sort(function(a, b) { return b.y - a.y; });
+  var bands = [];
+  var currentBand = [sorted[0]];
+  for (var i = 1; i < sorted.length; i++) {
+    var it = sorted[i];
+    var lastY = currentBand[currentBand.length - 1].y;
+    if (Math.abs(it.y - lastY) < 6.0) currentBand.push(it);
+    else { bands.push(currentBand); currentBand = [it]; }
+  }
+  if (currentBand.length) bands.push(currentBand);
+  return bands.map(function(band) {
+    band.sort(function(a, b) { return a.x - b.x; });
+    var cells = [];
+    var current = '';
+    var lastRight = null;
+    for (var k = 0; k < band.length; k++) {
+      var it = band[k];
+      if (lastRight === null) {
+        current = it.str;
+        lastRight = it.x + (it.width || 0);
+      } else {
+        var gap = it.x - lastRight;
+        if (gap < 3) {
+          current += it.str;
+        } else {
+          if (current.trim()) cells.push(current.trim());
+          current = it.str;
+        }
+        lastRight = it.x + (it.width || 0);
+      }
+    }
+    if (current.trim()) cells.push(current.trim());
+    return cells;
+  }).filter(function(band) { return band.length > 0; });
+}
+
+function computeBandYs(items) {
+  if (!items || !items.length) return [];
+  var sorted = items.slice().sort(function(a, b) { return b.y - a.y; });
+  var ys = [];
+  var cur = [sorted[0]];
+  for (var i = 1; i < sorted.length; i++) {
+    var it = sorted[i];
+    var lastY = cur[cur.length - 1].y;
+    if (Math.abs(it.y - lastY) < 6.0) cur.push(it);
+    else {
+      ys.push(cur.reduce(function(a, b) { return a + b.y; }, 0) / cur.length);
+      cur = [it];
+    }
+  }
+  if (cur.length) ys.push(cur.reduce(function(a, b) { return a + b.y; }, 0) / cur.length);
+  return ys;
+}
+
+function detectTablesOnPage(page) {
+  var rows = page.rows;
+  if (!rows || rows.length < 2) return [];
+  var xFreq = {};
+  page.items.forEach(function(it) {
+    var x = Math.round(it.x);
+    xFreq[x] = (xFreq[x] || 0) + 1;
+  });
+  var candidates = Object.keys(xFreq).map(Number).filter(function(x) { return xFreq[x] >= 2; }).sort(function(a, b) { return a - b; });
+  var cols = [];
+  var cluster = [];
+  for (var ci = 0; ci < candidates.length; ci++) {
+    var x = candidates[ci];
+    if (!cluster.length) cluster.push(x);
+    else if (x - cluster[cluster.length - 1] < 15) cluster.push(x);
+    else {
+      cols.push(Math.round(cluster.reduce(function(a, b) { return a + b; }, 0) / cluster.length));
+      cluster = [x];
+    }
+  }
+  if (cluster.length) cols.push(Math.round(cluster.reduce(function(a, b) { return a + b; }, 0) / cluster.length));
+  if (cols.length < 2) return [];
+
+  var bandYs = page.bandYs || [];
+  var matrix = bandYs.map(function() {
+    var r = new Array(cols.length);
+    for (var j = 0; j < cols.length; j++) r[j] = '';
+    return r;
+  });
+  page.items.forEach(function(it) {
+    var bandIdx = 0, bestBandDist = Infinity;
+    for (var b = 0; b < bandYs.length; b++) {
+      var d = Math.abs(it.y - bandYs[b]);
+      if (d < bestBandDist) { bestBandDist = d; bandIdx = b; }
+    }
+    var colIdx = 0, bestColDist = Infinity;
+    for (var c = 0; c < cols.length; c++) {
+      var dc = Math.abs(it.x - cols[c]);
+      if (dc < bestColDist) { bestColDist = dc; colIdx = c; }
+    }
+    var prev = matrix[bandIdx][colIdx];
+    matrix[bandIdx][colIdx] = prev ? prev + ' ' + it.str : it.str;
+  });
+
+  var nonEmpty = [];
+  for (var r2 = 0; r2 < matrix.length; r2++) {
+    var row = matrix[r2];
+    var has = false;
+    for (var c2 = 0; c2 < row.length; c2++) {
+      if (row[c2] && row[c2].trim().length > 0) { has = true; break; }
+    }
+    if (has) nonEmpty.push(row.map(function(cell) { return (cell || '').trim(); }));
+  }
+  if (nonEmpty.length < 2) return [];
+
+  var first = nonEmpty[0];
+  var headerKeywords = /date|narration|withdrawal|deposit|balance|chq|particular|amount|debit|credit/i;
+  var filledCount = 0, keywordHit = false, shortCells = 0;
+  for (var fi = 0; fi < first.length; fi++) {
+    if (first[fi] && first[fi].length > 0) {
+      filledCount++;
+      if (first[fi].length < 25) shortCells++;
+    }
+    if (first[fi] && headerKeywords.test(first[fi])) keywordHit = true;
+  }
+  var isHeader = (filledCount >= Math.ceil(first.length * 0.5)) && (keywordHit || shortCells >= first.length * 0.7);
+  return [{
+    pageNum: page.pageNum,
+    columns: cols,
+    headerRow: isHeader ? first : null,
+    dataRows: isHeader ? nonEmpty.slice(1) : nonEmpty,
+    hasHeader: isHeader,
+    colCount: cols.length
+  }];
+}
+
+function mergeMultiPageTables(tables) {
+  if (tables.length < 2) return tables;
+  var used = {};
+  var result = [];
+  for (var i = 0; i < tables.length; i++) {
+    if (used[i]) continue;
+    var base = tables[i];
+    var group = [base];
+    used[i] = true;
+    for (var j = i + 1; j < tables.length; j++) {
+      if (used[j]) continue;
+      var c = tables[j];
+      if (c.colCount === base.colCount &&
+          c.columns.every(function(x, k) { return Math.abs(x - base.columns[k]) < 25; }) &&
+          c.pageNum === base.pageNum + 1) {
+        group.push(c);
+        used[j] = true;
+      }
+    }
+    if (group.length > 1) {
+      var allRows = [];
+      if (base.hasHeader && base.headerRow) allRows.push(base.headerRow);
+      group.forEach(function(t) {
+        if (t.hasHeader && t.headerRow) {
+          var dup = allRows.length && allRows[0].join('|') === t.headerRow.join('|');
+          if (!dup) {
+            for (var k = 0; k < t.dataRows.length; k++) allRows.push(t.dataRows[k]);
+          }
+        } else {
+          for (var k2 = 0; k2 < t.dataRows.length; k2++) allRows.push(t.dataRows[k2]);
+        }
+      });
+      result.push({
+        pageNum: base.pageNum,
+        pageEnd: base.pageNum + group.length - 1,
+        columns: base.columns,
+        headerRow: base.headerRow,
+        dataRows: base.hasHeader ? allRows.slice(1) : allRows,
+        hasHeader: base.hasHeader,
+        colCount: base.colCount,
+        multiPage: true
+      });
+    } else result.push(base);
+  }
+  return result;
+}
+
+/** Map detected table rows → transactions using WITHDRAWAL / DEPOSIT columns */
+function tablesToTransactions(tables) {
+  var txns = [];
+  var moneyRe = /(\d{1,3}(?:,\d{3})*\.\d{2})/;
+
+  function parseAmt(s) {
+    if (!s) return 0;
+    var m = String(s).match(moneyRe);
+    return m ? parseFloat(m[1].replace(/,/g, '')) : 0;
+  }
+  function parseBal(s) {
+    if (!s) return null;
+    var m = String(s).match(/(\d{1,3}(?:,\d{3})*\.\d{2})\s*(?:Cr|CR|Dr|DR)?/i);
+    return m ? parseFloat(m[1].replace(/,/g, '')) : null;
+  }
+  function parseDate(s) {
+    if (!s) return '';
+    var m = String(s).match(/(\d{2}[\/\-]\d{2}[\/\-]\d{4})/);
+    return m ? normalizeDate(m[1].replace(/-/g, '/')) : '';
+  }
+
+  tables.forEach(function(t) {
+    // Detect column indices from header
+    var colDate = -1, colVal = -1, colNarr = -1, colWd = -1, colDep = -1, colBal = -1, colChq = -1;
+    var header = t.headerRow || [];
+    for (var c = 0; c < header.length; c++) {
+      var h = (header[c] || '').toLowerCase();
+      if (/tran\s*date|^date$/.test(h) && colDate < 0) colDate = c;
+      if (/value\s*date/.test(h)) colVal = c;
+      if (/narrat|particular|description/.test(h)) colNarr = c;
+      if (/chq/.test(h)) colChq = c;
+      if (/withdraw|debit|\(dr\)/.test(h)) colWd = c;
+      if (/deposit|credit|\(cr\)/.test(h) && !/balance/.test(h)) colDep = c;
+      if (/balance/.test(h)) colBal = c;
+    }
+
+    // Infer from data if header missing/weak
+    if (colBal < 0 || colDate < 0) {
+      var sample = t.dataRows.slice(0, 40);
+      for (var c = 0; c < t.colCount; c++) {
+        var dateHits = 0, balHits = 0, textHits = 0, amtHits = 0;
+        sample.forEach(function(row) {
+          var cell = row[c] || '';
+          if (/\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(cell)) dateHits++;
+          if (/\d{1,3}(?:,\d{3})*\.\d{2}\s*Cr/i.test(cell)) balHits++;
+          if (/\d{1,3}(?:,\d{3})*\.\d{2}/.test(cell) && !/Cr/i.test(cell)) amtHits++;
+          if (/[a-zA-Z]{4,}/.test(cell)) textHits++;
+        });
+        if (dateHits > 3 && colDate < 0) colDate = c;
+        else if (dateHits > 3 && colVal < 0 && c !== colDate) colVal = c;
+        if (balHits > 3) colBal = c;
+        if (textHits > 8 && colNarr < 0) colNarr = c;
+      }
+      if (colBal >= 0) {
+        for (var c = 0; c < colBal; c++) {
+          if (c === colDate || c === colVal || c === colNarr || c === colChq) continue;
+          var amtHits = 0;
+          sample.forEach(function(row) {
+            if (/\d{1,3}(?:,\d{3})*\.\d{2}/.test(row[c] || '')) amtHits++;
+          });
+          if (amtHits > 3) {
+            if (colWd < 0) colWd = c;
+            else if (colDep < 0) colDep = c;
+          }
+        }
+      }
+    }
+
+    console.log('[table→txn] page', t.pageNum, 'cols', t.colCount, 'd/v/n/wd/dep/bal', colDate, colVal, colNarr, colWd, colDep, colBal);
+
+    // BoB multi-line: group consecutive bands that belong to one txn
+    // A txn starts when we see a TRAN date (often with balance on same or nearby row)
+    var pending = null;
+
+    function flush() {
+      if (!pending) return;
+      if (!(pending.amount > 0) && !(pending.balance > 0)) { pending = null; return; }
+      // amount must come from statement columns only — never invent
+      if (!(pending.amount > 0) && pending.balance > 0 && !pending._hasAmtCol) {
+        // only if truly no DR/CR found, leave amount 0 (don't copy balance)
+        pending.amount = 0;
+      }
+      pending.mode = detectModeFromNarration(pending.narration_raw || '');
+      txns.push(pending);
+      pending = null;
+    }
+
+    for (var r = 0; r < t.dataRows.length; r++) {
+      var row = t.dataRows[r];
+      var rowText = row.join(' ');
+
+      if (/Page\s*\d+|Contact-Us@|computer-generated|bob World|Statement Period/i.test(rowText) && !moneyRe.test(rowText)) continue;
+
+      var dateStr = colDate >= 0 ? parseDate(row[colDate]) : '';
+      if (!dateStr) dateStr = parseDate(rowText);
+
+      var bal = colBal >= 0 ? parseBal(row[colBal]) : null;
+      if (bal == null) {
+        var bm = rowText.match(/(\d{1,3}(?:,\d{3})*\.\d{2})\s*(?:Cr|CR)\b/i);
+        if (bm) bal = parseFloat(bm[1].replace(/,/g, ''));
+      }
+
+      var wd = colWd >= 0 ? parseAmt(row[colWd]) : 0;
+      var dep = colDep >= 0 ? parseAmt(row[colDep]) : 0;
+
+      var narr = '';
+      if (colNarr >= 0) narr = row[colNarr] || '';
+      else {
+        narr = row.filter(function(_, i) {
+          return i !== colDate && i !== colVal && i !== colWd && i !== colDep && i !== colBal && i !== colChq;
+        }).join(' ');
+      }
+      narr = narr.replace(/\d{1,3}(?:,\d{3})*\.\d{2}\s*(?:Cr|CR|Dr|DR)?/gi, ' ')
+                 .replace(/\d{2}[\/\-]\d{2}[\/\-]\d{4}/g, ' ')
+                 .replace(/\s+/g, ' ').trim();
+
+      // Value-date only row (indented amount line in BoB): has date or amount, little narration
+      var isValueLine = !bal && (wd > 0 || dep > 0) && !/\b(UPI\/|IMPS\/|ATM\/|AEPS|NEFT|BY CASH|NBSBD)\b/i.test(rowText);
+      var isTxnStart = dateStr && (bal != null || /\b(UPI|IMPS|ATM|AEPS|NEFT|BY CASH|NBSBD|SELF|SMS|TRTR|CRA|CHARGES)\b/i.test(narr + rowText));
+
+      if (isTxnStart && (bal != null || wd > 0 || dep > 0)) {
+        flush();
+        var amount = 0, type = '';
+        if (wd > 0) { amount = wd; type = 'DEBIT'; }
+        else if (dep > 0) { amount = dep; type = 'CREDIT'; }
+        pending = {
+          txn_id: '', value_date: dateStr, txn_datetime: '',
+          mode: '', narration_raw: narr, type: type, amount: amount,
+          balance: bal != null ? bal : 0, reference: '',
+          _hasAmtCol: (wd > 0 || dep > 0)
+        };
+      } else if (pending) {
+        // continuation: value-date amount line or VPA wrap
+        if (wd > 0 && !pending.amount) { pending.amount = wd; pending.type = 'DEBIT'; pending._hasAmtCol = true; }
+        if (dep > 0 && !pending.amount) { pending.amount = dep; pending.type = 'CREDIT'; pending._hasAmtCol = true; }
+        // amount without column role (only one number on continuation line)
+        if (!pending.amount && !wd && !dep) {
+          var onlyAmt = parseAmt(rowText);
+          // skip if it looks like the balance repeated
+          if (onlyAmt > 0 && Math.abs(onlyAmt - (pending.balance || 0)) > 0.01) {
+            pending.amount = onlyAmt;
+            pending._hasAmtCol = true;
+            // type still unknown → leave empty for mild delta type-only later
+          }
+        }
+        if (bal != null && !(pending.balance > 0)) pending.balance = bal;
+        if (narr) pending.narration_raw = (pending.narration_raw + ' ' + narr).trim();
+        if (dateStr && !pending.value_date) pending.value_date = dateStr;
+      } else if (isValueLine && (wd > 0 || dep > 0)) {
+        // orphan amount line — skip (belongs to previous page edge case)
+      }
+    }
+    flush();
+  });
+
+  return txns;
+}
+
+function extractTxnsFromPagesData(pagesData) {
+  var allTables = [];
+  for (var p = 0; p < pagesData.length; p++) {
+    var tables = detectTablesOnPage(pagesData[p]);
+    for (var t = 0; t < tables.length; t++) allTables.push(tables[t]);
+  }
+  allTables = mergeMultiPageTables(allTables);
+  console.log('[pdf] tables detected:', allTables.length);
+  var txns = tablesToTransactions(allTables);
+  console.log('[pdf] txns from tables:', txns.length);
+  if (txns.length) console.log('[pdf] sample 0:', JSON.stringify(txns[0]));
+  if (txns.length > 1) console.log('[pdf] sample 1:', JSON.stringify(txns[1]));
+  return txns;
+}
+
+function parseDatePairTxns(fullText) {
+  /*
+   * Hybrid parser for BoB-style statements:
+   * Layout A (pdftotext): multi-line rows (TRAN+bal / VALUE+amt / VPA)
+   * Layout B (pdf.js): may flatten or reorder; also try balance-Cr anchors
+   */
+  const fromLines = parseBoBMultiline(fullText);
+  const fromAnchors = parseBalanceAnchors(fullText);
+
+  console.log('[date-pair] multiline:', fromLines.length, 'anchors:', fromAnchors.length);
+
+  // Prefer whichever yields more rows with real amounts
+  const score = (arr) => arr.filter(t => t.amount > 0 && t.balance > 0).length;
+  const best = score(fromAnchors) > score(fromLines) ? fromAnchors : fromLines;
+  // If close, pick larger set
+  const txns = (best.length >= Math.max(fromLines.length, fromAnchors.length) * 0.8)
+    ? best
+    : (fromLines.length >= fromAnchors.length ? fromLines : fromAnchors);
+
+  console.log('[date-pair] chosen:', txns.length);
+  if (txns.length > 0) console.log('[date-pair] sample 0:', JSON.stringify(txns[0]));
+  if (txns.length > 1) console.log('[date-pair] sample 1:', JSON.stringify(txns[1]));
+  return txns;
+}
+
+function parseBoBMultiline(fullText) {
+  const txns = [];
+  const lines = fullText.split(/\n/).map(l => l.replace(/\t/g, ' ').replace(/ +/g, ' ').trim()).filter(Boolean);
+  const moneyRe = /(\d{1,3}(?:,\d{3})*\.\d{2})/g;
+  const balRe = /(\d{1,3}(?:,\d{3})*\.\d{2})\s*(?:Cr|CR)\b/;
+
+  function isTxnStart(line) {
+    if (!/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(line)) return false;
+    if (balRe.test(line)) return true;
+    if (/\b(UPI|IMPS|NEFT|RTGS|ATM|AEPS|BY CASH|NBSBD|SELF|SMS|TRTR|CRA|CHARGES|INTEREST)\b/i.test(line)) return true;
+    return false;
+  }
+  function isValueDateLine(line) {
+    if (!/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(line)) return false;
+    if (balRe.test(line)) return false;
+    if (/\b(UPI\/|IMPS\/|NEFT|ATM\/|AEPS|BY CASH|NBSBD|TRTR|CRA\/)/i.test(line)) return false;
+    return moneyRe.test(line);
+  }
+  function stripMoneys(s) {
+    return s.replace(moneyRe, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (/Page\s*\d+|Contact-Us@|computer-generated|TRAN DATE|Main Account|Statement of|bob World|Your Account/i.test(line) && !isTxnStart(line)) {
+      i++; continue;
+    }
+    if (!isTxnStart(line)) { i++; continue; }
+
+    const dateM = line.match(/^(\d{2}[\/\-]\d{2}[\/\-]\d{4})/);
+    if (!dateM) { i++; continue; }
+    const txnDate = dateM[1].replace(/-/g, '/');
+
+    let balance = null;
+    const bm = line.match(balRe);
+    if (bm) balance = parseFloat(bm[1].replace(/,/g, ''));
+
+    let afterDate = line.replace(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}\s*/, '');
+    afterDate = afterDate.replace(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}\s*/, '');
+    afterDate = afterDate.replace(balRe, ' ');
+
+    let amount = 0;
+    const sameAmts = [];
+    let m;
+    moneyRe.lastIndex = 0;
+    while ((m = moneyRe.exec(afterDate)) !== null) sameAmts.push(parseFloat(m[1].replace(/,/g, '')));
+    if (sameAmts.length >= 1) amount = sameAmts[0];
+
+    let narration = stripMoneys(afterDate);
+
+    let j = i + 1;
+    while (j < lines.length && j <= i + 5) {
+      const nxt = lines[j];
+      if (isTxnStart(nxt)) break;
+
+      if (isValueDateLine(nxt)) {
+        moneyRe.lastIndex = 0;
+        const amts = [];
+        while ((m = moneyRe.exec(nxt)) !== null) amts.push(parseFloat(m[1].replace(/,/g, '')));
+        if (amts.length && !amount) amount = amts[0];
+        let extra = nxt.replace(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}\s*/, '');
+        extra = stripMoneys(extra);
+        if (extra) narration = (narration + ' ' + extra).trim();
+        j++; continue;
+      }
+
+      // Value-date line WITHOUT amount (just the date) — skip, don't break
+      if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}\s*$/.test(nxt) || (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(nxt) && !moneyRe.test(nxt) && !/\b(UPI|IMPS|ATM|AEPS|NEFT|BY CASH)\b/i.test(nxt))) {
+        j++; continue;
+      }
+
+      if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(nxt)) break;
+
+      moneyRe.lastIndex = 0;
+      const amts2 = [];
+      while ((m = moneyRe.exec(nxt)) !== null) amts2.push(parseFloat(m[1].replace(/,/g, '')));
+      if (amts2.length && !amount) amount = amts2[0];
+
+      const extra2 = stripMoneys(nxt);
+      if (extra2 && !/Page\s*\d+|Contact-Us@|computer-generated/i.test(extra2)) {
+        narration = (narration + ' ' + extra2).trim();
+      }
+      j++;
+    }
+
+    i = Math.max(j, i + 1);
+    narration = narration.replace(/^[\/\s\-\*.,]+/, '').replace(/[\/\s\-\*.,]+$/, '').trim();
+    if (!(amount > 0) && (balance == null || balance === 0)) continue;
+    if (!(amount > 0) && balance > 0) amount = balance;
+
+    txns.push({
+      txn_id: '', value_date: normalizeDate(txnDate), txn_datetime: '',
+      mode: detectModeFromNarration(narration), narration_raw: narration,
+      type: '', amount: amount || 0, balance: balance != null ? balance : 0, reference: '',
+    });
+  }
+  return txns;
+}
+
+function parseBalanceAnchors(fullText) {
+  // Flatten whitespace somewhat but keep structure; find every "amount balanceCr" pair near a date
+  const text = fullText.replace(/[ \t]+/g, ' ');
+  const txns = [];
+  // Match: DATE ... NARRATION ... optional AMOUNT ... BALANCE Cr
+  // Use global scan for dates that look like txn starts
+  const re = /(\d{2}\/\d{2}\/\d{4})(?:\s+\d{2}\/\d{2}\/\d{4})?\s+([\s\S]*?)(\d{1,3}(?:,\d{3})*\.\d{2})\s*(?:Cr|CR)\b/gi;
+  let match;
+  const seen = new Set();
+  while ((match = re.exec(text)) !== null) {
+    const txnDate = match[1];
+    let body = match[2];
+    const balance = parseFloat(match[3].replace(/,/g, ''));
+
+    // Limit body length — avoid swallowing previous rows
+    if (body.length > 300) {
+      // take last 200 chars before balance (nearest narration)
+      body = body.slice(-200);
+    }
+
+    // Skip if body clearly is header
+    if (/TRAN DATE|VALUE DATE|Main Account|Statement Period/i.test(body) && body.length < 80) continue;
+
+    // Amounts in body (decimals only)
+    const amts = [];
+    const moneyRe = /(\d{1,3}(?:,\d{3})*\.\d{2})/g;
+    let m;
+    while ((m = moneyRe.exec(body)) !== null) amts.push(parseFloat(m[1].replace(/,/g, '')));
+
+    let amount = 0;
+    if (amts.length >= 1) amount = amts[amts.length - 1]; // last amount before balance
+    if (!amount && balance) amount = balance;
+
+    let narration = body
+      .replace(moneyRe, ' ')
+      .replace(/\d{2}\/\d{2}\/\d{4}/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^[\/\s\-\*.,]+/, '')
+      .replace(/[\/\s\-\*.,]+$/, '');
+
+    // Drop page footers
+    if (/Page\s*\d+|Contact-Us@|computer-generated/i.test(narration) && narration.length < 40) continue;
+    if (narration.length < 2 && !amount) continue;
+
+    const key = `${normalizeDate(txnDate)}|${amount}|${balance}|${narration.slice(0, 30)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    txns.push({
+      txn_id: '', value_date: normalizeDate(txnDate), txn_datetime: '',
+      mode: detectModeFromNarration(narration), narration_raw: narration,
+      type: '', amount: amount || 0, balance: balance || 0, reference: '',
+    });
+  }
+  return txns;
+}
+
+function parseLineBasedTxns(fullText) {
+  const txns = [];
+  const lines = fullText.split(/\n/).map(l => l.trim()).filter(l => l.length > 5);
+
+  // Date patterns: dd/mm/yyyy, dd-mm-yyyy, dd.mm.yyyy, yyyy-mm-dd
+  const dateRe = /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4}-\d{2}-\d{2})/;
+  // Amount with optional Cr/Dr
+  const amtRe = /(\d{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?)\s*(Cr|DR|Dr|CR)?/gi;
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const dateM = line.match(dateRe);
+    if (!dateM) { i++; continue; }
+
+    // Collect this line + next 0-2 lines as a possible multi-line txn
+    let block = line;
+    if (i + 1 < lines.length && !dateRe.test(lines[i + 1]) && lines[i + 1].length < 120) {
+      block += ' ' + lines[i + 1];
+      if (i + 2 < lines.length && !dateRe.test(lines[i + 2]) && lines[i + 2].length < 80) {
+        block += ' ' + lines[i + 2];
+      }
+    }
+
+    // Skip pure header/footer lines
+    if (/page\s*\d+|statement of account|opening balance|closing balance|transaction details|particulars|narration|value date|cheque no/i.test(block) && !/\d{1,3}(?:,\d{3})*\.\d{2}/.test(block)) {
+      i++; continue;
+    }
+
+    const normDate = normalizeDate(dateM[1]);
+    if (!normDate) { i++; continue; }
+
+    const { amount, balance, type, narration } = extractAmountBalanceNarration(block);
+    if (amount < 0.01 && (balance == null || balance === 0)) { i++; continue; }
+    if (narration.replace(/[\d\/\-\.\s,]/g, '').length < 2) { i++; continue; }
+
+    // Remove the leading date(s) from narration
+    let cleanNarr = narration
+      .replace(new RegExp(dateM[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '')
+      .replace(/\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (cleanNarr.length < 2) cleanNarr = narration;
+
+    const mode = detectModeFromNarration(cleanNarr);
+
+    txns.push({
+      txn_id: '',
+      value_date: normDate,
+      txn_datetime: '',
+      mode,
+      narration_raw: cleanNarr,
+      type: type || 'CREDIT',
+      amount: amount || 0,
+      balance: balance != null ? balance : 0,
+      reference: '',
+    });
+
+    i++;
+  }
+
+  console.log('[line-based] parsed:', txns.length);
+  return txns;
+}
+
+/* ------------------------------------------------------------
+   Strategy 3: Generic regex (broad fallback)
+   Looks for date … amount … balance patterns anywhere
+   ------------------------------------------------------------ */
+function parseGenericRegexTxns(fullText) {
+  const txns = [];
+  // Match: date  +  narration-ish  +  amount  +  optional Cr/Dr  +  balance
+  const re = /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4}-\d{2}-\d{2})\s+(.{5,120}?)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*(Cr|Dr|CR|DR)?\s+(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)/gi;
+
+  let m;
+  while ((m = re.exec(fullText)) !== null) {
+    const normDate = normalizeDate(m[1]);
+    if (!normDate) continue;
+    const narr = m[2].replace(/\s+/g, ' ').trim();
+    if (narr.length < 3) continue;
+    const amount = parseFloat(m[3].replace(/,/g, ''));
+    const flag = (m[4] || '').toUpperCase();
+    const balance = parseFloat(m[5].replace(/,/g, ''));
+    if (isNaN(amount) || amount <= 0) continue;
+
+    let type = 'CREDIT';
+    if (flag === 'DR' || flag === 'D') type = 'DEBIT';
+    else if (flag === 'CR' || flag === 'C') type = 'CREDIT';
+
+    const mode = detectModeFromNarration(narr);
+
+    txns.push({
+      txn_id: '',
+      value_date: normDate,
+      txn_datetime: '',
+      mode,
+      narration_raw: narr,
+      type,
+      amount,
+      balance: isNaN(balance) ? 0 : balance,
+      reference: '',
+    });
+  }
+
+  console.log('[generic-regex] parsed:', txns.length);
+  return txns;
+}
+
+/* ------------------------------------------------------------
+   Shared: extract amount, balance, type, narration from a text block
+   ------------------------------------------------------------ */
+function extractAmountBalanceNarration(body) {
+  // Protect Cr/Dr markers
+  let text = body
+    .replace(/\b(Cr|CR)\b/g, ' @CR@ ')
+    .replace(/\b(Dr|DR)\b/g, ' @DR@ ');
+
+  const tokens = text.split(/\s+/).filter(Boolean);
+  const numericTokens = [];
+  const narrTokens = [];
+
+  for (const tok of tokens) {
+    // Pure number or number + @CR@/@DR@
+    const numMatch = tok.match(/^(\d{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?)(@CR@|@DR@)?$/);
+    if (numMatch) {
+      numericTokens.push({
+        value: parseFloat(numMatch[1].replace(/,/g, '')),
+        hasCr: numMatch[2] === '@CR@',
+        hasDr: numMatch[2] === '@DR@',
+        raw: tok,
+      });
+    } else if (/^@CR@$/.test(tok)) {
+      // standalone marker — attach to previous numeric if possible
+      if (numericTokens.length) numericTokens[numericTokens.length - 1].hasCr = true;
+    } else if (/^@DR@$/.test(tok)) {
+      if (numericTokens.length) numericTokens[numericTokens.length - 1].hasDr = true;
+    } else {
+      narrTokens.push(tok.replace(/@CR@|@DR@/g, ''));
+    }
+  }
+
+  let narration = narrTokens.join(' ').replace(/\s+/g, ' ').trim()
+    .replace(/^[\/\s\-\*]+/, '')
+    .replace(/[\/\s\-\*]+$/, '')
+    .replace(/\s*\/\s*/g, '/')
+    .trim();
+
+  // Balance = last number that has Cr, else last number
+  let balance = null;
+  let balanceIdx = -1;
+  for (let i = numericTokens.length - 1; i >= 0; i--) {
+    if (numericTokens[i].hasCr) {
+      balance = numericTokens[i].value;
+      balanceIdx = i;
+      break;
+    }
+  }
+  if (balance === null && numericTokens.length > 0) {
+    balance = numericTokens[numericTokens.length - 1].value;
+    balanceIdx = numericTokens.length - 1;
+  }
+
+  // Amount = largest remaining number, or the one with Dr flag
+  let amount = 0;
+  let type = null;
+  for (let i = 0; i < numericTokens.length; i++) {
+    if (i === balanceIdx) continue;
+    const n = numericTokens[i];
+    if (n.hasDr) {
+      amount = n.value;
+      type = 'DEBIT';
+      break;
+    }
+    if (n.hasCr && i !== balanceIdx) {
+      amount = n.value;
+      type = 'CREDIT';
+    }
+    if (n.value > amount) amount = n.value;
+  }
+
+  // Infer type from narration keywords if still unknown
+  if (!type) {
+    if (/interest|cash deposit|by cash|refund|reversal|salary|credit|received|neft.?cr|imps.?cr/i.test(narration)) {
+      type = 'CREDIT';
+    } else if (/atm|withdrawal|charges|emi|ecs|mandate|loan|debit|paid|neft.?dr|imps.?dr/i.test(narration)) {
+      type = 'DEBIT';
+    } else {
+      type = 'CREDIT'; // default, will be fixed by balance delta later
+    }
+  }
+
+  return { amount, balance, type, narration };
+}
+
+/* ------------------------------------------------------------
+   Post-process: sort oldest-first, fix type/amount via balance delta,
+   remove obvious junk / near-duplicates
+   ------------------------------------------------------------ */
+function postProcessTxns(txns) {
+  if (!txns.length) return txns;
+
+  function realBal(b) {
+    return b != null && !(b === Math.floor(b) && b >= 1 && b <= 31) && b !== 0;
+  }
+
+  // 1) Sort by date ascending (oldest → newest)
+  txns.sort(function(a, b) {
+    return (a.value_date || '').localeCompare(b.value_date || '');
+  });
+
+  // 2) Same-day reorder so balance chain is consistent (works for asc & desc statements)
+  var byDate = new Map();
+  for (var i = 0; i < txns.length; i++) {
+    var d = txns[i].value_date || '';
+    if (!byDate.has(d)) byDate.set(d, []);
+    byDate.get(d).push(txns[i]);
+  }
+  var dates = Array.from(byDate.keys()).sort();
+  var ordered = [];
+  var prevBal = null;
+
+  function chainScore(arr, startBal) {
+    var score = 0;
+    var bal = startBal;
+    for (var i = 0; i < arr.length; i++) {
+      var t = arr[i];
+      if (bal != null && realBal(bal) && realBal(t.balance)) {
+        var delta = +(t.balance - bal).toFixed(2);
+        var absD = Math.abs(delta);
+        if (t.amount > 0 && Math.abs(absD - t.amount) <= 1.0) score += 3;
+        else if (t.amount > 0 && Math.abs(absD - t.amount) <= 5.0) score += 1;
+        else if (t.type === 'DEBIT' && delta < 0) score += 1;
+        else if (t.type === 'CREDIT' && delta > 0) score += 1;
+        else if (absD > 0.01) score -= 1;
+      }
+      if (realBal(t.balance)) bal = t.balance;
+    }
+    return score;
+  }
+
+  function greedyOrder(arr, startBal) {
+    // Greedy: repeatedly pick remaining txn whose balance best continues the chain
+    var remaining = arr.slice();
+    var out = [];
+    var bal = startBal;
+    while (remaining.length) {
+      var bestI = 0, bestS = -1e15;
+      for (var i = 0; i < remaining.length; i++) {
+        var t = remaining[i];
+        var s = 0;
+        if (bal != null && realBal(bal) && realBal(t.balance)) {
+          var delta = +(t.balance - bal).toFixed(2);
+          var absD = Math.abs(delta);
+          if (t.amount > 0) s = -Math.abs(absD - t.amount);
+          else s = -absD * 0.01;
+        } else {
+          s = -1000 - i;
+        }
+        if (s > bestS) { bestS = s; bestI = i; }
+      }
+      var pick = remaining.splice(bestI, 1)[0];
+      out.push(pick);
+      if (realBal(pick.balance)) bal = pick.balance;
+    }
+    return out;
+  }
+
+  for (var di = 0; di < dates.length; di++) {
+    var group = byDate.get(dates[di]);
+    if (group.length === 1) {
+      ordered.push(group[0]);
+      if (realBal(group[0].balance)) prevBal = group[0].balance;
+      continue;
+    }
+    // Try: as-is, reversed, greedy from prevBal
+    var asIs = group.slice();
+    var rev = group.slice().reverse();
+    var s0 = chainScore(asIs, prevBal);
+    var s1 = chainScore(rev, prevBal);
+    var best = s1 > s0 ? rev : asIs;
+    var bestScore = Math.max(s0, s1);
+    if (group.length <= 12) {
+      var g = greedyOrder(group, prevBal);
+      var sg = chainScore(g, prevBal);
+      if (sg > bestScore) { best = g; bestScore = sg; }
+    }
+    for (var j = 0; j < best.length; j++) {
+      ordered.push(best[j]);
+      if (realBal(best[j].balance)) prevBal = best[j].balance;
+    }
+  }
+
+  // 3) Type only when missing — never invent amount
+  for (var i = 1; i < ordered.length; i++) {
+    var prev = ordered[i - 1], cur = ordered[i];
+    if (!cur.type && realBal(prev.balance) && realBal(cur.balance)) {
+      var delta = +(cur.balance - prev.balance).toFixed(2);
+      if (Math.abs(delta) >= 0.01) {
+        cur.type = delta > 0 ? 'CREDIT' : 'DEBIT';
+        if (!(cur.amount > 0)) cur.amount = Math.abs(delta);
+      }
+    }
+    if (!cur.type) cur.type = 'CREDIT';
+  }
+  if (ordered.length && !ordered[0].type) {
+    ordered[0].type = ordered[0].amount > 0 ? 'DEBIT' : 'CREDIT';
+  }
+
+  // 4) Dedupe
+  var seen = new Set();
+  var clean = [];
+  for (var i = 0; i < ordered.length; i++) {
+    var t = ordered[i];
+    if (!t.value_date) continue;
+    var key = t.value_date + '|' + (+t.amount).toFixed(2) + '|' + (t.narration_raw || '').slice(0, 40);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    clean.push(t);
+  }
+
+  var dr = clean.filter(function(t) { return t.type === 'DEBIT'; });
+  var cr = clean.filter(function(t) { return t.type === 'CREDIT'; });
+  console.log('[post] same-day reordered | kept', clean.length,
+    '| DEBIT', dr.length, 'sum', dr.reduce(function(s, t) { return s + t.amount; }, 0).toFixed(0),
+    '| CREDIT', cr.length, 'sum', cr.reduce(function(s, t) { return s + t.amount; }, 0).toFixed(0));
+  return clean;
+}
+
+function detectModeFromNarration(n) {
+  const s = (n || '').trim();
+  if (/^UPI\b|\/UPI\/|UPI-/i.test(s)) return 'UPI';
+  if (/^IMPS\b|\/IMPS\/|IMPS-/i.test(s)) return 'IMPS';
+  if (/^NEFT\b|\/NEFT\/|NEFT-/i.test(s)) return 'NEFT';
+  if (/^RTGS\b|\/RTGS\//i.test(s)) return 'RTGS';
+  if (/^ATM\b|\/ATM\/|ATM WDL|ATM\/CASH/i.test(s)) return 'ATM';
+  if (/^AEPS\b|\/AEPS\/|NBSBD/i.test(s)) return 'AEPS';
+  if (/^TRTR|^TRRR/i.test(s)) return 'TRTR';
+  if (/^BY CASH|^CSH|^CASH|CASH DEPOSIT|CDM/i.test(s)) return 'CASH';
+  if (/^SELF/i.test(s)) return 'SELF';
+  if (/^SMS|SMS[_ ]?CHARGES/i.test(s)) return 'SMS';
+  if (/^CRA/i.test(s)) return 'CRA';
+  if (/INTEREST|INT\.|FD Int|Int\.Pd/i.test(s)) return 'INTEREST';
+  if (/CHARGES|NEWCARD|NEW CARD|AMC|PENALTY/i.test(s)) return 'CHARGES';
+  if (/ECS|ACH|MANDATE|NACH/i.test(s)) return 'ECS';
+  if (/CHQ|CHEQUE/i.test(s)) return 'CHEQUE';
+  return 'OTHERS';
+}
+
+/* ------------------------------------------------------------
+   SBI-style token stream parser (kept as one strategy)
+   ------------------------------------------------------------ */
+function parseSBITxns(fullText) {
+  const tokens = fullText.split(/\s+/);
+  const txns = [];
+  const isoRe = /^(\d{4}-\d{2}-\d{2})T\d{2}:\d{2}:\d{2}[+\-]\d{2}:\d{2}$/;
+  for (let i = 0; i < tokens.length; i++) {
+    const isoMatch = tokens[i].match(isoRe);
+    if (!isoMatch) continue;
+    const txnId = tokens[i - 1];
+    if (!/^\d{6,}$/.test(txnId || '')) continue;
+    const valueDate = isoMatch[1];
+    const j = i + 1;
+    const timePart1 = tokens[j];
+    if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(timePart1 || '')) continue;
+    const timePart2 = tokens[j + 1];
+    const timePart3 = tokens[j + 2];
+    const modeTok = (tokens[j + 3] || '').toUpperCase();
+    const validModes = ['UPI', 'NEFT', 'IMPS', 'RTGS', 'ATM', 'OTHERS', 'CASH', 'CHQ', 'ECS'];
+    let k = j + 3;
+    let mode = 'OTHERS';
+    if (validModes.includes(modeTok)) { mode = modeTok; k = j + 4; }
+    const narrParts = [];
+    let type = null, amount = null, balance = null, ref = null;
+    let safety = 0;
+    while (k < tokens.length && safety < 60) {
+      const t = tokens[k];
+      if (t === 'CREDIT' || t === 'DEBIT') {
+        type = t;
+        amount = parseFloat((tokens[k + 1] || '').replace(/,/g, ''));
+        balance = parseFloat((tokens[k + 2] || '').replace(/,/g, ''));
+        ref = tokens[k + 3] && /^\d{6,}$/.test(tokens[k + 3]) ? tokens[k + 3] : null;
+        break;
+      }
+      if (/^\d{6,}$/.test(t) && tokens[k + 1] && isoRe.test(tokens[k + 1])) break;
+      narrParts.push(t);
+      k++;
+      safety++;
+    }
+    if (type && !isNaN(amount) && !isNaN(balance)) {
+      txns.push({
+        txn_id: txnId, value_date: valueDate,
+        txn_datetime: `${timePart1} ${timePart2 || ''} ${timePart3 || ''}`.trim(),
+        mode, narration_raw: narrParts.join(' ').trim(),
+        type, amount, balance, reference: ref || '',
+      });
+    }
+  }
+  return txns;
+}
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+/* ============================================================
+   ROW → TXN MAPPING (CSV / XLSX)
+   ============================================================ */
+function mapRowToTxn(row) {
+  const keys = Object.keys(row);
+  const find = (patterns) => {
+    for (const p of patterns) {
+      const k = keys.find(k => p.test(String(k)));
+      if (k != null && row[k] !== '' && row[k] != null) return row[k];
+    }
+    return null;
+  };
+  const dateVal = find([/^date$/i, /^value\s*date$/i, /^txn\s*date$/i, /^dt$/i, /^value\s*dt$/i]);
+  if (!dateVal) return null;
+  const normDate = normalizeDate(dateVal);
+  if (!normDate || !/^\d{4}-\d{2}-\d{2}$/.test(normDate)) return null;
+  const narration = find([/narration/i, /description/i, /particulars/i, /details/i]) || '';
+  const amountVal = find([/^amount$/i, /txn\s*amount/i]);
+  const debitVal = find([/^debit/i, /withdrawal/i, /^dr$/i]);
+  const creditVal = find([/^credit/i, /deposit/i, /^cr$/i]);
+  const balanceVal = find([/balance/i, /closing/i]);
+  const modeVal = find([/^mode$/i, /^type$/i, /payment\s*mode/i]);
+  const refVal = find([/reference/i, /ref\s*no/i, /cheque/i, /chq/i]);
+  let amount = 0, type = '';
+  const d = parseNum(debitVal), c = parseNum(creditVal), a = parseNum(amountVal);
+  if (d && !c) { amount = d; type = 'DEBIT'; }
+  else if (c && !d) { amount = c; type = 'CREDIT'; }
+  else if (a && !d && !c) { if (a < 0) { amount = Math.abs(a); type = 'DEBIT'; } else { amount = a; type = 'CREDIT'; } }
+  else if (d && c) { if (d > 0 && c === 0) { amount = d; type = 'DEBIT'; } else if (c > 0 && d === 0) { amount = c; type = 'CREDIT'; } }
+  if (!amount || !type) return null;
+  let mode = (modeVal || '').toString().toUpperCase().trim();
+  if (!mode || mode === 'OTHERS') {
+    const n = narration.toLowerCase();
+    if (/upi/.test(n)) mode = 'UPI';
+    else if (/neft/.test(n)) mode = 'NEFT';
+    else if (/imps/.test(n)) mode = 'IMPS';
+    else if (/rtgs/.test(n)) mode = 'RTGS';
+    else if (/atm/.test(n)) mode = 'ATM';
+    else if (/cash|csh|cdm/.test(n)) mode = 'CASH';
+    else mode = 'OTHERS';
+  }
+  return {
+    txn_id: String(find([/trxn\s*id/i, /^id$/i, /ref/i]) || ''),
+    value_date: normDate, txn_datetime: '', mode,
+    narration_raw: String(narration).replace(/\s+/g, ' ').trim(),
+    type, amount,
+    balance: parseNum(balanceVal) || 0,
+    reference: String(refVal || ''),
+  };
+}
+
+function parseNum(v) {
+  if (v == null || v === '') return 0;
+  const n = parseFloat(String(v).replace(/[₹,\s]/g, '').replace(/[()]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function normalizeDate(v) {
+  if (!v) return '';
+  if (v instanceof Date) {
+    const y = v.getFullYear(), m = String(v.getMonth() + 1).padStart(2, '0'), d = String(v.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const m1 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (m1) {
+    let [_, d, mo, y] = m1;
+    if (y.length === 2) y = '20' + y;
+    return `${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+  if (/^\d+(\.\d+)?$/.test(s)) {
+    const serial = parseFloat(s);
+    if (serial > 20000 && serial < 60000) {
+      const epoch = Date.UTC(1899, 11, 30);
+      const dt = new Date(epoch + serial * 86400000);
+      return dt.toISOString().slice(0, 10);
+    }
+  }
+  return '';
+}
+
+/* ============================================================
+   NORMALIZATION
+   ============================================================ */
+function normalizeTransactions(txns) {
+  const result = txns.map(t => {
+    const cleanNarr = (t.narration_raw || '').replace(/\s+/g, ' ').trim();
+    const signed = t.type === 'DEBIT' ? -Math.abs(t.amount) : Math.abs(t.amount);
+    const cp = extractCounterparty(cleanNarr, t.mode);
+    const vpa = extractVPA(cleanNarr);
+    const category = categorize(cleanNarr, cp, t.mode);
+    const isInternal = /self|vino d ku/i.test(cp);
+    return {
+      ...t,
+      narration_clean: cleanNarr,
+      signed_amount: signed,
+      amount: Math.abs(t.amount),
+      counterparty: cp, vpa, category, is_internal: isInternal,
+      value_date: normalizeDate(t.value_date),
+    };
+  }).filter(t => t.value_date && /^\d{4}-\d{2}-\d{2}$/.test(t.value_date) && t.amount >= 0)
+    .sort((a, b) => (a.value_date + (a.txn_datetime || '')).localeCompare(b.value_date + (b.txn_datetime || '')));
+
+  // Final chain repair after sort — signed_amount must match balance progression
+  function realBal(b) {
+    return b != null && b !== 0 && !(b === Math.floor(b) && b >= 1 && b <= 31);
+  }
+  for (let i = 1; i < result.length; i++) {
+    const prev = result[i - 1], cur = result[i];
+    if (!realBal(prev.balance) || !realBal(cur.balance)) continue;
+    const delta = +(cur.balance - prev.balance).toFixed(2);
+    if (Math.abs(delta) < 0.01) continue;
+    // Type only if missing — NEVER invent amount that wasn't in statement
+    if (!cur.type) cur.type = delta > 0 ? 'CREDIT' : 'DEBIT';
+    if (!(cur.amount > 0)) {
+      cur.amount = Math.abs(delta);
+    }
+    cur.signed_amount = cur.type === 'DEBIT' ? -Math.abs(cur.amount) : Math.abs(cur.amount);
+  }
+  return result;
+}
+
+function extractCounterparty(narr, mode) {
+  let m = narr.match(/UPI\/[A-Z]{2}\/\d+\/([^\/]+)\/([A-Z]+)/i);
+  if (m) {
+    const seg = m[1].trim();
+    if (seg.includes('@')) return extractNameFromVPA(seg);
+    return cleanName(seg);
+  }
+  m = narr.match(/UPI\/[A-Z]{2}\/\d+\/([^\/]+)/i);
+  if (m) {
+    const seg = m[1].trim();
+    if (seg.includes('@')) return extractNameFromVPA(seg);
+    return cleanName(seg);
+  }
+  m = narr.match(/NEFT[-\*]([A-Z0-9]+)[-\*]([A-Z0-9]+)[-\*]([A-Z0-9\s]+)/i);
+  if (m) return cleanName(m[3]);
+  m = narr.match(/IMPS\/[A-Z0-9]+\/([A-Z0-9\s]+?)(?:\/|$)/i);
+  if (m) return cleanName(m[1]);
+  if (/MUTHOOTFINCORPL|MUTHOOTFINCORP/i.test(narr)) return 'Muthoot Finance';
+  if (/NSDL\s*5020|bankitapiNS/i.test(narr)) return 'NSDL';
+  if (/ino\s*Payments/i.test(narr)) return 'INO Payments';
+  if (/MoneyTRF/i.test(narr)) return 'MoneyTRF';
+  if (/GOOGLE IND/i.test(narr)) return 'Google India';
+  if (/PHONEPE/i.test(narr)) return 'PhonePe';
+  if (/BharatPe/i.test(narr)) return 'BharatPe';
+  if (/PAYTM/i.test(narr)) return 'Paytm';
+  if (/SUPREME\s*HOUSING|SUPREMEHOUSING/i.test(narr)) return 'Supreme Housing';
+  if (/BAJAJIFINANCELTD|bajajifinan/i.test(narr)) return 'Bajaj Finance';
+  if (/CSC\s*E\s*GOVERNANCE|CSCE\s*GOVERNANCE/i.test(narr)) return 'CSC e-Governance';
+  if (/BY CASH|CASH DEPOSIT/i.test(narr)) return 'Cash Deposit';
+  if (/ATM\/CASH/i.test(narr)) return 'ATM Withdrawal';
+  if (/SMS-|SMS_Charges|SMS Charges/i.test(narr)) return 'SMS Charges';
+  if (/INTEREST|Int\.Pd/i.test(narr)) return 'Interest';
+  if (/NEWCARDISSUE/i.test(narr)) return 'Card Issuance Fee';
+  if (/UIDAI|uidaigov/i.test(narr)) return 'UIDAI';
+  if (/CHARGES/i.test(narr)) return 'Bank Charges';
+  if (/REVERSAL/i.test(narr)) return 'Reversal';
+  if (/Harshit/i.test(narr)) return 'Harshit Parmar';
+  if (/Sonujat|SONUJAT/i.test(narr)) return 'Sonu Jat';
+  if (/SSVCNAMLI|ssvcnamli/i.test(narr)) return 'SSVCN Amil';
+  if (/OKRECHARGE|okrecharge/i.test(narr)) return 'OKRecharge';
+  if (/KANHAIYA|kanhaiya/i.test(narr)) return 'Kanhaiya Das';
+  if (/ANKITSINGH|ankitsingh/i.test(narr)) return 'Ankit Singh';
+  if (/84356944/i.test(narr)) return 'UPI 84356944';
+  if (/82259037/i.test(narr)) return 'UPI 82259037';
+  const words = narr.split(/[\s\/\*\-]+/).filter(w => w.length > 2).slice(0, 3);
+  return cleanName(words.join(' ')) || 'Unknown';
+}
+
+function extractNameFromVPA(vpa) {
+  if (!vpa) return 'Unknown';
+  let name = vpa.split('@')[0];
+  name = name.replace(/[._\-0-9]+/g, ' ').trim();
+  if (name.length > 2) return cleanName(name);
+  return vpa;
+}
+
+function cleanName(s) {
+  return String(s).replace(/\s+/g, ' ').trim()
+    .split(' ').filter(w => w.length > 0)
+    .map(w => w.length > 1 ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toUpperCase())
+    .join(' ');
+}
+
+function extractVPA(narr) {
+  const m = narr.match(/([a-z0-9._-]+@[a-z]+)/i);
+  return m ? m[1] : null;
+}
+
+function categorize(narr, cp, mode) {
+  const n = (narr + ' ' + cp).toLowerCase();
+  if (/muthoot|bajaj|supreme housing|tata capital|tvs credit|loan|mandate|achdr|ecs|bounce|pmsby|pmjjby/i.test(n)) return 'Loan/EMI';
+  if (/salary/i.test(n)) return 'Salary';
+  if (/interest/i.test(n)) return 'Interest';
+  if (/charge|cmp charge|cdm charge|penalty|amc|sms|newcard|card issue/i.test(n)) return 'Bank Charges';
+  if (/google|phonepe|paytm|bharatpe|gpay|okbizaxis|okicici|okhdfcbank|oksbi|okaxis|ybl|axl|ibl|ptyes/i.test(n)) return 'UPI Settlement';
+  if (/insurance|lic/i.test(n)) return 'Insurance';
+  if (/rent/i.test(n)) return 'Rent';
+  if (mode === 'ATM' || /atm wdl|atm\/cash/i.test(n)) return 'Cash Withdrawal';
+  if (mode === 'CASH' || /cash deposit|cdm|by cash/i.test(n)) return 'Cash Deposit';
+  if (/self/i.test(n)) return 'Self Transfer';
+  if (mode === 'UPI') return 'UPI Transfer';
+  if (mode === 'IMPS') return 'IMPS Transfer';
+  if (mode === 'NEFT') return 'NEFT Transfer';
+  if (mode === 'AEPS') return 'AEPS';
+  return 'Other';
+}
+
+/* ============================================================
+   VALIDATION
+   ============================================================ */
+function validateTransactions(txns, meta) {
+  const report = {
+    missing_dates: [], balance_breaks: [], duplicate_txns: [],
+    field_warnings: [], severity_summary: { critical: 0, warning: 0, info: 0 },
+    completeness_score: 0,
+  };
+  function looksLikeRealBalance(b) {
+    if (b == null || b === 0) return false;
+    // Reject pure integers 1-31 (likely mis-parsed day-of-month)
+    if (b === Math.floor(b) && b >= 1 && b <= 31) return false;
+    return true;
+  }
+  for (let i = 1; i < txns.length; i++) {
+    const prevBal = txns[i - 1].balance;
+    const actual = +txns[i].balance.toFixed(2);
+    if (!looksLikeRealBalance(prevBal) || !looksLikeRealBalance(actual)) continue;
+    const expected = +(prevBal + txns[i].signed_amount).toFixed(2);
+    const gap = Math.abs(expected - actual);
+    // Tolerate small rounding; only flag material breaks (> Rs 2)
+    if (gap > 2) {
+      report.balance_breaks.push({ date: txns[i].value_date, expected, actual, delta: +(actual - expected).toFixed(2), txn_id: txns[i].txn_id });
+    }
+  }
+  if (txns.length) {
+    const first = new Date(txns[0].value_date + 'T00:00:00');
+    const last = new Date(txns[txns.length - 1].value_date + 'T00:00:00');
+    const present = new Set(txns.map(t => t.value_date));
+    const d = new Date(first);
+    let guard = 0;
+    while (d <= last && guard < 5000) {
+      const iso = d.toISOString().slice(0, 10);
+      const day = d.getDay(); // 0=Sun, 6=Sat
+      // Only flag weekdays with no transactions (weekends are normal)
+      if (!present.has(iso) && day !== 0 && day !== 6) {
+        report.missing_dates.push(iso);
+      }
+      d.setDate(d.getDate() + 1);
+      guard++;
+    }
+  }
+  const seen = new Map();
+  for (const t of txns) {
+    const key = `${t.value_date}|${t.amount}|${t.narration_clean}|${t.txn_id}`;
+    if (seen.has(key)) report.duplicate_txns.push(t.txn_id || key);
+    else seen.set(key, t);
+  }
+  // Only flag truly useful profile gaps (email/PAN often absent from PDF statements)
+  const required = [['name', 'Account holder name']];
+  for (const [f, label] of required) {
+    if (!STATE.profile[f]) report.field_warnings.push({ field: label, message: 'Missing in profile' });
+  }
+  report.severity_summary.critical = report.balance_breaks.length + report.duplicate_txns.length;
+  // Missing activity days are normal (holidays, no spending) — treat as info, not warning
+  report.severity_summary.warning = report.field_warnings.length;
+  report.severity_summary.info = report.missing_dates.length;
+  // Completeness focuses on data integrity, not quiet days or optional profile fields
+  // Practical scoring for bank PDFs (1-2 isolated breaks OK on 1000+ txns)
+  let score = 100;
+  if (txns.length === 0) score = 0;
+  else {
+    if (report.duplicate_txns.length > 5) score -= 20;
+    if (report.balance_breaks.length > 10) score -= 40;
+    else if (report.balance_breaks.length > 3) score -= 20;
+    else if (report.balance_breaks.length > 0) score -= 5; // minor
+    const withAmt = txns.filter(t => t.amount > 0).length;
+    if (withAmt < txns.length * 0.85) score -= 15;
+  }
+  report.completeness_score = Math.max(0, Math.min(100, score));
+  return report;
+}
+
+/* ============================================================
+   AGGREGATES
+   ============================================================ */
+function computeAggregates(txns) {
+  const months = {};
+  for (const t of txns) {
+    const m = t.value_date.slice(0, 7);
+    if (!months[m]) months[m] = { month: m, credits: 0, debits: 0, cr_count: 0, dr_count: 0 };
+    const M = months[m];
+    if (t.type === 'CREDIT') { M.credits += t.amount; M.cr_count++; }
+    else { M.debits += t.amount; M.dr_count++; }
+  }
+  const eodMap = {};
+  for (const t of txns) eodMap[t.value_date] = t.balance;
+  const eod = Object.entries(eodMap).map(([date, balance]) => ({ date, balance })).sort((a, b) => a.date.localeCompare(b.date));
+  const monthArr = Object.values(months).sort((a, b) => a.month.localeCompare(b.month));
+  const fundsIn = txns.filter(t => t.type === 'CREDIT').reduce((acc, t) => { const k = t.counterparty || 'Unknown'; acc[k] = (acc[k] || 0) + t.amount; return acc; }, {});
+  const fundsOut = txns.filter(t => t.type === 'DEBIT').reduce((acc, t) => { const k = t.counterparty || 'Unknown'; acc[k] = (acc[k] || 0) + t.amount; return acc; }, {});
+  const recurringMap = {};
+  for (const t of txns) {
+    if (t.type !== 'DEBIT') continue;
+    const key = `${t.counterparty}|${Math.round(t.amount / 100) * 100}`;
+    (recurringMap[key] = recurringMap[key] || []).push(t);
+  }
+  const recurring = Object.values(recurringMap).filter(a => a.length >= 3).map(arr => ({
+    counterparty: arr[0].counterparty,
+    occurrences: arr.length,
+    avg_amount: arr.reduce((s, t) => s + t.amount, 0) / arr.length,
+    total: arr.reduce((s, t) => s + t.amount, 0),
+    first: arr[0].value_date, last: arr[arr.length - 1].value_date,
+  })).sort((a, b) => b.total - a.total);
+  const obligations = txns.filter(t => /muthoot|bajaj|tata capital|tvs credit|loan|mandate|achdr|ecs|supreme housing/i.test(t.narration_clean))
+    .map(t => ({ date: t.value_date, narration: t.narration_clean, amount: t.amount, category: t.category }));
+  const totalCredits = txns.filter(t => t.type === 'CREDIT').reduce((s, t) => s + t.amount, 0);
+  const totalDebits = txns.filter(t => t.type === 'DEBIT').reduce((s, t) => s + t.amount, 0);
+  const avgEOD = eod.length ? eod.reduce((s, e) => s + e.balance, 0) / eod.length : 0;
+  const minEOD = eod.length ? Math.min(...eod.map(e => e.balance)) : 0;
+  const maxEOD = eod.length ? Math.max(...eod.map(e => e.balance)) : 0;
+  const bankCharges = txns.filter(t => t.category === 'Bank Charges').reduce((s, t) => s + t.amount, 0);
+  const salaryCredits = txns.filter(t => t.category === 'Salary').reduce((s, t) => s + t.amount, 0);
+  // Build full date→balance map; fill forward for days without txns
+  const eodByDate = {};
+  for (const e of eod) eodByDate[e.date] = e.balance;
+
+  function balanceOnOrBefore(isoDate) {
+    if (eodByDate[isoDate] != null) return eodByDate[isoDate];
+    // walk back up to 31 days
+    const d = new Date(isoDate + 'T00:00:00');
+    for (let i = 0; i < 32; i++) {
+      d.setDate(d.getDate() - 1);
+      const key = d.toISOString().slice(0, 10);
+      if (eodByDate[key] != null) return eodByDate[key];
+    }
+    return null;
+  }
+
+  function monthLabel(ym) {
+    const [y, m] = ym.split('-');
+    const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return names[parseInt(m, 10) - 1] + '-' + y.slice(2);
+  }
+
+  // Bounce detection
+  function isInwardBounce(t) {
+    return /inward.?return|i\/?w.?bounce|cheque.?return.?in|return.?inward|ecs.?return.?in/i.test(t.narration_clean || '');
+  }
+  function isOutwardBounce(t) {
+    return /outward.?return|o\/?w.?bounce|cheque.?return|return.?outward|bounce|unpaid|ecs.?return/i.test(t.narration_clean || '') && !isInwardBounce(t);
+  }
+
+  const monthSummary = monthArr.map(M => {
+    const ym = M.month;
+    const bal5 = balanceOnOrBefore(`${ym}-05`);
+    const bal15 = balanceOnOrBefore(`${ym}-15`);
+    const bal25 = balanceOnOrBefore(`${ym}-25`);
+    // Monthly avg = average of available EOD balances in that month
+    const monthEods = eod.filter(e => e.date.startsWith(ym));
+    const monthlyAvg = monthEods.length ? monthEods.reduce((s, e) => s + e.balance, 0) / monthEods.length : null;
+    const monthTxns = txns.filter(t => t.value_date.startsWith(ym));
+    const iwBounce = monthTxns.filter(isInwardBounce).length;
+    const owBounce = monthTxns.filter(isOutwardBounce).length;
+    return {
+      month: ym,
+      label: monthLabel(ym),
+      bal5, bal15, bal25,
+      monthlyAvg,
+      dr_count: M.dr_count,
+      debits: M.debits,
+      cr_count: M.cr_count,
+      credits: M.credits,
+      iwBounce,
+      owBounce,
+    };
+  });
+
+  // ABB = average of monthly averages (only months with data)
+  const avgs = monthSummary.map(m => m.monthlyAvg).filter(v => v != null);
+  const abb = avgs.length ? avgs.reduce((s, v) => s + v, 0) / avgs.length : 0;
+
+  const period = {
+    from: txns.length ? txns[0].value_date : '',
+    to: txns.length ? txns[txns.length - 1].value_date : '',
+  };
+
+  return {
+    monthArr, eod, fundsIn, fundsOut, recurring, obligations, monthSummary, abb, period,
+    totals: {
+      totalCredits, totalDebits, avgEOD, minEOD, maxEOD, bankCharges, salaryCredits,
+      cdRatio: totalDebits ? totalCredits / totalDebits : 0,
+      loanEmi: obligations.reduce((s, o) => s + o.amount, 0),
+    },
+  };
+}
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+function renderDashboard() {
+  renderAccountSummary();
+  renderKPIs(); renderMonthChart(); renderModeChart();
+  renderLedger(); renderEOD(); renderFunds(); renderRecurring();
+  renderObligations(); renderValidation();
+}
+function fmt(n) {
+  if (n == null || isNaN(n)) return '—';
+  return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+}
+function fmtNum(n) {
+  if (n == null || isNaN(n)) return '—';
+  return Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+}
+
+function renderAccountSummary() {
+  const p = STATE.profile || {};
+  const agg = STATE.aggregates;
+  const period = agg.period || {};
+  const bankLine = [p.bank || 'Bank of Baroda', p.account || p.ifsc || ''].filter(Boolean).join(' · ');
+  const ifsc = p.ifsc || '';
+
+  document.getElementById('periodBar').innerHTML = `
+    <span class="pill-info">Statement Period</span>
+    <span class="meta"><strong>${period.from || '—'}</strong> → <strong>${period.to || '—'}</strong></span>
+    <span class="meta">·</span>
+    <span class="meta">${STATE.transactions.length} transactions</span>
+    <span class="meta">·</span>
+    <span class="meta">ABB (Avg Bank Balance): <strong>${fmt(agg.abb)}</strong></span>
+  `;
+
+  document.getElementById('summaryInfo').innerHTML = `
+    <div class="si"><div class="lbl">Name of Account Holder</div><div class="val">${p.name || '—'}</div></div>
+    <div class="si"><div class="lbl">Bank Name & A/c No</div><div class="val">${bankLine || '—'} ${ifsc ? '(' + ifsc + ')' : ''}</div></div>
+    <div class="si"><div class="lbl">A/c Type</div><div class="val">Savings A/c</div></div>
+    <div class="si"><div class="lbl">IFSC</div><div class="val">${ifsc || '—'}</div></div>
+    <div class="si"><div class="lbl">Mobile</div><div class="val">${p.mobile || '—'}</div></div>
+    <div class="si"><div class="lbl">Branch</div><div class="val">${p.bank || '—'}</div></div>
+  `;
+
+  const rows = agg.monthSummary || [];
+  let totDr = 0, totDrAmt = 0, totCr = 0, totCrAmt = 0, totIw = 0, totOw = 0;
+  document.getElementById('summaryBody').innerHTML = rows.map(r => {
+    totDr += r.dr_count; totDrAmt += r.debits;
+    totCr += r.cr_count; totCrAmt += r.credits;
+    totIw += r.iwBounce; totOw += r.owBounce;
+    return `<tr>
+      <td>${r.label}</td>
+      <td class="num">${fmtNum(r.bal5)}</td>
+      <td class="num">${fmtNum(r.bal15)}</td>
+      <td class="num">${fmtNum(r.bal25)}</td>
+      <td class="num">${fmtNum(r.monthlyAvg)}</td>
+      <td class="num">${r.dr_count}</td>
+      <td class="num debit">${fmtNum(r.debits)}</td>
+      <td class="num">${r.cr_count}</td>
+      <td class="num credit">${fmtNum(r.credits)}</td>
+      <td class="num">${r.iwBounce}</td>
+      <td class="num">${r.owBounce}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="11" class="empty">No data</td></tr>';
+
+  document.getElementById('summaryFoot').innerHTML = `
+    <tr>
+      <td>ABB / Total</td>
+      <td class="num" colspan="3">—</td>
+      <td class="num">${fmtNum(agg.abb)}</td>
+      <td class="num">${totDr}</td>
+      <td class="num debit">${fmtNum(totDrAmt)}</td>
+      <td class="num">${totCr}</td>
+      <td class="num credit">${fmtNum(totCrAmt)}</td>
+      <td class="num">${totIw}</td>
+      <td class="num">${totOw}</td>
+    </tr>`;
+}
+
+
+function renderKPIs() {
+  const t = STATE.aggregates.totals;
+  const kpis = [
+    { label: 'Total Credits', value: fmt(t.totalCredits), cls: 'green' },
+    { label: 'Total Debits', value: fmt(t.totalDebits), cls: 'red' },
+    { label: 'Avg EOD Balance', value: fmt(t.avgEOD), cls: '' },
+    { label: 'Credit / Debit Ratio', value: t.cdRatio.toFixed(2), cls: t.cdRatio >= 1 ? 'green' : 'yellow' },
+    { label: 'Salary Credits', value: fmt(t.salaryCredits), cls: 'green' },
+    { label: 'Loan / EMI Debits', value: fmt(t.loanEmi), cls: 'red' },
+    { label: 'Bank Charges', value: fmt(t.bankCharges), cls: 'yellow' },
+    { label: 'Total Transactions', value: STATE.transactions.length.toString(), cls: '' },
+  ];
+  document.getElementById('kpiGrid').innerHTML = kpis.map(k =>
+    `<div class="kpi"><div class="label">${k.label}</div><div class="value ${k.cls}">${k.value}</div></div>`
+  ).join('');
+  const v = STATE.validation;
+  document.getElementById('valKpiGrid').innerHTML = `
+    <div class="kpi"><div class="label">Completeness Score</div>
+      <div class="value ${v.completeness_score >= 80 ? 'green' : v.completeness_score >= 50 ? 'yellow' : 'red'}">${v.completeness_score}%</div></div>
+    <div class="kpi"><div class="label">Critical Issues</div><div class="value ${v.severity_summary.critical ? 'red' : 'green'}">${v.severity_summary.critical}</div>
+      <div class="sub">Balance breaks + duplicates</div></div>
+    <div class="kpi"><div class="label">Warnings</div><div class="value ${v.severity_summary.warning ? 'yellow' : 'green'}">${v.severity_summary.warning}</div>
+      <div class="sub">Missing profile fields</div></div>
+    <div class="kpi"><div class="label">Quiet Days</div>
+      <div class="value">${v.missing_dates.length}</div>
+      <div class="sub">No activity (normal)</div></div>`;
+}
+
+let monthChartInst = null, modeChartInst = null, eodChartInst = null;
+
+function renderMonthChart() {
+  const ctx = document.getElementById('monthChart').getContext('2d');
+  if (monthChartInst) monthChartInst.destroy();
+  const m = STATE.aggregates.monthArr;
+  monthChartInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: m.map(x => x.month),
+      datasets: [
+        { label: 'Credits', data: m.map(x => x.credits), backgroundColor: '#4ade80' },
+        { label: 'Debits', data: m.map(x => x.debits), backgroundColor: '#f87171' },
+      ],
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#cbd5e1' } } },
+      scales: {
+        x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+        y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+      },
+    },
+  });
+}
+
+function renderModeChart() {
+  const ctx = document.getElementById('modeChart').getContext('2d');
+  if (modeChartInst) modeChartInst.destroy();
+  const modeTotals = {};
+  for (const t of STATE.transactions) modeTotals[t.mode] = (modeTotals[t.mode] || 0) + t.amount;
+  modeChartInst = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(modeTotals),
+      datasets: [{ data: Object.values(modeTotals),
+        backgroundColor: ['#38bdf8','#c084fc','#fbbf24','#4ade80','#f87171','#94a3b8','#f472b6','#a78bfa'] }],
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#cbd5e1' } } } },
+  });
+}
+
+function renderLedger() {
+  const body = document.getElementById('ledgerBody');
+  const search = document.getElementById('ledgerSearch').value.toLowerCase();
+  const typeFilter = document.getElementById('ledgerType').value;
+  const modeFilter = document.getElementById('ledgerMode').value;
+  const modeSel = document.getElementById('ledgerMode');
+  if (modeSel.options.length === 1) {
+    const modes = [...new Set(STATE.transactions.map(t => t.mode))].sort();
+    for (const m of modes) {
+      const o = document.createElement('option'); o.value = m; o.textContent = m;
+      modeSel.appendChild(o);
+    }
+  }
+  let rows = STATE.transactions;
+  if (typeFilter) rows = rows.filter(t => t.type === typeFilter);
+  if (modeFilter) rows = rows.filter(t => t.mode === modeFilter);
+  if (search) rows = rows.filter(t => (t.narration_clean + ' ' + (t.counterparty || '')).toLowerCase().includes(search));
+  document.getElementById('ledgerCount').textContent = `(${rows.length})`;
+  body.innerHTML = rows.slice(0, 1000).map(t => {
+    const tagCls = t.mode === 'UPI' ? 'tag-upi' : t.mode === 'NEFT' ? 'tag-neft' : t.mode === 'ATM' ? 'tag-atm' : t.mode === 'CASH' ? 'tag-cash' : 'tag-others';
+    return `<tr>
+      <td>${t.value_date}</td>
+      <td><span class="tag ${tagCls}">${t.mode}</span></td>
+      <td title="${t.narration_clean.replace(/"/g, '&quot;')}">${t.narration_clean.slice(0, 55)}${t.narration_clean.length > 55 ? '…' : ''}</td>
+      <td>${t.counterparty || '—'}</td>
+      <td>${t.category}</td>
+      <td class="num debit">${t.type === 'DEBIT' ? t.amount.toFixed(2) : ''}</td>
+      <td class="num credit">${t.type === 'CREDIT' ? t.amount.toFixed(2) : ''}</td>
+      <td class="num">${t.balance.toFixed(2)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" class="empty">No matching transactions</td></tr>';
+  if (rows.length > 1000) body.innerHTML += `<tr><td colspan="8" class="empty">Showing first 1000 of ${rows.length}</td></tr>`;
+}
+
+document.getElementById('ledgerSearch').addEventListener('input', renderLedger);
+document.getElementById('ledgerType').addEventListener('change', renderLedger);
+document.getElementById('ledgerMode').addEventListener('change', renderLedger);
+
+function renderEOD() {
+  const ctx = document.getElementById('eodChart').getContext('2d');
+  if (eodChartInst) eodChartInst.destroy();
+  const eod = STATE.aggregates.eod;
+  eodChartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: eod.map(e => e.date),
+      datasets: [{ label: 'EOD Balance', data: eod.map(e => e.balance),
+        borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.1)',
+        fill: true, tension: 0.3, pointRadius: 2 }],
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#cbd5e1' } } },
+      scales: {
+        x: { ticks: { color: '#94a3b8', maxTicksLimit: 15 }, grid: { color: '#1e293b' } },
+        y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
+      },
+    },
+  });
+  const missingSet = new Set(STATE.validation.missing_dates);
+  document.getElementById('eodBody').innerHTML = eod.map(e => `
+    <tr>
+      <td>${e.date}</td>
+      <td class="num">${e.balance.toFixed(2)}</td>
+      <td>${missingSet.has(e.date) ? '<span class="pill pill-yellow">Missing Date</span>' : '<span class="pill pill-green">OK</span>'}</td>
+    </tr>`).join('');
+}
+
+function renderFunds() {
+  const inTop = Object.entries(STATE.aggregates.fundsIn).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const outTop = Object.entries(STATE.aggregates.fundsOut).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  document.getElementById('fundsInBody').innerHTML = inTop.map(([k, v]) =>
+    `<tr><td>${k}</td><td class="num credit">${v.toFixed(2)}</td></tr>`
+  ).join('') || '<tr><td colspan="2" class="empty">No credits</td></tr>';
+  document.getElementById('fundsOutBody').innerHTML = outTop.map(([k, v]) =>
+    `<tr><td>${k}</td><td class="num debit">${v.toFixed(2)}</td></tr>`
+  ).join('') || '<tr><td colspan="2" class="empty">No debits</td></tr>';
+}
+
+function renderRecurring() {
+  document.getElementById('recurringBody').innerHTML = STATE.aggregates.recurring.map(r => `
+    <tr>
+      <td>${r.counterparty}</td>
+      <td class="num">${r.occurrences}</td>
+      <td class="num">${r.avg_amount.toFixed(2)}</td>
+      <td class="num">${r.total.toFixed(2)}</td>
+      <td>${r.first}</td><td>${r.last}</td>
+    </tr>`).join('') || '<tr><td colspan="6" class="empty">No recurring debits detected</td></tr>';
+}
+
+function renderObligations() {
+  document.getElementById('obligationsBody').innerHTML = STATE.aggregates.obligations.map(o => `
+    <tr>
+      <td>${o.date}</td>
+      <td title="${o.narration.replace(/"/g, '&quot;')}">${o.narration.slice(0, 70)}</td>
+      <td class="num debit">${o.amount.toFixed(2)}</td>
+      <td><span class="pill pill-yellow">${o.category}</span></td>
+    </tr>`).join('') || '<tr><td colspan="4" class="empty">No loan/EMI obligations detected</td></tr>';
+}
+
+function renderValidation() {
+  const v = STATE.validation;
+  const items = [];
+  for (const b of v.balance_breaks.slice(0, 50))
+    items.push({ sev: 'critical', icon: '⚠️', msg: `Balance break on ${b.date}`, detail: `Expected ${b.expected.toFixed(2)}, got ${b.actual.toFixed(2)} (Δ ${b.delta})` });
+  for (const d of v.duplicate_txns.slice(0, 20))
+    items.push({ sev: 'critical', icon: '🔁', msg: `Duplicate transaction`, detail: `Txn ID: ${d}` });
+  for (const d of v.missing_dates.slice(0, 30))
+    items.push({ sev: 'info', icon: '📅', msg: `No transaction on ${d}`, detail: 'Normal — no activity that day (weekend/holiday/quiet day)' });
+  if (v.missing_dates.length > 30)
+    items.push({ sev: 'info', icon: '📅', msg: `…and ${v.missing_dates.length - 30} more quiet days`, detail: 'Not an error' });
+  for (const f of v.field_warnings)
+    items.push({ sev: 'warning', icon: '📝', msg: `Missing field: ${f.field}`, detail: f.message });
+  if (!items.length) items.push({ sev: 'info', icon: '✅', msg: 'No validation issues found', detail: 'Statement is clean' });
+  document.getElementById('valBody').innerHTML = items.map(i => `
+    <div class="val-row">
+      <div class="icon">${i.icon}</div>
+      <div style="flex:1">
+        <div class="msg">${i.msg}</div>
+        <div class="detail">${i.detail}</div>
+      </div>
+      <span class="pill sev-${i.sev}">${i.sev}</span>
+    </div>`).join('');
+}
+
+document.getElementById('tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab');
+  if (!btn) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+});
+
+/* ============================================================
+   EXPORT XLSX (formatted like UI — colours, headers, number formats)
+   ============================================================ */
+async function exportXLSX() {
+  if (typeof ExcelJS === 'undefined') {
+    alert('ExcelJS not loaded. Please refresh the page.');
+    return;
+  }
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Universal Bank Statement Analyzer';
+  wb.created = new Date();
+
+  const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+  const headerFont = { bold: true, color: { argb: 'FFF1F5F9' }, size: 10, name: 'Arial' };
+  const debitFont = { color: { argb: 'FFDC2626' }, size: 10, name: 'Arial' };
+  const creditFont = { color: { argb: 'FF16A34A' }, size: 10, name: 'Arial' };
+  const normalFont = { size: 10, name: 'Arial' };
+  const thinBorder = {
+    top: { style: 'thin', color: { argb: 'FF334155' } },
+    left: { style: 'thin', color: { argb: 'FF334155' } },
+    bottom: { style: 'thin', color: { argb: 'FF334155' } },
+    right: { style: 'thin', color: { argb: 'FF334155' } },
+  };
+  const zebraFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+  const sectionFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+
+  function styleHeader(row) {
+    row.eachCell(function(cell) {
+      cell.fill = headerFill;
+      cell.font = headerFont;
+      cell.border = thinBorder;
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    });
+    row.height = 22;
+  }
+  function styleDataRow(row, isZebra) {
+    row.eachCell(function(cell) {
+      cell.font = normalFont;
+      cell.border = thinBorder;
+      cell.alignment = { vertical: 'middle' };
+      if (isZebra) cell.fill = zebraFill;
+    });
+  }
+
+  // ---- Ledger (main, UI-like) ----
+  const wsLedger = wb.addWorksheet('Ledger', { views: [{ state: 'frozen', ySplit: 1 }] });
+  wsLedger.columns = [
+    { header: 'Date', key: 'date', width: 12 },
+    { header: 'Mode', key: 'mode', width: 10 },
+    { header: 'Narration', key: 'narr', width: 48 },
+    { header: 'Counterparty', key: 'cp', width: 22 },
+    { header: 'Category', key: 'cat', width: 16 },
+    { header: 'Debit', key: 'dr', width: 14 },
+    { header: 'Credit', key: 'cr', width: 14 },
+    { header: 'Balance', key: 'bal', width: 14 },
+  ];
+  styleHeader(wsLedger.getRow(1));
+  STATE.transactions.forEach(function(t, i) {
+    const row = wsLedger.addRow({
+      date: t.value_date,
+      mode: t.mode,
+      narr: t.narration_clean || t.narration_raw || '',
+      cp: t.counterparty || '',
+      cat: t.category || '',
+      dr: t.type === 'DEBIT' ? t.amount : null,
+      cr: t.type === 'CREDIT' ? t.amount : null,
+      bal: t.balance,
+    });
+    styleDataRow(row, i % 2 === 1);
+    if (t.type === 'DEBIT' && t.amount) {
+      row.getCell('dr').font = debitFont;
+      row.getCell('dr').numFmt = '₹#,##0.00';
+    }
+    if (t.type === 'CREDIT' && t.amount) {
+      row.getCell('cr').font = creditFont;
+      row.getCell('cr').numFmt = '₹#,##0.00';
+    }
+    row.getCell('bal').numFmt = '₹#,##0.00';
+  });
+
+  // ---- Account Summary ----
+  const wsSum = wb.addWorksheet('Account Summary');
+  const p = STATE.profile || {};
+  const agg = STATE.aggregates || {};
+  const period = agg.period || {};
+  wsSum.addRow(['Account Summary']).font = { bold: true, size: 14, color: { argb: 'FFF1F5F9' } };
+  wsSum.getRow(1).fill = sectionFill;
+  wsSum.addRow(['Name of Account Holder', p.name || '']);
+  wsSum.addRow(['Bank Name & A/c No', (p.bank || '') + ' · ' + (p.account || '')]);
+  wsSum.addRow(['IFSC', p.ifsc || '']);
+  wsSum.addRow(['A/c Type', 'Savings A/c']);
+  wsSum.addRow(['Statement Period', (period.from || '') + ' → ' + (period.to || '')]);
+  wsSum.addRow(['Total Transactions', STATE.transactions.length]);
+  wsSum.addRow(['ABB (Avg Bank Balance)', agg.abb || agg.totals && agg.totals.avgEOD || '']);
+  wsSum.getRow(8).getCell(2).numFmt = '₹#,##0.00';
+  wsSum.addRow([]);
+  const sumHeader = wsSum.addRow(['Months', '5th', '15th', '25th', 'Monthly Avg', 'No. Debits', 'Total Debits', 'No. Credits', 'Total Credits', 'I/w Bounce', 'O/w Bounce']);
+  styleHeader(sumHeader);
+  (agg.monthSummary || []).forEach(function(m, i) {
+    const row = wsSum.addRow([m.label, m.bal5, m.bal15, m.bal25, m.monthlyAvg, m.dr_count, m.debits, m.cr_count, m.credits, m.iwBounce, m.owBounce]);
+    styleDataRow(row, i % 2 === 1);
+    [2, 3, 4, 5, 7, 9].forEach(function(c) { row.getCell(c).numFmt = '₹#,##0.00'; });
+    row.getCell(7).font = debitFont;
+    row.getCell(9).font = creditFont;
+  });
+  wsSum.getColumn(1).width = 12;
+  for (var c = 2; c <= 11; c++) wsSum.getColumn(c).width = 13;
+
+  // ---- Analysis ----
+  const t = agg.totals || {};
+  const wsAn = wb.addWorksheet('Analysis');
+  wsAn.addRow(['Personal Info']).font = { bold: true, size: 12 };
+  [['Name', p.name], ['Address', p.address], ['Email', p.email], ['PAN', p.pan],
+   ['Mobile', p.mobile], ['Bank', p.bank], ['Account', p.account], ['IFSC', p.ifsc]
+  ].forEach(function(pair) { wsAn.addRow(pair); });
+  wsAn.addRow([]);
+  wsAn.addRow(['Monthwise Details']).font = { bold: true, size: 12 };
+  const mh = wsAn.addRow(['Month', 'Credits', 'Debits', 'Cr Count', 'Dr Count']);
+  styleHeader(mh);
+  (agg.monthArr || []).forEach(function(m, i) {
+    const row = wsAn.addRow([m.month, m.credits, m.debits, m.cr_count, m.dr_count]);
+    styleDataRow(row, i % 2 === 1);
+    row.getCell(2).numFmt = '₹#,##0.00';
+    row.getCell(3).numFmt = '₹#,##0.00';
+    row.getCell(2).font = creditFont;
+    row.getCell(3).font = debitFont;
+  });
+  wsAn.addRow([]);
+  wsAn.addRow(['Summary']).font = { bold: true, size: 12 };
+  [['Total Credits', t.totalCredits], ['Total Debits', t.totalDebits],
+   ['Avg EOD Balance', t.avgEOD], ['Min EOD', t.minEOD], ['Max EOD', t.maxEOD],
+   ['C/D Ratio', t.cdRatio], ['Bank Charges', t.bankCharges],
+   ['Salary Credits', t.salaryCredits], ['Loan/EMI', t.loanEmi]
+  ].forEach(function(pair) {
+    const row = wsAn.addRow(pair);
+    if (typeof pair[1] === 'number') row.getCell(2).numFmt = '₹#,##0.00';
+  });
+  wsAn.getColumn(1).width = 22;
+  wsAn.getColumn(2).width = 16;
+
+  // ---- EOD Balance ----
+  const wsEod = wb.addWorksheet('EOD Balance', { views: [{ state: 'frozen', ySplit: 1 }] });
+  const eodH = wsEod.addRow(['Date', 'EOD Balance']);
+  styleHeader(eodH);
+  (agg.eod || []).forEach(function(e, i) {
+    const row = wsEod.addRow([e.date, e.balance]);
+    styleDataRow(row, i % 2 === 1);
+    row.getCell(2).numFmt = '₹#,##0.00';
+  });
+  wsEod.getColumn(1).width = 14;
+  wsEod.getColumn(2).width = 16;
+
+  // ---- Funds In / Out ----
+  const wsIn = wb.addWorksheet('Funds Received');
+  styleHeader(wsIn.addRow(['Counterparty', 'Amount']));
+  Object.entries(agg.fundsIn || {}).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 50).forEach(function(kv, i) {
+    const row = wsIn.addRow([kv[0], kv[1]]);
+    styleDataRow(row, i % 2 === 1);
+    row.getCell(2).numFmt = '₹#,##0.00';
+    row.getCell(2).font = creditFont;
+  });
+  wsIn.getColumn(1).width = 36; wsIn.getColumn(2).width = 14;
+
+  const wsOut = wb.addWorksheet('Funds Remitted');
+  styleHeader(wsOut.addRow(['Counterparty', 'Amount']));
+  Object.entries(agg.fundsOut || {}).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 50).forEach(function(kv, i) {
+    const row = wsOut.addRow([kv[0], kv[1]]);
+    styleDataRow(row, i % 2 === 1);
+    row.getCell(2).numFmt = '₹#,##0.00';
+    row.getCell(2).font = debitFont;
+  });
+  wsOut.getColumn(1).width = 36; wsOut.getColumn(2).width = 14;
+
+  // ---- Recurring / Obligations / Validation ----
+  const wsRec = wb.addWorksheet('Recurring Debits');
+  styleHeader(wsRec.addRow(['Counterparty', 'Count', 'Avg', 'Total', 'First', 'Last']));
+  (agg.recurring || []).forEach(function(r, i) {
+    const row = wsRec.addRow([r.counterparty, r.occurrences, r.avg_amount, r.total, r.first, r.last]);
+    styleDataRow(row, i % 2 === 1);
+    row.getCell(3).numFmt = '₹#,##0.00';
+    row.getCell(4).numFmt = '₹#,##0.00';
+  });
+
+  const wsOb = wb.addWorksheet('Obligations');
+  styleHeader(wsOb.addRow(['Date', 'Narration', 'Amount', 'Category']));
+  (agg.obligations || []).forEach(function(o, i) {
+    const row = wsOb.addRow([o.date, o.narration, o.amount, o.category]);
+    styleDataRow(row, i % 2 === 1);
+    row.getCell(3).numFmt = '₹#,##0.00';
+    row.getCell(3).font = debitFont;
+  });
+
+  const wsVal = wb.addWorksheet('Validation');
+  styleHeader(wsVal.addRow(['Severity', 'Issue', 'Detail']));
+  const v = STATE.validation || {};
+  (v.balance_breaks || []).forEach(function(b) {
+    const row = wsVal.addRow(['Critical', 'Balance break on ' + b.date, 'Expected ' + b.expected + ', got ' + b.actual]);
+    row.getCell(1).font = debitFont;
+  });
+  (v.duplicate_txns || []).forEach(function(d) {
+    wsVal.addRow(['Critical', 'Duplicate', d]);
+  });
+  (v.field_warnings || []).forEach(function(f) {
+    wsVal.addRow(['Warning', 'Missing: ' + f.field, f.message || '']);
+  });
+  wsVal.addRow(['Info', 'Quiet days', String((v.missing_dates || []).length)]);
+  wsVal.getColumn(1).width = 12; wsVal.getColumn(2).width = 28; wsVal.getColumn(3).width = 40;
+
+  // ---- Charts as images (UI charts embedded) ----
+  try {
+    // Temporarily show panels so canvases have size, then re-render charts
+    var panelOverview = document.getElementById('panel-overview');
+    var panelEod = document.getElementById('panel-eod');
+    var prevOv = panelOverview ? panelOverview.style.display : '';
+    var prevEod = panelEod ? panelEod.style.display : '';
+    if (panelOverview) { panelOverview.classList.add('active'); panelOverview.style.display = 'block'; }
+    if (panelEod) { panelEod.classList.add('active'); panelEod.style.display = 'block'; }
+    if (typeof renderMonthChart === 'function') renderMonthChart();
+    if (typeof renderModeChart === 'function') renderModeChart();
+    if (typeof renderEOD === 'function') renderEOD();
+    // restore display after capture (done after images added)
+    window.__restoreChartPanels = function() {
+      if (panelOverview) { panelOverview.style.display = prevOv; if (prevOv === '' && !document.querySelector('.tab[data-tab="overview"].active')) panelOverview.classList.remove('active'); }
+      if (panelEod) { panelEod.style.display = prevEod; if (prevEod === '' && !document.querySelector('.tab[data-tab="eod"].active')) panelEod.classList.remove('active'); }
+    };
+
+    function canvasToBase64(canvasId) {
+      var el = document.getElementById(canvasId);
+      if (!el) return null;
+      try {
+        // Prefer Chart.js helper if instance available
+        if (canvasId === 'monthChart' && monthChartInst && typeof monthChartInst.toBase64Image === 'function')
+          return monthChartInst.toBase64Image('image/png', 1);
+        if (canvasId === 'modeChart' && modeChartInst && typeof modeChartInst.toBase64Image === 'function')
+          return modeChartInst.toBase64Image('image/png', 1);
+        if (canvasId === 'eodChart' && eodChartInst && typeof eodChartInst.toBase64Image === 'function')
+          return eodChartInst.toBase64Image('image/png', 1);
+        return el.toDataURL('image/png');
+      } catch (e) {
+        console.warn('[export] canvas capture failed', canvasId, e);
+        return null;
+      }
+    }
+
+    function addChartImage(ws, title, dataUrl, startRow) {
+      if (!dataUrl || dataUrl.length < 100) {
+        ws.getCell(startRow, 1).value = title + ' (chart not available — open Overview/EOD tab once then export)';
+        return startRow + 2;
+      }
+      ws.getCell(startRow, 1).value = title;
+      ws.getCell(startRow, 1).font = { bold: true, size: 12, color: { argb: 'FF0F172A' } };
+      var b64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+      var imgId = wb.addImage({ base64: b64, extension: 'png' });
+      // Place image below title; width ~640px height ~320px
+      ws.addImage(imgId, {
+        tl: { col: 0, row: startRow },
+        ext: { width: 640, height: 320 },
+        editAs: 'oneCell'
+      });
+      // Leave rows for image height (~320px ≈ 16–18 rows at default)
+      return startRow + 18;
+    }
+
+    var wsCharts = wb.addWorksheet('Overview Charts');
+    wsCharts.getColumn(1).width = 20;
+    var r = 1;
+    wsCharts.getCell(r, 1).value = 'Charts from Universal Bank Statement Analyzer (same as UI)';
+    wsCharts.getCell(r, 1).font = { bold: true, size: 14 };
+    r = 3;
+    r = addChartImage(wsCharts, '1. Month-wise Credits vs Debits', canvasToBase64('monthChart'), r);
+    r += 1;
+    r = addChartImage(wsCharts, '2. Payment Mode Distribution', canvasToBase64('modeChart'), r);
+    r += 1;
+    r = addChartImage(wsCharts, '3. End-of-Day Balance Trend', canvasToBase64('eodChart'), r);
+    console.log('[export] chart images sheet added');
+    if (typeof window.__restoreChartPanels === 'function') window.__restoreChartPanels();
+  } catch (chartErr) {
+    console.warn('[export] charts sheet skipped:', chartErr);
+    if (typeof window.__restoreChartPanels === 'function') window.__restoreChartPanels();
+  }
+
+  // Download
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const baseName = (STATE.rawFileName || 'statement').replace(/\.[^.]+$/, '');
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = baseName + '_analysis.xlsx';
+  a.click();
+  setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
+}
+
+</script>
+</body>
+</html>
