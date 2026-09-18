@@ -240,8 +240,8 @@ h1 { font-size: 1.6rem; margin-bottom: 4px; }
   <div class="card">
     <h2>1. Add Documents</h2>
     <div class="btn-row">
-      <button class="btn btn-primary" id="btnUpload">📁 Upload Documents</button>
-      <button class="btn btn-primary" id="btnCamera">📷 Camera</button>
+      <button class="btn btn-primary" id="btnUpload"> 📁 Upload Documents</button>
+      <button class="btn btn-primary" id="btnCamera"> 📷 Camera</button>
       <button class="btn btn-danger" id="btnClearAll">🗑 Clear All</button>
     </div>
     <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,image/*,application/pdf" hidden>
@@ -285,10 +285,24 @@ h1 { font-size: 1.6rem; margin-bottom: 4px; }
     <div id="summaryContent"></div>
   </div>
 
-  <div class="card hidden" id="pdfCard">
-    <h2>6. Combined PDF</h2>
+  <!-- ===== All Extracted Text (Combined) ===== -->
+  <div class="card hidden" id="allTextCard">
+    <h2>6. All Extracted Text (Combined)</h2>
     <p style="font-size:0.85rem;color:#718096;margin-bottom:12px;">
-      Generate one PDF containing every original document page plus its OCR text and AI analysis summary.
+      Consolidated OCR text from every analyzed document.
+    </p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnCopyAllText">📋 Copy All Text</button>
+      <button class="btn btn-success" id="btnDownloadAllText">⬇ Download Text</button>
+    </div>
+    <div id="allTextMsg" style="font-size:0.82rem;color:#718096;margin-bottom:10px;"></div>
+    <div id="allTextContent"></div>
+  </div>
+
+  <div class="card hidden" id="pdfCard">
+    <h2>7. Combined PDF</h2>
+    <p style="font-size:0.85rem;color:#718096;margin-bottom:12px;">
+      Generate one PDF containing every original document page, its OCR text, AI analysis summary, and a consolidated appendix of all extracted text.
     </p>
     <div class="btn-row">
       <button class="btn btn-primary" id="btnGeneratePdf">📄 Generate Combined PDF</button>
@@ -349,6 +363,11 @@ const DOM = {
   resultsList: document.getElementById('resultsList'),
   summaryCard: document.getElementById('summaryCard'),
   summaryContent: document.getElementById('summaryContent'),
+  allTextCard: document.getElementById('allTextCard'),
+  allTextContent: document.getElementById('allTextContent'),
+  allTextMsg: document.getElementById('allTextMsg'),
+  btnCopyAllText: document.getElementById('btnCopyAllText'),
+  btnDownloadAllText: document.getElementById('btnDownloadAllText'),
   pdfCard: document.getElementById('pdfCard'),
   btnGeneratePdf: document.getElementById('btnGeneratePdf'),
   btnDownloadPdf: document.getElementById('btnDownloadPdf'),
@@ -854,8 +873,10 @@ async function startProcessing() {
 
   if (!STATE.cancelled) {
     await generateOverallSummary();
+    renderAllExtractedText();
   } else {
     DOM.processingMsg.textContent = 'Processing cancelled.';
+    renderAllExtractedText();
   }
 }
 
@@ -1256,7 +1277,18 @@ async function generateCombinedPdf() {
         pdf.splitTextToSize(l || ' ', pageW - margin * 2)
       );
       wrapped.forEach(line => {
-        if (cursorY > pageH - margin - 120) return;
+        if (cursorY > pageH - margin - 20) {
+          pdf.addPage();
+          cursorY = margin;
+          pdf.setFont('helvetica', 'italic');
+          pdf.setFontSize(9);
+          pdf.setTextColor(120);
+          pdf.text('EXTRACTED TEXT (OCR) — contd.', margin, cursorY);
+          cursorY += 14;
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(8.5);
+          pdf.setTextColor(40, 40, 40);
+        }
         pdf.text(line, margin, cursorY);
         cursorY += 10;
       });
@@ -1288,7 +1320,6 @@ async function generateCombinedPdf() {
     if (doc.kind === 'pdf' && doc.pdfPageIndex) {
       lines.push(`Source Page: ${doc.pdfPageIndex} of ${doc.totalSourcePages || '?'}`);
     }
-
     if (p) {
       const qualityStatus = deriveQualityStatus(p.quality);
       lines.push(`Status: ${qualityStatus}`);
@@ -1324,7 +1355,18 @@ async function generateCombinedPdf() {
       pdf.splitTextToSize(l, pageW - margin * 2)
     );
     wrapped.forEach(line => {
-      if (cursorY > pageH - margin - 20) return;
+      if (cursorY > pageH - margin - 20) {
+        pdf.addPage();
+        cursorY = margin;
+        pdf.setFont('helvetica', 'italic');
+        pdf.setFontSize(9);
+        pdf.setTextColor(120);
+        pdf.text('AI ANALYSIS SUMMARY — contd.', margin, cursorY);
+        cursorY += 14;
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(50, 50, 50);
+      }
       pdf.text(line, margin, cursorY);
       cursorY += 10;
     });
@@ -1340,7 +1382,88 @@ async function generateCombinedPdf() {
     );
   }
 
-  // ===== OVERALL SUMMARY (final page) =====
+  // ===== ALL EXTRACTED TEXT (APPENDIX) =====
+  const docsWithText = docs.filter(d =>
+    d.parsed && d.parsed.textExtracted && String(d.parsed.textExtracted).trim()
+  );
+
+  if (docsWithText.length) {
+    pdf.addPage();
+    let y = margin;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(16);
+    pdf.setTextColor(20, 20, 20);
+    pdf.text('ALL EXTRACTED TEXT', pageW / 2, y + 10, { align: 'center' });
+    y += 26;
+
+    pdf.setDrawColor(180);
+    pdf.line(margin, y, pageW - margin, y);
+    y += 16;
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(90);
+    pdf.text(
+      `Consolidated OCR text from ${docsWithText.length} document(s)`,
+      pageW / 2, y, { align: 'center' }
+    );
+    y += 20;
+
+    docsWithText.forEach((doc, idx) => {
+      if (y > pageH - margin - 80) {
+        pdf.addPage();
+        y = margin;
+      }
+
+      // Document heading
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11);
+      pdf.setTextColor(30, 30, 30);
+      const headTxt = `${idx + 1}. ${doc.detectedType || 'DOCUMENT'} — ${doc.name}`;
+      const headWrapped = pdf.splitTextToSize(headTxt, pageW - margin * 2);
+      headWrapped.forEach(line => {
+        if (y > pageH - margin - 20) { pdf.addPage(); y = margin; }
+        pdf.text(line, margin, y);
+        y += 14;
+      });
+
+      pdf.setDrawColor(200);
+      pdf.line(margin, y, pageW - margin, y);
+      y += 12;
+
+      // Body text
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(40, 40, 40);
+
+      const txtLines = String(doc.parsed.textExtracted).split(/\r?\n/);
+      const wrapped = txtLines.flatMap(l =>
+        pdf.splitTextToSize(l || ' ', pageW - margin * 2)
+      );
+
+      wrapped.forEach(line => {
+        if (y > pageH - margin - 20) {
+          pdf.addPage();
+          y = margin;
+          pdf.setFont('helvetica', 'italic');
+          pdf.setFontSize(9);
+          pdf.setTextColor(120);
+          pdf.text('ALL EXTRACTED TEXT — contd.', margin, y);
+          y += 14;
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(8.5);
+          pdf.setTextColor(40, 40, 40);
+        }
+        pdf.text(line, margin, y);
+        y += 10;
+      });
+
+      y += 14;
+    });
+  }
+
+  // ===== OVERALL SUMMARY (final section) =====
   if (STATE.overallSummaryText) {
     pdf.addPage();
     let y = margin;
@@ -1359,20 +1482,12 @@ async function generateCombinedPdf() {
       pdf.text(line, margin, y);
       y += 13;
     });
-    pdf.setFontSize(8);
-    pdf.setTextColor(120);
-    pdf.text(
-      `Page ${docs.length + 1} of ${docs.length + 1}`,
-      pageW / 2,
-      pageH - 16,
-      { align: 'center' }
-    );
   }
 
   STATE.generatedPdfBlob = pdf.output('blob');
   const pageWord = docs.length === 1 ? 'page' : 'pages';
   DOM.pdfMsg.textContent =
-    `PDF ready (${docs.length} document ${pageWord} + ${docs.length} AI summaries).`;
+    `PDF ready (${docs.length} document ${pageWord} + AI summaries + consolidated OCR text + overall summary).`;
   DOM.btnDownloadPdf.disabled = false;
 }
 
@@ -1604,6 +1719,125 @@ function renderSummary(fallbackMsg) {
   DOM.summaryContent.innerHTML = html;
 }
 
+/* ===== All Extracted Text (Combined) ===== */
+function renderAllExtractedText() {
+  const docs = STATE.documents.filter(
+    d => d.status === 'completed' &&
+         d.parsed &&
+         d.parsed.textExtracted &&
+         String(d.parsed.textExtracted).trim()
+  );
+
+  if (!docs.length) {
+    DOM.allTextCard.classList.add('hidden');
+    DOM.allTextContent.innerHTML = '';
+    DOM.allTextMsg.textContent = '';
+    return;
+  }
+
+  DOM.allTextCard.classList.remove('hidden');
+
+  let html = '';
+  docs.forEach((doc, idx) => {
+    html += `
+      <div class="result-item">
+        <h3>${idx + 1}. ${escapeHtml(doc.detectedType || 'Document')} — ${escapeHtml(doc.name)}</h3>
+        <div class="text-block" style="max-height:300px;">${escapeHtml(doc.parsed.textExtracted)}</div>
+      </div>
+    `;
+  });
+
+  DOM.allTextContent.innerHTML = html;
+}
+
+/* ===== Helper: build full combined text ===== */
+function buildCombinedText() {
+  const docs = STATE.documents.filter(
+    d => d.status === 'completed' &&
+         d.parsed &&
+         d.parsed.textExtracted &&
+         String(d.parsed.textExtracted).trim()
+  );
+
+  if (!docs.length) return '';
+
+  const lines = [];
+  lines.push('========================================');
+  lines.push('ALL EXTRACTED TEXT (COMBINED)');
+  lines.push(`Generated: ${new Date().toLocaleString()}`);
+  lines.push(`Total Documents: ${docs.length}`);
+  lines.push('========================================');
+  lines.push('');
+
+  docs.forEach((doc, idx) => {
+    lines.push('----------------------------------------');
+    lines.push(`Document ${idx + 1}: ${doc.detectedType || 'Document'}`);
+    lines.push(`Source: ${doc.name}`);
+    lines.push('----------------------------------------');
+    lines.push(String(doc.parsed.textExtracted).trim());
+    lines.push('');
+    lines.push('');
+  });
+
+  return lines.join('\n');
+}
+
+/* ===== Copy All Text ===== */
+async function copyAllExtractedText() {
+  const text = buildCombinedText();
+  if (!text) {
+    DOM.allTextMsg.textContent = '⚠ No extracted text available to copy.';
+    return;
+  }
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      // Fallback for non-secure contexts / older browsers
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    DOM.allTextMsg.textContent = `✅ Copied ${text.length} characters from all documents to clipboard.`;
+    setTimeout(() => { DOM.allTextMsg.textContent = ''; }, 3000);
+  } catch (err) {
+    DOM.allTextMsg.textContent = `❌ Copy failed: ${err.message}`;
+  }
+}
+
+/* ===== Download All Text ===== */
+function downloadAllExtractedText() {
+  const text = buildCombinedText();
+  if (!text) {
+    DOM.allTextMsg.textContent = '⚠ No extracted text available to download.';
+    return;
+  }
+
+  try {
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `all-extracted-text-${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+    DOM.allTextMsg.textContent = `✅ Downloaded ${text.length} characters as .txt file.`;
+    setTimeout(() => { DOM.allTextMsg.textContent = ''; }, 3000);
+  } catch (err) {
+    DOM.allTextMsg.textContent = `❌ Download failed: ${err.message}`;
+  }
+}
+
 /* ===================================================== */
 /* 14. ERROR HANDLING */
 /* ===================================================== */
@@ -1635,6 +1869,8 @@ function setupActionHandlers() {
   DOM.btnCancel.addEventListener('click', cancelProcessing);
   DOM.btnGeneratePdf.addEventListener('click', generateCombinedPdf);
   DOM.btnDownloadPdf.addEventListener('click', downloadPdf);
+  DOM.btnCopyAllText.addEventListener('click', copyAllExtractedText);
+  DOM.btnDownloadAllText.addEventListener('click', downloadAllExtractedText);
   DOM.btnClearAll.addEventListener('click', () => {
     if (!confirm('Clear all documents and results?')) return;
     STATE.documents = [];
@@ -1645,6 +1881,9 @@ function setupActionHandlers() {
     STATE.pdfGroups = {};
     DOM.resultsCard.classList.add('hidden');
     DOM.summaryCard.classList.add('hidden');
+    DOM.allTextCard.classList.add('hidden');
+    DOM.allTextContent.innerHTML = '';
+    DOM.allTextMsg.textContent = '';
     DOM.pdfCard.classList.add('hidden');
     DOM.progressWrap.style.display = 'none';
     DOM.progressBar.style.width = '0%';
@@ -1687,7 +1926,7 @@ function escapeHtml(s) {
   setupActionHandlers();
   renderQueue();
   updateControls();
-  console.log('Universal Document Analyzer ready (with OCR in PDF).');
+  console.log('Universal Document Analyzer ready (with full OCR text + consolidated appendix + copy/download).');
 })();
 </script>
 
