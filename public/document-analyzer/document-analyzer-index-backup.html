@@ -11,13 +11,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-<!-- ===== FONT: Hindi/Devanagari Support ===== -->
-<!-- Ye file aapko khud banana hai (Step 1 dekho) -->
-<script src="./noto-font.js"></script>
-
 <style>
 /* ===================================================== */
-/* STYLES (NO CHANGES) */
+/* STYLES */
 /* ===================================================== */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -289,6 +285,7 @@ h1 { font-size: 1.6rem; margin-bottom: 4px; }
     <div id="summaryContent"></div>
   </div>
 
+  <!-- ===== All Extracted Text (Combined) ===== -->
   <div class="card hidden" id="allTextCard">
     <h2>6. All Extracted Text (Combined)</h2>
     <p style="font-size:0.85rem;color:#718096;margin-bottom:12px;">
@@ -1190,7 +1187,7 @@ function buildLocalSummary(docs) {
 }
 
 /* ===================================================== */
-/* 12. PDF GENERATION — HINDI FONT EMBEDDED */
+/* 12. PDF GENERATION — ALL PAGES + OCR TEXT INCLUDED */
 /* ===================================================== */
 
 async function generateCombinedPdf() {
@@ -1212,31 +1209,6 @@ async function generateCombinedPdf() {
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
   const margin = 36;
-
-  /* ===== FONT EMBEDDING (Hindi/Devanagari) ===== */
-  const FONT_NAME = 'NotoDevanagari';
-  try {
-    if (window.NOTO_DEVANAGARI_BASE64) {
-      pdf.addFileToVFS('NotoSansDevanagari.ttf', window.NOTO_DEVANAGARI_BASE64);
-      pdf.addFont('NotoSansDevanagari.ttf', FONT_NAME, 'normal');
-      pdf.addFont('NotoSansDevanagari.ttf', FONT_NAME, 'bold');
-      console.log('[PDF] Noto Devanagari font embedded ✅');
-    } else {
-      console.warn('[PDF] Noto Devanagari font NOT found — Hindi text may not render properly.');
-    }
-  } catch (fontErr) {
-    console.error('[PDF] Font embed failed:', fontErr);
-  }
-
-  /* Helper: set font with fallback to helvetica if custom missing */
-  function setNoto(style = 'normal') {
-    if (window.NOTO_DEVANAGARI_BASE64) {
-      pdf.setFont(FONT_NAME, style);
-    } else {
-      pdf.setFont('helvetica', style);
-    }
-  }
-
   let firstPage = true;
 
   for (let i = 0; i < docs.length; i++) {
@@ -1248,7 +1220,7 @@ async function generateCombinedPdf() {
 
     // ===== HEADER: Detected document type =====
     const heading = (doc.detectedType || 'DOCUMENT').toUpperCase();
-    setNoto('bold');
+    pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(16);
     pdf.setTextColor(20, 20, 20);
     pdf.text(heading, pageW / 2, cursorY + 10, { align: 'center' });
@@ -1289,13 +1261,13 @@ async function generateCombinedPdf() {
     pdf.line(margin, cursorY, pageW - margin, cursorY);
     cursorY += 12;
 
-    setNoto('bold');
+    pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(11);
     pdf.setTextColor(30, 30, 30);
     pdf.text('EXTRACTED TEXT (OCR)', pageW / 2, cursorY, { align: 'center' });
     cursorY += 14;
 
-    setNoto('normal');
+    pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8.5);
     pdf.setTextColor(40, 40, 40);
 
@@ -1308,12 +1280,12 @@ async function generateCombinedPdf() {
         if (cursorY > pageH - margin - 20) {
           pdf.addPage();
           cursorY = margin;
-          setNoto('normal');
+          pdf.setFont('helvetica', 'italic');
           pdf.setFontSize(9);
           pdf.setTextColor(120);
           pdf.text('EXTRACTED TEXT (OCR) — contd.', margin, cursorY);
           cursorY += 14;
-          setNoto('normal');
+          pdf.setFont('helvetica', 'normal');
           pdf.setFontSize(8.5);
           pdf.setTextColor(40, 40, 40);
         }
@@ -1332,13 +1304,13 @@ async function generateCombinedPdf() {
     pdf.line(margin, cursorY, pageW - margin, cursorY);
     cursorY += 12;
 
-    setNoto('bold');
+    pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(11);
     pdf.setTextColor(30, 30, 30);
     pdf.text('AI ANALYSIS SUMMARY', pageW / 2, cursorY, { align: 'center' });
     cursorY += 14;
 
-    setNoto('normal');
+    pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8.5);
     pdf.setTextColor(50, 50, 50);
 
@@ -1386,12 +1358,12 @@ async function generateCombinedPdf() {
       if (cursorY > pageH - margin - 20) {
         pdf.addPage();
         cursorY = margin;
-        setNoto('normal');
+        pdf.setFont('helvetica', 'italic');
         pdf.setFontSize(9);
         pdf.setTextColor(120);
         pdf.text('AI ANALYSIS SUMMARY — contd.', margin, cursorY);
         cursorY += 14;
-        setNoto('normal');
+        pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(8.5);
         pdf.setTextColor(50, 50, 50);
       }
@@ -1419,7 +1391,7 @@ async function generateCombinedPdf() {
     pdf.addPage();
     let y = margin;
 
-    setNoto('bold');
+    pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(16);
     pdf.setTextColor(20, 20, 20);
     pdf.text('ALL EXTRACTED TEXT', pageW / 2, y + 10, { align: 'center' });
@@ -1429,7 +1401,7 @@ async function generateCombinedPdf() {
     pdf.line(margin, y, pageW - margin, y);
     y += 16;
 
-    setNoto('normal');
+    pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(9);
     pdf.setTextColor(90);
     pdf.text(
@@ -1445,7 +1417,7 @@ async function generateCombinedPdf() {
       }
 
       // Document heading
-      setNoto('bold');
+      pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(11);
       pdf.setTextColor(30, 30, 30);
       const headTxt = `${idx + 1}. ${doc.detectedType || 'DOCUMENT'} — ${doc.name}`;
@@ -1461,7 +1433,7 @@ async function generateCombinedPdf() {
       y += 12;
 
       // Body text
-      setNoto('normal');
+      pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(8.5);
       pdf.setTextColor(40, 40, 40);
 
@@ -1474,12 +1446,12 @@ async function generateCombinedPdf() {
         if (y > pageH - margin - 20) {
           pdf.addPage();
           y = margin;
-          setNoto('normal');
+          pdf.setFont('helvetica', 'italic');
           pdf.setFontSize(9);
           pdf.setTextColor(120);
           pdf.text('ALL EXTRACTED TEXT — contd.', margin, y);
           y += 14;
-          setNoto('normal');
+          pdf.setFont('helvetica', 'normal');
           pdf.setFontSize(8.5);
           pdf.setTextColor(40, 40, 40);
         }
@@ -1495,11 +1467,11 @@ async function generateCombinedPdf() {
   if (STATE.overallSummaryText) {
     pdf.addPage();
     let y = margin;
-    setNoto('bold');
+    pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(16);
     pdf.text('OVERALL SUMMARY', pageW / 2, y + 10, { align: 'center' });
     y += 30;
-    setNoto('normal');
+    pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(10);
     const wrapped = pdf.splitTextToSize(STATE.overallSummaryText, pageW - margin * 2);
     wrapped.forEach(line => {
@@ -1822,6 +1794,7 @@ async function copyAllExtractedText() {
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
     } else {
+      // Fallback for non-secure contexts / older browsers
       const ta = document.createElement('textarea');
       ta.value = text;
       ta.style.position = 'fixed';
@@ -1953,11 +1926,7 @@ function escapeHtml(s) {
   setupActionHandlers();
   renderQueue();
   updateControls();
-  if (window.NOTO_DEVANAGARI_BASE64) {
-    console.log('Universal Document Analyzer ready (Hindi font loaded ✅)');
-  } else {
-    console.warn('Universal Document Analyzer ready (⚠ Hindi font NOT loaded — check noto-font.js)');
-  }
+  console.log('Universal Document Analyzer ready (with full OCR text + consolidated appendix + copy/download).');
 })();
 </script>
 
