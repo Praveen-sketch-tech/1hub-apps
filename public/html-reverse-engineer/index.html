@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTML Reverse Engineer & Project Builder</title>
+<meta name="description" content="Analyze, reconstruct and package a single-file HTML into a clean project.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">◈</span>
+    <span class="brand-name">HTML Reverse Engineer</span>
+  </div>
+  <button id="openVault" class="icon-btn" title="Vault" aria-label="Vault">⚙</button>
+</header>
+
+<main class="wrap">
+
+  <!-- STEP 1 -->
+  <section class="card" id="cardUpload">
+    <h2>1. Upload HTML File</h2>
+    <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload HTML file">
+      <div class="dz-icon">⬆</div>
+      <p class="dz-title">Drag &amp; drop your .html file here</p>
+      <p class="dz-sub">or click / press Enter to browse</p>
+      <input type="file" id="fileInput" accept=".html,.htm,text/html" hidden>
+    </div>
+    <div id="fileInfo" class="file-info hidden"></div>
+    <button id="analyzeBtn" class="primary" disabled>Analyze</button>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="card hidden" id="cardAnalysis">
+    <h2>2. Analysis Summary</h2>
+    <div id="analysisStats" class="stats-grid"></div>
+
+    <h3>Detected Capabilities</h3>
+    <div id="capabilities" class="chips"></div>
+
+    <h3>External Dependencies</h3>
+    <div id="externals" class="list"></div>
+
+    <h3>Assets</h3>
+    <div id="assets" class="list"></div>
+
+    <h3>Warnings</h3>
+    <div id="warnings" class="list warn"></div>
+
+    <h3>Reconstruction Options</h3>
+    <div class="options">
+      <label><input type="checkbox" id="optMinify"> Minify JavaScript</label>
+      <label><input type="checkbox" id="optStripLogs"> Strip debug console logs</label>
+      <label><input type="checkbox" id="optExtractAssets" checked> Extract data-URI assets</label>
+      <label><input type="checkbox" id="optFriction"> Add basic copy friction</label>
+    </div>
+
+    <div class="actions">
+      <button id="buildBtn" class="primary">Build Project</button>
+      <button id="resetBtn" class="secondary">Reset</button>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="card hidden" id="cardBuild">
+    <h2>3. Project Built</h2>
+    <div id="buildTree" class="tree"></div>
+
+    <h3>Live Preview</h3>
+    <div class="preview-wrap">
+      <iframe id="previewFrame"
+              sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads"
+              referrerpolicy="no-referrer"></iframe>
+    </div>
+    <p class="hint">Preview is sandboxed. External CDN scripts may not load if remote URLs block embedding.</p>
+
+    <h3>Validation</h3>
+    <div id="validation" class="validation"></div>
+
+    <div class="actions">
+      <button id="downloadBtn" class="primary">⬇ Download ZIP</button>
+      <button id="vaultSaveBtn" class="secondary">Save to Vault</button>
+      <button id="startOverBtn" class="secondary">Start Over</button>
+    </div>
+  </section>
+
+</main>
+
+<!-- VAULT DRAWER -->
+<aside id="vaultDrawer" class="drawer hidden" aria-hidden="true">
+  <div class="drawer-head">
+    <h2>Vault</h2>
+    <button id="closeVault" class="icon-btn" aria-label="Close">✕</button>
+  </div>
+
+  <div class="drawer-body">
+    <section class="vault-section">
+      <h3>Telegram Vault</h3>
+      <p class="hint">Token &amp; Chat ID are stored in this browser's localStorage only. Never share them. Anyone with access to this browser can read them.</p>
+      <label class="field">
+        <span>Bot Token</span>
+        <input type="password" id="tgToken" placeholder="123456:ABC-DEF..." autocomplete="off">
+      </label>
+      <label class="field">
+        <span>Chat ID</span>
+        <input type="text" id="tgChat" placeholder="-1001234567890 or 123456789" autocomplete="off">
+      </label>
+      <div class="row">
+        <button id="tgSave" class="primary small">Save</button>
+        <button id="tgTest" class="secondary small">Test</button>
+        <button id="tgClear" class="secondary small">Clear</button>
+      </div>
+      <div id="tgStatus" class="status"></div>
+    </section>
+
+    <section class="vault-section">
+      <h3>Local Capability Library</h3>
+      <div class="row">
+        <button id="vaultRefresh" class="secondary small">Refresh</button>
+        <button id="vaultWipe" class="secondary small">Wipe</button>
+      </div>
+      <div id="vaultList" class="vault-list"></div>
+    </section>
+
+    <section class="vault-section">
+      <h3>Telegram Vault (Remote)</h3>
+      <div class="row">
+        <button id="tgPull" class="secondary small">Pull from Telegram</button>
+      </div>
+      <div id="tgRemoteList" class="vault-list"></div>
+    </section>
+  </div>
+</aside>
+
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
