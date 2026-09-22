@@ -218,7 +218,7 @@
       <p>Drag &amp; drop a PDF here</p>
       <span class="text-muted">or</span>
       <div style="margin-top:16px;">
-        <button class="btn" id="selectBtn" type="button">Select PDF</button>
+        <label class="btn" for="fileInput" id="selectBtn">Select PDF</label>
       </div>
       <input type="file" id="fileInput" accept="application/pdf" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none;">
       <p class="text-muted" style="margin-top:24px;">Digital PDFs · No OCR · No server</p>
@@ -268,6 +268,10 @@
       <div id="warningsContainer" style="margin-top:14px;"></div>
       <div class="tab-bar" id="tabBar"></div>
       <div id="previewContent"></div>
+      <div id="bankTriggerRow" class="hidden" style="margin-top:16px;">
+        <button class="btn btn-secondary" id="startBankAnalysisBtn" type="button">🏦 Start Banking Analysis</button>
+        <span class="text-muted" id="bankTriggerHint" style="margin-left:6px;"></span>
+      </div>
       <div class="sheet-mode-row" id="sheetModeRow">
         <span class="sheet-mode-label">Excel output:</span>
         <div class="segmented">
@@ -369,9 +373,7 @@
   // ============================================================
   var dropArea  = $('dropArea');
   var fileInput = $('fileInput');
-  var selectBtn = $('selectBtn');
 
-  selectBtn.addEventListener('click', function(){ fileInput.click(); });
   fileInput.addEventListener('change', function(e){
     var f = e.target.files && e.target.files[0];
     if(f) handleFile(f);
@@ -599,10 +601,11 @@
       .then(function(){
         activeTab = 0;
         renderPreview();
-        // Bank-statement detection/analysis is entirely additive: it never
-        // touches pagesData/detectedTables and any internal error is caught
-        // so the normal preview/download flow above is unaffected either way.
-        analyzeBankStatement();
+        // Only a cheap eligibility check runs automatically (just scans text
+        // already in memory — no heavy column clustering). The actual
+        // transaction extraction only runs when the user taps the button,
+        // so conversion never "silently" opens a second analysis on its own.
+        checkBankEligibility();
         $('progressFill').style.width = '100%';
         $('progressDetail').textContent = 'Done';
         return new Promise(function(r){ setTimeout(r, 200); });
@@ -973,14 +976,6 @@
     return null;
   }
 
-  // Loose check for whether a cell "looks like" a monetary amount.
-  function looksLikeAmount(str){
-    if(!str) return false;
-    var s = String(str).trim();
-    if(!s || s === '-' || s === '--') return false;
-    return /^₹?\(?-?[\d,]+\.?\d{0,2}\)?\s*(dr|cr)?$/i.test(s) && /\d/.test(s);
-  }
-
   // Parses a monetary cell into { value, indicator }, where indicator is
   // 'DR'/'CR' if the cell had an explicit suffix, and value is negative
   // when parentheses were used (a common negative-amount convention).
@@ -1017,170 +1012,246 @@
     return p[2] + '-' + p[1] + '-' + p[0];
   }
 
-  // Decides whether a single detected table looks like a transaction table,
-  // and if so, which column plays which role (date / debit / credit / balance).
-  function analyzeTableColumns(t){
-    var rows = t.dataRows;
-    if(!rows || rows.length < 5) return null;
-
-    var n = t.colCount;
-    var dateHits = new Array(n).fill(0);
-    var amtHits = new Array(n).fill(0);
-    var nonEmpty = new Array(n).fill(0);
-
-    rows.forEach(function(row){
-      for(var c = 0; c < n; c++){
-        var cell = row[c];
-        if(!cell) continue;
-        nonEmpty[c]++;
-        if(parseFlexibleDate(cell)) dateHits[c]++;
-        else if(looksLikeAmount(cell)) amtHits[c]++;
-      }
-    });
-
-    var dateCol = -1, bestDateScore = 0;
-    for(var c1 = 0; c1 < n; c1++){
-      var dscore = nonEmpty[c1] ? dateHits[c1] / nonEmpty[c1] : 0;
-      if(dscore >= 0.5 && dscore > bestDateScore){ bestDateScore = dscore; dateCol = c1; }
-    }
-    if(dateCol === -1) return null;
-
-    var numericCols = [];
-    for(var c2 = 0; c2 < n; c2++){
-      if(c2 === dateCol) continue;
-      var nscore = nonEmpty[c2] ? amtHits[c2] / nonEmpty[c2] : 0;
-      if(nscore >= 0.5) numericCols.push(c2);
-    }
-    if(numericCols.length < 2) return null;
-
-    // Prefer header text for role assignment when a header row was detected.
-    var roles = {};
-    if(t.hasHeader && t.headerRow){
-      numericCols.forEach(function(c){
-        var h = (t.headerRow[c] || '').toLowerCase();
-        if(/debit|withdrawal|\bdr\b/.test(h)) roles[c] = 'debit';
-        else if(/credit|deposit|\bcr\b/.test(h)) roles[c] = 'credit';
-        else if(/balance|closing/.test(h)) roles[c] = 'balance';
-        else if(/amount/.test(h)) roles[c] = 'amount';
-      });
-    }
-
-    var hasBalance = Object.keys(roles).some(function(k){ return roles[k] === 'balance'; });
-    if(!hasBalance){
-      var lastNumeric = numericCols[numericCols.length - 1];
-      if(!roles[lastNumeric]) roles[lastNumeric] = 'balance';
-    }
-
-    var remaining = numericCols.filter(function(c){ return !roles[c]; });
-    if(remaining.length === 2){
-      roles[remaining[0]] = roles[remaining[0]] || 'debit';
-      roles[remaining[1]] = roles[remaining[1]] || 'credit';
-    } else if(remaining.length === 1){
-      roles[remaining[0]] = 'amount';
-    } else if(remaining.length > 2){
-      roles[remaining[0]] = 'debit';
-      roles[remaining[1]] = 'credit';
-    }
-
-    var debitCol = null, creditCol = null, balanceCol = null, amountCol = null;
-    Object.keys(roles).forEach(function(k){
-      var idx = +k;
-      if(roles[k] === 'debit') debitCol = idx;
-      else if(roles[k] === 'credit') creditCol = idx;
-      else if(roles[k] === 'balance') balanceCol = idx;
-      else if(roles[k] === 'amount') amountCol = idx;
-    });
-
-    var used = {}; used[dateCol] = true;
-    numericCols.forEach(function(c){ used[c] = true; });
-    var textCols = [];
-    for(var c3 = 0; c3 < n; c3++){ if(!used[c3]) textCols.push(c3); }
-
-    var score = (t.hasHeader ? 1 : 0) + 1 + 1 + (rows.length >= 5 ? 1 : 0);
-
-    return {
-      dateCol: dateCol, debitCol: debitCol, creditCol: creditCol,
-      balanceCol: balanceCol, amountCol: amountCol, textCols: textCols, score: score
-    };
+  // Stricter amount check requiring a decimal point (paise) — used only by
+  // the universal engine below, where it doubles as a noise filter against
+  // phone numbers, page numbers, and reference IDs picked up from footers.
+  function looksLikeStrictAmount(str){
+    if(!str) return false;
+    var s = String(str).trim();
+    if(!s) return false;
+    return /^₹?\(?-?[\d,]+\.\d{1,2}\)?\s*(dr|cr)?$/i.test(s);
   }
 
+  // Clusters a list of numbers into groups whose members are within
+  // `tolerance` px of their neighbour, weighted by how often each rounded
+  // value occurs. Returns clusters sorted by ascending center.
+  function clusterByValue(values, tolerance){
+    if(!values.length) return [];
+    var freq = {};
+    values.forEach(function(v){ var k = Math.round(v); freq[k] = (freq[k] || 0) + 1; });
+    var pts = Object.keys(freq).map(Number).sort(function(a,b){ return a - b; });
+    var clusters = [];
+    var cur = [pts[0]];
+    for(var i = 1; i < pts.length; i++){
+      if(pts[i] - cur[cur.length - 1] < tolerance) cur.push(pts[i]);
+      else { clusters.push(cur); cur = [pts[i]]; }
+    }
+    clusters.push(cur);
+    return clusters.map(function(c){
+      var sum = 0, support = 0;
+      c.forEach(function(v){ sum += v * freq[v]; support += freq[v]; });
+      return { center: sum / support, support: support };
+    }).sort(function(a, b){ return a.center - b.center; });
+  }
+
+  // ------------------------------------------------------------
+  //  Universal bank-statement extractor — TRANSACTION-CHUNK based.
+  //
+  //  Real statements wrap a transaction's narration onto 2-3 lines, and
+  //  print withdrawal/deposit/balance at different vertical positions
+  //  within that taller row (e.g. balance top-aligned, amount bottom-
+  //  aligned, value-date printed on the wrapped line). A "same y-band =
+  //  same row" approach misses almost everything in that case. Instead:
+  //   1. Find every date-shaped item and cluster their x-positions to
+  //      locate the actual date column — works regardless of format.
+  //   2. Treat each date occurrence in that column as the START of one
+  //      transaction; everything below it down to (but not including)
+  //      the next date anchor — at ANY y, any x — belongs to it.
+  //   3. Classify each item in a chunk as date / amount / text, and
+  //      cluster amount cells by their RIGHT edge across the *whole*
+  //      document to find the debit/credit/balance columns (right-
+  //      aligned numbers of different lengths still land in one column).
+  //  Bank-agnostic: no header keywords, no hardcoded bank wording.
+  //  Returns an array of raw transactions, or null if the document
+  //  doesn't look like a bank statement.
+  // ------------------------------------------------------------
+  function detectBankStatementUniversal(){
+    // Step 1: find the date column (its x-position), from every
+    // date-shaped item anywhere in the document.
+    var dateHits = [];
+    pagesData.forEach(function(page, pageIdx){
+      page.items.forEach(function(it){
+        if(parseFlexibleDate(it.str)) dateHits.push({ pageIdx: pageIdx, x: it.x, y: it.y, str: it.str });
+      });
+    });
+    if(dateHits.length < 5) return null;
+
+    var xClusters = clusterByValue(dateHits.map(function(d){ return d.x; }), 20);
+    if(!xClusters.length) return null;
+    // Most-supported x-cluster is the date column; ties go to the
+    // leftmost one (Tran Date is conventionally left of Value Date).
+    xClusters.sort(function(a, b){ return b.support - a.support || a.center - b.center; });
+    var dateColX = xClusters[0].center;
+    var anchors = dateHits.filter(function(d){ return Math.abs(d.x - dateColX) < 20; });
+    if(anchors.length < 5) return null;
+
+    // Step 2: one chunk per anchor = everything between this date and
+    // the next date anchor on the same page (any y, any x).
+    var anchorsByPage = {};
+    anchors.forEach(function(a){ (anchorsByPage[a.pageIdx] = anchorsByPage[a.pageIdx] || []).push(a); });
+
+    var chunks = [];
+    pagesData.forEach(function(page, pageIdx){
+      var pageAnchors = (anchorsByPage[pageIdx] || []).slice().sort(function(a, b){ return b.y - a.y; });
+      if(!pageAnchors.length) return;
+      for(var i = 0; i < pageAnchors.length; i++){
+        var top = pageAnchors[i].y;
+        var bottom = (i + 1 < pageAnchors.length) ? pageAnchors[i + 1].y : -Infinity;
+        var items = page.items.filter(function(it){ return it.y <= top + 2 && it.y > bottom; });
+        chunks.push({ dateISO: parseFlexibleDate(pageAnchors[i].str), items: items });
+      }
+    });
+    if(chunks.length < 5) return null;
+
+    // Step 3: classify items per chunk; pool amount cells (by right edge)
+    // for whole-document column clustering.
+    var amountPool = [];
+    chunks.forEach(function(ch){
+      ch.amountItems = [];
+      ch.textItems = [];
+      ch.items.forEach(function(it){
+        if(parseFlexibleDate(it.str)) return; // tran/value date — already used as the anchor
+        if(looksLikeStrictAmount(it.str)){
+          var xEnd = it.x + it.width;
+          ch.amountItems.push({ text: it.str, xEnd: xEnd });
+          amountPool.push(xEnd);
+        } else {
+          ch.textItems.push(it);
+        }
+      });
+    });
+    if(amountPool.length < 5) return null;
+
+    var clusters = clusterByValue(amountPool, 18).filter(function(cl){ return cl.support >= 3; });
+    if(clusters.length < 2) return null;
+
+    // Standard Indian bank-statement convention: the right-most numeric
+    // column is the running balance; when one column remains it's a single
+    // signed "amount" column, when two remain it's withdrawal/debit then
+    // deposit/credit (left to right).
+    var balanceCluster = clusters[clusters.length - 1];
+    var otherClusters = clusters.slice(0, -1);
+    var debitCluster = otherClusters.length >= 2 ? otherClusters[0] : null;
+    var creditCluster = otherClusters.length >= 2 ? otherClusters[1] : null;
+    var amountOnlyCluster = otherClusters.length === 1 ? otherClusters[0] : null;
+
+    function matchCluster(xEnd, cl){ return cl && Math.abs(xEnd - cl.center) < 30; }
+
+    // Step 4: build one transaction per chunk.
+    var txns = [];
+    chunks.forEach(function(ch){
+      if(!ch.dateISO) return;
+
+      var debit = 0, credit = 0, balance = null, ambiguous = null;
+      ch.amountItems.forEach(function(a){
+        var parsed = parseAmountCell(a.text);
+        if(matchCluster(a.xEnd, balanceCluster)) balance = parsed.value;
+        else if(matchCluster(a.xEnd, debitCluster)) debit = Math.abs(parsed.value);
+        else if(matchCluster(a.xEnd, creditCluster)) credit = Math.abs(parsed.value);
+        else if(matchCluster(a.xEnd, amountOnlyCluster)){
+          if(parsed.indicator === 'DR') debit = Math.abs(parsed.value);
+          else if(parsed.indicator === 'CR') credit = Math.abs(parsed.value);
+          else ambiguous = Math.abs(parsed.value);
+        }
+        // amount-shaped cells that don't fall in any known column are ignored
+      });
+
+      // Require an actual financial signal — filters out footers/disclaimers
+      // that happen to sit near a date but carry no amounts.
+      if(balance == null && debit === 0 && credit === 0 && ambiguous == null) return;
+
+      // Narration: reading order (top-to-bottom, left-to-right) over the
+      // chunk's text items, so wrapped lines join back up correctly.
+      var sortedText = ch.textItems.slice().sort(function(p, q){
+        if(Math.abs(p.y - q.y) > 3) return q.y - p.y;
+        return p.x - q.x;
+      });
+      var narration = sortedText.map(function(it){ return it.str; }).join(' ').replace(/\s+/g, ' ').trim();
+
+      txns.push({ dateISO: ch.dateISO, narration: narration || '—', debit: debit, credit: credit, balance: balance, ambiguous: ambiguous });
+    });
+
+    return txns.length >= 3 ? txns : null;
+  }
+
+  // Shared post-processing for whichever extractor produced the raw list:
+  // normalize chronological order, resolve ambiguous single-amount rows via
+  // balance delta, then build the month-wise aggregates and render.
+  function finalizeBankTxns(txns){
+    txns.sort(function(a, b){ return a.dateISO < b.dateISO ? -1 : a.dateISO > b.dateISO ? 1 : 0; });
+
+    for(var i = 0; i < txns.length; i++){
+      var cur = txns[i];
+      if(cur.ambiguous == null) continue;
+      var prev = i > 0 ? txns[i - 1] : null;
+      if(prev && prev.balance != null && cur.balance != null){
+        var delta = +(cur.balance - prev.balance).toFixed(2);
+        if(delta >= 0) cur.credit = cur.ambiguous; else cur.debit = cur.ambiguous;
+      } else {
+        cur.credit = cur.ambiguous;
+      }
+    }
+
+    bankTxns = txns;
+    isBankStatement = true;
+
+    var monthMap = {};
+    txns.forEach(function(t){
+      var ym = t.dateISO.slice(0, 7);
+      if(!monthMap[ym]) monthMap[ym] = { month: ym, creditCount: 0, debitCount: 0, inward: 0, outward: 0 };
+      if(t.credit > 0){ monthMap[ym].creditCount++; monthMap[ym].inward += t.credit; }
+      if(t.debit > 0){ monthMap[ym].debitCount++; monthMap[ym].outward += t.debit; }
+    });
+    bankMonthly = Object.keys(monthMap).sort().map(function(k){ return monthMap[k]; });
+
+    renderBankAnalysis();
+    $('bankSection').classList.remove('hidden');
+  }
+
+  // ------------------------------------------------------------
+  //  ELIGIBILITY CHECK — cheap, runs automatically after every conversion.
+  //  Only decides whether to SHOW the "Start Banking Analysis" button; it
+  //  does not do any column clustering, so it's fast even on long PDFs.
+  //  Eligible if EITHER signal is present:
+  //    a) the word "statement" appears anywhere in the document, OR
+  //    b) 20+ date-shaped tokens appear anywhere in the document
+  //  (a normal bank statement usually trips both, but either alone is
+  //  treated as "worth offering the button for".)
+  // ------------------------------------------------------------
+  function checkBankEligibility(){
+    var hasStatementWord = false;
+    var dateCount = 0;
+
+    pagesData.forEach(function(page){
+      page.items.forEach(function(it){
+        if(!hasStatementWord && /statement/i.test(it.str)) hasStatementWord = true;
+        if(parseFlexibleDate(it.str)) dateCount++;
+      });
+    });
+
+    var eligible = hasStatementWord || dateCount >= 20;
+    $('bankTriggerRow').classList.toggle('hidden', !eligible);
+    $('bankTriggerHint').textContent = '';
+  }
+
+  // Runs the full (whole-document) extraction. This is the ONLY extraction
+  // path — kept deliberately simple/single so it's easy to follow and to
+  // change later. Returns true on success (bankSection is populated and
+  // shown), false if no statement-like data could be extracted.
   function analyzeBankStatement(){
     isBankStatement = false;
     bankTxns = [];
     bankMonthly = [];
 
     try {
-      var best = null, bestMeta = null;
-      detectedTables.forEach(function(t){
-        var meta = analyzeTableColumns(t);
-        if(meta && (!best || meta.score > bestMeta.score)){ best = t; bestMeta = meta; }
-      });
-      if(!best){ $('bankSection').classList.add('hidden'); return; }
-
-      var txns = [];
-      best.dataRows.forEach(function(row){
-        var dateISO = parseFlexibleDate(row[bestMeta.dateCol]);
-        if(!dateISO) return;
-
-        var narration = bestMeta.textCols.map(function(c){ return row[c] || ''; })
-          .join(' ').replace(/\s+/g, ' ').trim();
-
-        var debit = 0, credit = 0, balance = null, ambiguous = null;
-        if(bestMeta.debitCol != null) debit = parseAmountCell(row[bestMeta.debitCol]).value || 0;
-        if(bestMeta.creditCol != null) credit = parseAmountCell(row[bestMeta.creditCol]).value || 0;
-        if(bestMeta.balanceCol != null){
-          var b = parseAmountCell(row[bestMeta.balanceCol]);
-          balance = isNaN(b.value) ? null : b.value;
-        }
-        if(bestMeta.amountCol != null){
-          var a = parseAmountCell(row[bestMeta.amountCol]);
-          if(a.indicator === 'DR') debit = Math.abs(a.value);
-          else if(a.indicator === 'CR') credit = Math.abs(a.value);
-          else if(a.value < 0) debit = Math.abs(a.value);
-          else ambiguous = Math.abs(a.value); // resolved below via balance delta
-        }
-
-        if(!narration && debit === 0 && credit === 0 && ambiguous == null) return;
-        txns.push({ dateISO: dateISO, narration: narration || '—', debit: debit, credit: credit, balance: balance, ambiguous: ambiguous });
-      });
-
-      if(txns.length < 3){ $('bankSection').classList.add('hidden'); return; }
-
-      // Statements are sometimes printed newest-first — normalize to chronological order.
-      txns.sort(function(a, b){ return a.dateISO < b.dateISO ? -1 : a.dateISO > b.dateISO ? 1 : 0; });
-
-      // Resolve rows where only a single "amount" column existed (no Dr/Cr marker)
-      // using the balance delta against the previous transaction, same technique
-      // used for statements that only print a running balance.
-      for(var i = 0; i < txns.length; i++){
-        var cur = txns[i];
-        if(cur.ambiguous == null) continue;
-        var prev = i > 0 ? txns[i - 1] : null;
-        if(prev && prev.balance != null && cur.balance != null){
-          var delta = +(cur.balance - prev.balance).toFixed(2);
-          if(delta >= 0) cur.credit = cur.ambiguous; else cur.debit = cur.ambiguous;
-        } else {
-          cur.credit = cur.ambiguous;
-        }
-      }
-
-      bankTxns = txns;
-      isBankStatement = true;
-
-      var monthMap = {};
-      txns.forEach(function(t){
-        var ym = t.dateISO.slice(0, 7);
-        if(!monthMap[ym]) monthMap[ym] = { month: ym, creditCount: 0, debitCount: 0, inward: 0, outward: 0 };
-        if(t.credit > 0){ monthMap[ym].creditCount++; monthMap[ym].inward += t.credit; }
-        if(t.debit > 0){ monthMap[ym].debitCount++; monthMap[ym].outward += t.debit; }
-      });
-      bankMonthly = Object.keys(monthMap).sort().map(function(k){ return monthMap[k]; });
-
-      renderBankAnalysis();
-      $('bankSection').classList.remove('hidden');
+      var txns = detectBankStatementUniversal();
+      if(!txns || txns.length < 3){ $('bankSection').classList.add('hidden'); return false; }
+      finalizeBankTxns(txns);
+      return true;
     } catch(err){
-      console.error('Bank statement analysis skipped due to error:', err);
+      console.error('Bank statement analysis failed:', err);
       $('bankSection').classList.add('hidden');
+      return false;
     }
   }
 
@@ -1287,6 +1358,27 @@
   });
 
   $('generateEodBtn').addEventListener('click', generateEodReport);
+
+  $('startBankAnalysisBtn').addEventListener('click', function(){
+    var btn = this, hint = $('bankTriggerHint');
+    btn.disabled = true;
+    btn.textContent = 'Analyzing…';
+    hint.textContent = '';
+
+    // Runs on the already-converted pagesData (the full document, every
+    // page) — no re-reading of the PDF, so this is instant.
+    var found = analyzeBankStatement();
+
+    if(found){
+      btn.textContent = '✓ Analysis complete';
+      hint.textContent = '';
+      $('bankSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      btn.disabled = false;
+      btn.textContent = '🏦 Start Banking Analysis';
+      hint.textContent = 'Could not find a clear transaction table in this PDF.';
+    }
+  });
 
   // ============================================================
   //  EXCEL DOWNLOAD
@@ -1511,6 +1603,10 @@
     $('bankPanelSummary').classList.remove('hidden');
     $('bankPanelLedger').classList.add('hidden');
     $('bankPanelEod').classList.add('hidden');
+    $('bankTriggerRow').classList.add('hidden');
+    $('bankTriggerHint').textContent = '';
+    $('startBankAnalysisBtn').disabled = false;
+    $('startBankAnalysisBtn').textContent = '🏦 Start Banking Analysis';
   });
 
 })();
