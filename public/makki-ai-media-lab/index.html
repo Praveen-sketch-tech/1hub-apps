@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>AI Media Lab</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0b0d10;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      color: #eef2f6;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .app-container {
+      max-width: 1300px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .header {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .app-title {
+      font-size: 1.8rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 0%, #b0c4ff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .subtitle {
+      color: #9aa8b9;
+      font-size: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 900px) {
+      .cards-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .card-fullwidth {
+        grid-column: 1 / -1;
+      }
+    }
+
+    .card {
+      background: rgba(18, 22, 28, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid #262e3a;
+      border-radius: 28px;
+      padding: 1.5rem;
+      box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+      transition: border-color 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card:hover {
+      border-color: #3a4557;
+    }
+
+    .card-number {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #4d6a9c;
+      letter-spacing: 0.05em;
+      background: rgba(60, 100, 200, 0.12);
+      display: inline-block;
+      padding: 0.2rem 0.8rem;
+      border-radius: 30px;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-title {
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff, #b8c8ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      line-height: 1.2;
+    }
+
+    .card-desc {
+      color: #8899aa;
+      font-size: 0.9rem;
+      margin-top: 0.3rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #a6b7cc;
+      margin-bottom: 0.4rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    textarea, input[type="text"], input[type="search"], select {
+      width: 100%;
+      background: #10151c;
+      border: 1px solid #262e3a;
+      border-radius: 18px;
+      padding: 0.9rem 1rem;
+      font-size: 0.95rem;
+      color: #eef2f6;
+      font-family: inherit;
+      resize: vertical;
+      transition: border 0.15s, box-shadow 0.15s;
+    }
+
+    textarea:focus, input:focus, select:focus {
+      outline: none;
+      border-color: #3e5a8c;
+      box-shadow: 0 0 0 3px rgba(60, 100, 200, 0.15);
+    }
+
+    textarea {
+      min-height: 100px;
+    }
+
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238899aa' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      padding-right: 2.5rem;
+    }
+
+    .ratio-group {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+
+    .ratio-btn {
+      background: #10151c;
+      border: 1px solid #262e3a;
+      border-radius: 40px;
+      padding: 0.5rem 1.2rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #b8c8dd;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex: 1 0 auto;
+      min-width: 70px;
+      text-align: center;
+    }
+
+    .ratio-btn:hover {
+      background: #1b222c;
+      border-color: #3e5a8c;
+    }
+
+    .ratio-btn.active {
+      background: #1d3b6e;
+      border-color: #3e7adb;
+      color: white;
+      box-shadow: 0 0 12px rgba(60, 120, 255, 0.3);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: #1d2530;
+      border: 1px solid #2d3847;
+      border-radius: 50px;
+      padding: 0.8rem 1.6rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #eef2f6;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+      font-family: inherit;
+      line-height: 1.2;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: #27313f;
+      border-color: #4a5a70;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #1e3f7a, #2a5298);
+      border: 1px solid #3a6bcb;
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #23509c, #3060c0);
+      border-color: #5a8bea;
+    }
+
+    .btn-secondary {
+      background: #1a212b;
+      border: 1px solid #2d3847;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #232c3a;
+      border-color: #4a5a70;
+    }
+
+    .btn-sm {
+      padding: 0.45rem 1rem;
+      font-size: 0.8rem;
+      border-radius: 40px;
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-top: 0.75rem;
+    }
+
+    .dropzone {
+      border: 2px dashed #2d3847;
+      border-radius: 24px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: #0d1219;
+      margin-bottom: 1rem;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: #3e7adb;
+      background: #111a26;
+    }
+
+    .dropzone-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.7;
+    }
+
+    .dropzone-text {
+      font-weight: 500;
+      color: #d0ddeb;
+    }
+
+    .dropzone-sub {
+      font-size: 0.8rem;
+      color: #6b7b8d;
+      margin-top: 0.25rem;
+    }
+
+    .file-info {
+      background: #0d1219;
+      border-radius: 18px;
+      padding: 1rem;
+      margin: 1rem 0;
+      border: 1px solid #202833;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .file-info-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: #b0c0d0;
+    }
+
+    .file-info-row span:first-child {
+      color: #7a8b9f;
+    }
+
+    .preview-img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 16px;
+      margin: 0.5rem 0;
+      object-fit: contain;
+      background: #0a0e14;
+      border: 1px solid #202833;
+    }
+
+    .preview-audio {
+      width: 100%;
+      margin: 0.5rem 0;
+      border-radius: 40px;
+      background: #10151c;
+    }
+
+    .result-card {
+      background: #0d1219;
+      border: 1px solid #202833;
+      border-radius: 24px;
+      padding: 1.25rem;
+      margin-top: 1.25rem;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .result-title {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #c8d8ee;
+    }
+
+    .result-image {
+      width: 100%;
+      border-radius: 16px;
+      margin: 0.5rem 0;
+      border: 1px solid #202833;
+    }
+
+    .result-meta {
+      font-size: 0.85rem;
+      color: #7a8b9f;
+      margin: 0.4rem 0;
+      word-break: break-word;
+    }
+
+    .result-text {
+      background: #0a0e14;
+      padding: 1rem;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #d0ddeb;
+      border: 1px solid #202833;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    pre.srt-box {
+      background: #0a0e14;
+      padding: 1rem;
+      border-radius: 16px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: #b0c8e0;
+      border: 1px solid #202833;
+      max-height: 200px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .progress-wrapper {
+      margin: 1rem 0;
+      background: #0d1219;
+      border-radius: 20px;
+      padding: 1rem;
+      border: 1px solid #202833;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: #1a2330;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 0.8rem 0 0.5rem;
+    }
+
+    .progress-bar-indeterminate {
+      height: 100%;
+      width: 40%;
+      background: linear-gradient(90deg, #3e7adb, #7aa5ff, #3e7adb);
+      border-radius: 10px;
+      animation: indeterminate 1.4s infinite ease-in-out;
+      transform-origin: left;
+    }
+
+    @keyframes indeterminate {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(300%); }
+    }
+
+    .progress-status {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.9rem;
+      color: #b0c8e0;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #5a8bea;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .elapsed {
+      font-size: 0.75rem;
+      color: #6b7b8d;
+      margin-left: auto;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .error-panel {
+      background: rgba(220, 60, 60, 0.08);
+      border: 1px solid rgba(220, 60, 60, 0.3);
+      border-radius: 18px;
+      padding: 1rem;
+      margin: 1rem 0;
+      color: #f0a0a0;
+    }
+
+    .error-title {
+      font-weight: 600;
+      color: #ff8a8a;
+      margin-bottom: 0.3rem;
+      font-size: 0.9rem;
+    }
+
+    .error-detail {
+      font-size: 0.85rem;
+      color: #d08080;
+      word-break: break-word;
+    }
+
+    .mode-switch {
+      display: flex;
+      background: #10151c;
+      border-radius: 40px;
+      padding: 0.25rem;
+      margin-bottom: 1.25rem;
+      border: 1px solid #262e3a;
+    }
+
+    .mode-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-radius: 30px;
+      padding: 0.6rem 0;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #8899aa;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+
+    .mode-btn.active {
+      background: #1d2a3e;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .mt-2 { margin-top: 1rem; }
+    .mt-1 { margin-top: 0.5rem; }
+    .mb-1 { margin-bottom: 0.5rem; }
+    .mb-2 { margin-bottom: 1rem; }
+    .flex { display: flex; }
+    .flex-wrap { flex-wrap: wrap; }
+    .gap-1 { gap: 0.5rem; }
+    .gap-2 { gap: 1rem; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+
+    .char-counter {
+      font-size: 0.75rem;
+      color: #6b7b8d;
+      text-align: right;
+      margin-top: 0.25rem;
+    }
+
+    .char-counter.over {
+      color: #ff8a8a;
+    }
+
+    .voice-meta {
+      font-size: 0.75rem;
+      color: #7a8b9f;
+      margin-top: 0.3rem;
+      line-height: 1.4;
+    }
+
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .range-row input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: #1a2330;
+      border-radius: 10px;
+      outline: none;
+      padding: 0;
+      border: none;
+    }
+
+    .range-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #5a8bea;
+      cursor: pointer;
+      border: 2px solid #1d2530;
+    }
+
+    .range-row input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #5a8bea;
+      cursor: pointer;
+      border: 2px solid #1d2530;
+    }
+
+    .range-value {
+      font-size: 0.8rem;
+      color: #b0c8e0;
+      min-width: 3rem;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .voice-select-area {
+      background: #0d1219;
+      border: 1px solid #202833;
+      border-radius: 20px;
+      padding: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .voice-loading {
+      font-size: 0.85rem;
+      color: #8899aa;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .voice-error {
+      font-size: 0.85rem;
+      color: #ff8a8a;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+<div class="app-container">
+
+  <header class="header">
+    <h1 class="app-title">✦ AI Media Lab</h1>
+    <p class="subtitle">Create images. Understand media. Generate speech.</p>
+  </header>
+
+  <div class="cards-grid">
+
+    <!-- ========== CARD 01 — TEXT → IMAGE ========== -->
+    <div class="card" id="card-text-to-image">
+      <div>
+        <div class="card-number">01</div>
+        <h2 class="card-title">Text → Image</h2>
+        <p class="card-desc">Turn your idea into a cinematic AI image.</p>
+      </div>
+
+      <label for="tti-prompt" class="mt-2">Your prompt</label>
+      <textarea id="tti-prompt" placeholder="Describe the image you want to create...">A cinematic ultra-realistic mountain landscape at sunset, golden light breaking through dramatic clouds, misty valley, distant snow-covered peaks, photorealistic, detailed, cinematic composition</textarea>
+
+      <label class="mt-2">Aspect ratio</label>
+      <div class="ratio-group" id="ratio-group">
+        <button type="button" class="ratio-btn" data-ratio="1:1">1:1</button>
+        <button type="button" class="ratio-btn active" data-ratio="16:9">16:9</button>
+        <button type="button" class="ratio-btn" data-ratio="9:16">9:16</button>
+      </div>
+
+      <button class="btn btn-primary btn-block mt-1" id="tti-generate-btn">Generate Image</button>
+
+      <div id="tti-progress" class="progress-wrapper hidden">
+        <div class="progress-status">
+          <div class="spinner"></div>
+          <span id="tti-progress-label">Preparing…</span>
+          <span class="elapsed" id="tti-elapsed">0.0s</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-indeterminate"></div>
+        </div>
+      </div>
+
+      <div id="tti-error" class="error-panel hidden">
+        <div class="error-title">Something went wrong</div>
+        <div class="error-detail" id="tti-error-detail"></div>
+        <button class="btn btn-sm btn-secondary mt-1" id="tti-retry-btn">Try Again</button>
+      </div>
+
+      <div id="tti-result" class="result-card hidden">
+        <div class="result-header">
+          <span class="result-title">Generated Image</span>
+        </div>
+        <img id="tti-result-img" class="result-image" src="" alt="Generated AI image">
+        <div class="result-meta" id="tti-result-prompt"></div>
+        <div class="btn-group">
+          <a id="tti-download-link" class="btn btn-sm btn-secondary" download target="_blank" rel="noopener">Download</a>
+          <a id="tti-open-link" class="btn btn-sm btn-secondary" target="_blank" rel="noopener">Open</a>
+          <button class="btn btn-sm btn-secondary" id="tti-regenerate-btn">Generate Again</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== CARD 02 — TEXT → AUDIO (TTS) ========== -->
+    <div class="card" id="card-text-to-audio">
+      <div>
+        <div class="card-number">02</div>
+        <h2 class="card-title">Text → Audio</h2>
+        <p class="card-desc">Convert your text into natural-sounding speech with 580+ voices.</p>
+      </div>
+
+      <label for="tta-text" class="mt-2">Your text</label>
+      <textarea id="tta-text" placeholder="Enter the text you want to convert to speech...">Hello, this is a test of the text to speech system. Welcome to AI Media Lab.</textarea>
+      <div class="char-counter" id="tta-char-counter">0 / 1950</div>
+
+      <!-- Voice selection area -->
+      <div class="voice-select-area mt-2">
+        <div id="tta-voice-loading" class="voice-loading">
+          <div class="spinner"></div>
+          <span>Loading voices…</span>
+        </div>
+
+        <div id="tta-voice-error" class="voice-error hidden">
+          <span>Unable to load voices</span>
+          <button class="btn btn-sm btn-secondary" id="tta-voice-retry-btn">Retry</button>
+        </div>
+
+        <div id="tta-voice-controls" class="hidden">
+          <label for="tta-voice-search">Search voices</label>
+          <input type="search" id="tta-voice-search" placeholder="Search by name, gender, language, country...">
+
+          <label for="tta-language-filter" class="mt-1">Language</label>
+          <select id="tta-language-filter">
+            <option value="">All Languages</option>
+          </select>
+
+          <label for="tta-voice-select" class="mt-1">Voice</label>
+          <select id="tta-voice-select"></select>
+          <div class="voice-meta" id="tta-voice-meta"></div>
+        </div>
+      </div>
+
+      <!-- Pitch & Rate -->
+      <label class="mt-2">Pitch</label>
+      <div class="range-row">
+        <input type="range" id="tta-pitch" min="-100" max="100" value="0" step="1">
+        <span class="range-value" id="tta-pitch-value">0</span>
+      </div>
+
+      <label class="mt-2">Rate</label>
+      <div class="range-row">
+        <input type="range" id="tta-rate" min="-100" max="100" value="0" step="1">
+        <span class="range-value" id="tta-rate-value">0</span>
+      </div>
+
+      <button class="btn btn-primary btn-block mt-2" id="tta-generate-btn" disabled>Generate Audio</button>
+
+      <div id="tta-progress" class="progress-wrapper hidden">
+        <div class="progress-status">
+          <div class="spinner"></div>
+          <span id="tta-progress-label">Preparing…</span>
+          <span class="elapsed" id="tta-elapsed">0.0s</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-indeterminate"></div>
+        </div>
+      </div>
+
+      <div id="tta-error" class="error-panel hidden">
+        <div class="error-title">Something went wrong</div>
+        <div class="error-detail" id="tta-error-detail"></div>
+        <button class="btn btn-sm btn-secondary mt-1" id="tta-retry-btn">Try Again</button>
+      </div>
+
+      <div id="tta-result" class="result-card hidden">
+        <div class="result-header">
+          <span class="result-title">Generated Audio</span>
+        </div>
+        <audio id="tta-audio" class="preview-audio" controls></audio>
+        <div class="result-meta" id="tta-result-voice"></div>
+        <div class="result-meta" id="tta-result-chars"></div>
+        <div class="result-meta" id="tta-result-time"></div>
+        <div class="btn-group">
+          <a id="tta-download-link" class="btn btn-sm btn-secondary" download="speech.mp3">Download MP3</a>
+          <button class="btn btn-sm btn-secondary" id="tta-regenerate-btn">Generate Again</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== CARD 03 — MEDIA → TEXT (FULL WIDTH) ========== -->
+    <div class="card card-fullwidth" id="card-media-to-text">
+      <div>
+        <div class="card-number">03</div>
+        <h2 class="card-title">Media → Text</h2>
+        <p class="card-desc">Upload an image or audio file and let AI extract, read, transcribe or understand it.</p>
+      </div>
+
+      <div class="mode-switch" id="media-mode-switch">
+        <button class="mode-btn active" data-mode="image">Image</button>
+        <button class="mode-btn" data-mode="audio">Audio</button>
+      </div>
+
+      <!-- IMAGE MODE -->
+      <div id="media-image-section">
+        <div class="dropzone" id="media-image-dropzone">
+          <div class="dropzone-icon">🖼️</div>
+          <div class="dropzone-text">Drop an image here</div>
+          <div class="dropzone-sub">or choose an image</div>
+          <div class="dropzone-sub" style="margin-top:0.5rem;">JPG • PNG • WEBP • GIF</div>
+        </div>
+        <input type="file" id="media-image-input" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden">
+
+        <div id="media-image-info" class="file-info hidden">
+          <div class="file-info-row"><span>File</span><span id="media-image-name"></span></div>
+          <div class="file-info-row"><span>Size</span><span id="media-image-size"></span></div>
+          <div class="file-info-row"><span>Type</span><span id="media-image-type"></span></div>
+        </div>
+        <img id="media-image-preview" class="preview-img hidden" src="" alt="Selected image preview">
+
+        <div class="btn-group mt-1">
+          <button class="btn btn-sm btn-secondary" id="media-image-change-btn">Change image</button>
+          <button class="btn btn-sm btn-secondary" id="media-image-remove-btn">Remove</button>
+        </div>
+
+        <label for="media-image-prompt" class="mt-2">What should AI do with this image?</label>
+        <textarea id="media-image-prompt">Extract all visible text from this image. If there is no text, describe the image in detail.</textarea>
+
+        <div class="btn-group mt-1">
+          <button class="btn btn-sm btn-secondary quick-media-img" data-prompt="Extract all visible text from this image exactly as written. Preserve numbers, names, dates and formatting as much as possible.">OCR</button>
+          <button class="btn btn-sm btn-secondary quick-media-img" data-prompt="Describe this image in detail, including the main subjects, environment, objects, colors, composition and important visual details.">Describe</button>
+          <button class="btn btn-sm btn-secondary quick-media-img" data-prompt="Analyze this image carefully and explain what it contains, including any visible text, objects, people, documents, numbers and important details.">Analyze</button>
+          <button class="btn btn-sm btn-secondary quick-media-img" data-prompt="Extract all visible text from this image and translate it into English. Preserve the original meaning and clearly separate the extracted text from the translation.">Translate</button>
+        </div>
+
+        <button class="btn btn-primary btn-block mt-2" id="media-image-analyze-btn">Analyze Image</button>
+      </div>
+
+      <!-- AUDIO MODE -->
+      <div id="media-audio-section" class="hidden">
+        <div class="dropzone" id="media-audio-dropzone">
+          <div class="dropzone-icon">🎵</div>
+          <div class="dropzone-text">Drop an audio file here</div>
+          <div class="dropzone-sub">or choose an audio file</div>
+          <div class="dropzone-sub" style="margin-top:0.5rem;">MP3 • WAV • M4A • AAC • FLAC</div>
+        </div>
+        <input type="file" id="media-audio-input" accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/m4a,audio/aac,audio/flac" class="hidden">
+
+        <div id="media-audio-info" class="file-info hidden">
+          <div class="file-info-row"><span>File</span><span id="media-audio-name"></span></div>
+          <div class="file-info-row"><span>Size</span><span id="media-audio-size"></span></div>
+          <div class="file-info-row"><span>Type</span><span id="media-audio-type"></span></div>
+        </div>
+        <audio id="media-audio-preview" class="preview-audio hidden" controls></audio>
+
+        <div class="btn-group mt-1">
+          <button class="btn btn-sm btn-secondary" id="media-audio-change-btn">Change audio</button>
+          <button class="btn btn-sm btn-secondary" id="media-audio-remove-btn">Remove</button>
+        </div>
+
+        <button class="btn btn-primary btn-block mt-2" id="media-audio-transcribe-btn">Transcribe Audio</button>
+      </div>
+
+      <div id="media-progress" class="progress-wrapper hidden">
+        <div class="progress-status">
+          <div class="spinner"></div>
+          <span id="media-progress-label">Preparing…</span>
+          <span class="elapsed" id="media-elapsed">0.0s</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-indeterminate"></div>
+        </div>
+      </div>
+
+      <div id="media-error" class="error-panel hidden">
+        <div class="error-title">Something went wrong</div>
+        <div class="error-detail" id="media-error-detail"></div>
+        <button class="btn btn-sm btn-secondary mt-1" id="media-retry-btn">Try Again</button>
+      </div>
+
+      <div id="media-result" class="result-card hidden">
+        <div class="result-header">
+          <span class="result-title">AI Result</span>
+          <div class="flex gap-1 flex-wrap">
+            <button class="btn btn-sm btn-secondary" id="media-copy-btn">Copy</button>
+            <button class="btn btn-sm btn-secondary" id="media-clear-btn">Clear</button>
+            <button class="btn btn-sm btn-secondary" id="media-newfile-btn">New file</button>
+            <button class="btn btn-sm btn-secondary hidden" id="media-srt-btn">Show SRT</button>
+          </div>
+        </div>
+        <div class="result-text" id="media-result-text"></div>
+        <pre class="srt-box hidden mt-1" id="media-srt-box"></pre>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // HELPERS
+  // ============================================================
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => document.querySelectorAll(sel);
+
+  const API_BASE = 'https://ahm7xmakki.com/api';
+  const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+  const MAX_AUDIO_SIZE = 20 * 1024 * 1024;
+  const MAX_TTS_CHARS = 1950;
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function formatElapsed(ms) {
+    if (ms < 1000) return ms + 'ms';
+    return (ms / 1000).toFixed(1) + 's';
+  }
+
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function copyToClipboard(text, btn) {
+    try {
+      await navigator.clipboard.writeText(text);
+      const orig = btn.textContent;
+      btn.textContent = 'Copied ✓';
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      const orig = btn.textContent;
+      btn.textContent = 'Copied ✓';
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    }
+  }
+
+  function fetchWithTimeout(url, options, timeoutMs = 120000) {
+    return new Promise((resolve, reject) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => {
+        controller.abort();
+        reject(new Error('Request timed out. Please try again.'));
+      }, timeoutMs);
+
+      fetch(url, { ...options, signal: controller.signal })
+        .then(response => {
+          clearTimeout(timer);
+          resolve(response);
+        })
+        .catch(err => {
+          clearTimeout(timer);
+          if (err.name === 'AbortError') {
+            reject(new Error('Request timed out. Please try again.'));
+          } else {
+            reject(err);
+          }
+        });
+    });
+  }
+
+  function createProgressController(statusEl, elapsedEl, containerEl) {
+    let startTime = 0;
+    let timerInterval = null;
+
+    function show() {
+      containerEl.classList.remove('hidden');
+      startTime = Date.now();
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        elapsedEl.textContent = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+      }, 100);
+    }
+
+    function hide() {
+      containerEl.classList.add('hidden');
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function complete() {
+      if (timerInterval) clearInterval(timerInterval);
+      const elapsed = Date.now() - startTime;
+      statusEl.textContent = 'Completed ✓';
+      elapsedEl.textContent = formatElapsed(elapsed);
+      setTimeout(() => { containerEl.classList.add('hidden'); }, 1200);
+    }
+
+    function fail() {
+      if (timerInterval) clearInterval(timerInterval);
+      statusEl.textContent = 'Processing failed';
+      setTimeout(() => { containerEl.classList.add('hidden'); }, 800);
+    }
+
+    return { show, hide, setStatus, complete, fail };
+  }
+
+  // ============================================================
+  // CARD 01 — TEXT → IMAGE
+  // ============================================================
+  (function initTextToImage() {
+    const promptEl = $('#tti-prompt');
+    const ratioBtns = $$('#ratio-group .ratio-btn');
+    const generateBtn = $('#tti-generate-btn');
+    const progressEl = $('#tti-progress');
+    const progressLabel = $('#tti-progress-label');
+    const elapsedEl = $('#tti-elapsed');
+    const errorPanel = $('#tti-error');
+    const errorDetail = $('#tti-error-detail');
+    const retryBtn = $('#tti-retry-btn');
+    const resultCard = $('#tti-result');
+    const resultImg = $('#tti-result-img');
+    const resultPrompt = $('#tti-result-prompt');
+    const downloadLink = $('#tti-download-link');
+    const openLink = $('#tti-open-link');
+    const regenerateBtn = $('#tti-regenerate-btn');
+
+    let selectedRatio = '16:9';
+    let isGenerating = false;
+
+    const progress = createProgressController(progressLabel, elapsedEl, progressEl);
+
+    ratioBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        ratioBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedRatio = btn.dataset.ratio;
+      });
+    });
+
+    async function generateImage() {
+      if (isGenerating) return;
+      const prompt = promptEl.value.trim();
+      if (!prompt) {
+        showError('Please enter a prompt to generate an image.');
+        return;
+      }
+
+      isGenerating = true;
+      generateBtn.disabled = true;
+      generateBtn.textContent = 'Generating…';
+      hideError();
+      hideResult();
+      progress.show();
+      progress.setStatus('Preparing…');
+
+      try {
+        progress.setStatus('Sending to AI…');
+
+        const response = await fetchWithTimeout(`${API_BASE}/tti`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, ratio: selectedRatio })
+        }, 120000);
+
+        progress.setStatus('Processing…');
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data?.error || data?.message || `Server error (${response.status})`);
+        if (!data.success) throw new Error(data?.error || data?.message || 'API returned success: false');
+        if (!data.imageUrl) throw new Error('No image URL returned from API.');
+
+        progress.setStatus('Finishing…');
+
+        resultImg.src = data.imageUrl;
+        resultPrompt.textContent = 'Prompt: ' + (data.prompt || prompt);
+        downloadLink.href = data.imageUrl;
+        openLink.href = data.imageUrl;
+        resultCard.classList.remove('hidden');
+
+        progress.complete();
+      } catch (err) {
+        progress.fail();
+        showError(err.message || 'An unexpected error occurred. Please try again.');
+      } finally {
+        isGenerating = false;
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate Image';
+      }
+    }
+
+    function showError(msg) {
+      errorPanel.classList.remove('hidden');
+      errorDetail.textContent = msg;
+    }
+    function hideError() {
+      errorPanel.classList.add('hidden');
+      errorDetail.textContent = '';
+    }
+    function hideResult() {
+      resultCard.classList.add('hidden');
+    }
+
+    generateBtn.addEventListener('click', generateImage);
+    retryBtn.addEventListener('click', generateImage);
+    regenerateBtn.addEventListener('click', () => {
+      hideResult();
+      generateImage();
+    });
+  })();
+
+  // ============================================================
+  // CARD 02 — TEXT → AUDIO (TTS)
+  // ============================================================
+  (function initTextToAudio() {
+    const textEl = $('#tta-text');
+    const charCounter = $('#tta-char-counter');
+    const generateBtn = $('#tta-generate-btn');
+    const progressEl = $('#tta-progress');
+    const progressLabel = $('#tta-progress-label');
+    const elapsedEl = $('#tta-elapsed');
+    const errorPanel = $('#tta-error');
+    const errorDetail = $('#tta-error-detail');
+    const retryBtn = $('#tta-retry-btn');
+    const resultCard = $('#tta-result');
+    const audioEl = $('#tta-audio');
+    const resultVoice = $('#tta-result-voice');
+    const resultChars = $('#tta-result-chars');
+    const resultTime = $('#tta-result-time');
+    const downloadLink = $('#tta-download-link');
+    const regenerateBtn = $('#tta-regenerate-btn');
+
+    // Voice UI
+    const voiceLoading = $('#tta-voice-loading');
+    const voiceError = $('#tta-voice-error');
+    const voiceRetryBtn = $('#tta-voice-retry-btn');
+    const voiceControls = $('#tta-voice-controls');
+    const voiceSearch = $('#tta-voice-search');
+    const languageFilter = $('#tta-language-filter');
+    const voiceSelect = $('#tta-voice-select');
+    const voiceMeta = $('#tta-voice-meta');
+
+    // Pitch & Rate
+    const pitchInput = $('#tta-pitch');
+    const pitchValue = $('#tta-pitch-value');
+    const rateInput = $('#tta-rate');
+    const rateValue = $('#tta-rate-value');
+
+    let allVoices = [];
+    let filteredVoices = [];
+    let selectedVoiceIndex = null;
+    let isGenerating = false;
+    let voicesLoaded = false;
+
+    const progress = createProgressController(progressLabel, elapsedEl, progressEl);
+
+    // --- Character counter ---
+    function updateCharCounter() {
+      const len = textEl.value.length;
+      charCounter.textContent = `${len} / ${MAX_TTS_CHARS}`;
+      if (len > MAX_TTS_CHARS) {
+        charCounter.classList.add('over');
+        generateBtn.disabled = true;
+      } else {
+        charCounter.classList.remove('over');
+        if (voicesLoaded && selectedVoiceIndex !== null) {
+          generateBtn.disabled = false;
+        }
+      }
+    }
+
+    textEl.addEventListener('input', updateCharCounter);
+
+    // --- Pitch & Rate values ---
+    pitchInput.addEventListener('input', () => {
+      pitchValue.textContent = pitchInput.value;
+    });
+    rateInput.addEventListener('input', () => {
+      rateValue.textContent = rateInput.value;
+    });
+
+    // --- Voice loading ---
+    async function loadVoices() {
+      voiceLoading.classList.remove('hidden');
+      voiceError.classList.add('hidden');
+      voiceControls.classList.add('hidden');
+      voicesLoaded = false;
+      generateBtn.disabled = true;
+
+      try {
+        const response = await fetchWithTimeout(`${API_BASE}/voices`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        }, 30000);
+
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data?.error || data?.message || `Server error (${response.status})`);
+        if (!data.success) throw new Error(data?.error || data?.message || 'API returned success: false');
+        if (!data.voices || !Array.isArray(data.voices) || data.voices.length === 0) {
+          throw new Error('No voices returned from API.');
+        }
+
+        allVoices = data.voices;
+        voicesLoaded = true;
+
+        // Populate language filter
+        const languages = new Set();
+        allVoices.forEach(v => {
+          if (v.language) languages.add(v.language);
+        });
+        const sortedLangs = Array.from(languages).sort();
+        languageFilter.innerHTML = '<option value="">All Languages</option>';
+        sortedLangs.forEach(lang => {
+          const opt = document.createElement('option');
+          opt.value = lang;
+          opt.textContent = lang;
+          languageFilter.appendChild(opt);
+        });
+
+        // Initial filter & render
+        applyFilters();
+
+        voiceLoading.classList.add('hidden');
+        voiceControls.classList.remove('hidden');
+      } catch (err) {
+        voiceLoading.classList.add('hidden');
+        voiceError.classList.remove('hidden');
+        voiceError.querySelector('span').textContent = 'Unable to load voices: ' + (err.message || 'Unknown error');
+        voicesLoaded = false;
+        generateBtn.disabled = true;
+      }
+    }
+
+    // --- Filter & render voices ---
+    function applyFilters() {
+      const searchTerm = voiceSearch.value.trim().toLowerCase();
+      const langFilter = languageFilter.value;
+
+      filteredVoices = allVoices.filter(v => {
+        // Language filter
+        if (langFilter && v.language !== langFilter) return false;
+
+        // Search filter
+        if (searchTerm) {
+          const haystack = [
+            v.name || '',
+            v.gender || '',
+            v.language || '',
+            v.country || ''
+          ].join(' ').toLowerCase();
+          if (!haystack.includes(searchTerm)) return false;
+        }
+        return true;
+      });
+
+      renderVoiceSelect();
+    }
+
+    function renderVoiceSelect() {
+      voiceSelect.innerHTML = '';
+
+      if (filteredVoices.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'No voices match your search';
+        opt.disabled = true;
+        voiceSelect.appendChild(opt);
+        voiceMeta.textContent = '';
+        selectedVoiceIndex = null;
+        generateBtn.disabled = true;
+        return;
+      }
+
+      filteredVoices.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = String(v.index);
+        opt.textContent = `${v.name} — ${v.gender} — ${v.language} — ${v.country}`;
+        voiceSelect.appendChild(opt);
+      });
+
+      // Select first available
+      voiceSelect.selectedIndex = 0;
+      selectedVoiceIndex = Number(voiceSelect.value);
+      updateVoiceMeta();
+
+      // Enable generate if text is within limit
+      const len = textEl.value.length;
+      if (len > 0 && len <= MAX_TTS_CHARS) {
+        generateBtn.disabled = false;
+      }
+    }
+
+    function updateVoiceMeta() {
+      const selectedIndex = Number(voiceSelect.value);
+      const voice = allVoices.find(v => v.index === selectedIndex);
+      if (voice) {
+        voiceMeta.textContent = `${voice.name} — ${voice.gender} — ${voice.language} — ${voice.country}`;
+        selectedVoiceIndex = voice.index;
+      } else {
+        voiceMeta.textContent = '';
+        selectedVoiceIndex = null;
+      }
+    }
+
+    voiceSearch.addEventListener('input', applyFilters);
+    languageFilter.addEventListener('change', applyFilters);
+    voiceSelect.addEventListener('change', () => {
+      updateVoiceMeta();
+    });
+
+    voiceRetryBtn.addEventListener('click', loadVoices);
+
+    // --- Generate Audio ---
+    async function generateAudio() {
+      if (isGenerating) return;
+
+      const text = textEl.value.trim();
+      if (!text) {
+        showError('Please enter some text to convert to audio.');
+        return;
+      }
+
+      if (text.length > MAX_TTS_CHARS) {
+        showError(`Text is too long. Maximum ${MAX_TTS_CHARS} characters per generation.`);
+        return;
+      }
+
+      if (selectedVoiceIndex === null || selectedVoiceIndex === undefined) {
+        showError('Please select a voice first.');
+        return;
+      }
+
+      isGenerating = true;
+      generateBtn.disabled = true;
+      generateBtn.textContent = 'Generating…';
+      hideError();
+      hideResult();
+      progress.show();
+      progress.setStatus('Generating audio…');
+
+      const pitch = Number(pitchInput.value);
+      const rate = Number(rateInput.value);
+
+      try {
+        progress.setStatus('Sending to AI…');
+
+        const response = await fetchWithTimeout(`${API_BASE}/tts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: text,
+            voiceIndex: selectedVoiceIndex,
+            pitch: pitch,
+            rate: rate
+          })
+        }, 180000);
+
+        progress.setStatus('Processing…');
+
+        if (!response.ok) {
+          // Try to parse error as JSON, but TTS may return plain text error
+          let errMsg = `Server error (${response.status})`;
+          try {
+            const errData = await response.json();
+            errMsg = errData?.error || errData?.message || errMsg;
+          } catch {
+            // ignore
+          }
+          throw new Error(errMsg);
+        }
+
+        // TTS returns raw audio/mpeg — do NOT parse as JSON
+        const blob = await response.blob();
+
+        if (blob.size === 0) {
+          throw new Error('Received empty audio response.');
+        }
+
+        progress.setStatus('Finishing…');
+        const audioUrl = URL.createObjectURL(blob);
+
+        // Cleanup previous object URL if any
+        if (audioEl.dataset.objectUrl) {
+          URL.revokeObjectURL(audioEl.dataset.objectUrl);
+        }
+        audioEl.src = audioUrl;
+        audioEl.dataset.objectUrl = audioUrl;
+        audioEl.load();
+
+        // Result info
+        const selectedIndex = Number(voiceSelect.value);
+        const voice = allVoices.find(v => v.index === selectedIndex);
+        const voiceLabel = voice
+          ? `${voice.name} — ${voice.gender} — ${voice.language} — ${voice.country}`
+          : 'Voice #' + selectedIndex;
+
+        resultVoice.textContent = 'Voice: ' + voiceLabel;
+        resultChars.textContent = 'Characters: ' + text.length;
+
+        const elapsedMs = Date.now() - (progress._startTime || Date.now());
+        resultTime.textContent = 'Generated in ' + formatElapsed(elapsedMs);
+
+        downloadLink.href = audioUrl;
+        resultCard.classList.remove('hidden');
+
+        progress.complete();
+      } catch (err) {
+        progress.fail();
+        showError(err.message || 'An unexpected error occurred. Please try again.');
+      } finally {
+        isGenerating = false;
+        generateBtn.textContent = 'Generate Audio';
+        // Re-enable based on current state
+        const len = textEl.value.length;
+        if (voicesLoaded && selectedVoiceIndex !== null && len > 0 && len <= MAX_TTS_CHARS) {
+          generateBtn.disabled = false;
+        } else {
+          generateBtn.disabled = true;
+        }
+      }
+    }
+
+    function showError(msg) {
+      errorPanel.classList.remove('hidden');
+      errorDetail.textContent = msg;
+    }
+    function hideError() {
+      errorPanel.classList.add('hidden');
+      errorDetail.textContent = '';
+    }
+    function hideResult() {
+      resultCard.classList.add('hidden');
+    }
+
+    generateBtn.addEventListener('click', generateAudio);
+    retryBtn.addEventListener('click', generateAudio);
+    regenerateBtn.addEventListener('click', () => {
+      hideResult();
+      generateAudio();
+    });
+
+    // --- Initialize ---
+    updateCharCounter();
+    loadVoices();
+  })();
+
+  // ============================================================
+  // CARD 03 — MEDIA → TEXT (IMAGE + AUDIO)
+  // ============================================================
+  (function initMediaToText() {
+    const modeBtns = $$('#media-mode-switch .mode-btn');
+    const imageSection = $('#media-image-section');
+    const audioSection = $('#media-audio-section');
+    let currentMode = 'image';
+
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentMode = btn.dataset.mode;
+
+        if (currentMode === 'image') {
+          imageSection.classList.remove('hidden');
+          audioSection.classList.add('hidden');
+        } else {
+          imageSection.classList.add('hidden');
+          audioSection.classList.remove('hidden');
+        }
+        hideMediaResult();
+        hideMediaError();
+        hideMediaProgress();
+      });
+    });
+
+    const progressEl = $('#media-progress');
+    const progressLabel = $('#media-progress-label');
+    const elapsedEl = $('#media-elapsed');
+    const errorPanel = $('#media-error');
+    const errorDetail = $('#media-error-detail');
+    const retryBtn = $('#media-retry-btn');
+    const resultCard = $('#media-result');
+    const resultText = $('#media-result-text');
+    const copyBtn = $('#media-copy-btn');
+    const clearBtn = $('#media-clear-btn');
+    const newFileBtn = $('#media-newfile-btn');
+    const srtBtn = $('#media-srt-btn');
+    const srtBox = $('#media-srt-box');
+
+    const progress = createProgressController(progressLabel, elapsedEl, progressEl);
+
+    // IMAGE elements
+    const imageDropzone = $('#media-image-dropzone');
+    const imageInput = $('#media-image-input');
+    const imageInfo = $('#media-image-info');
+    const imageName = $('#media-image-name');
+    const imageSize = $('#media-image-size');
+    const imageType = $('#media-image-type');
+    const imagePreview = $('#media-image-preview');
+    const imageRemoveBtn = $('#media-image-remove-btn');
+    const imageChangeBtn = $('#media-image-change-btn');
+    const imagePrompt = $('#media-image-prompt');
+    const imageAnalyzeBtn = $('#media-image-analyze-btn');
+
+    // AUDIO elements
+    const audioDropzone = $('#media-audio-dropzone');
+    const audioInput = $('#media-audio-input');
+    const audioInfo = $('#media-audio-info');
+    const audioName = $('#media-audio-name');
+    const audioSize = $('#media-audio-size');
+    const audioType = $('#media-audio-type');
+    const audioPreview = $('#media-audio-preview');
+    const audioRemoveBtn = $('#media-audio-remove-btn');
+    const audioChangeBtn = $('#media-audio-change-btn');
+    const audioTranscribeBtn = $('#media-audio-transcribe-btn');
+
+    let selectedImageFile = null;
+    let selectedAudioFile = null;
+    let isProcessing = false;
+    let currentSrt = null;
+
+    // ---- IMAGE HANDLERS ----
+    function handleImageFile(file) {
+      if (!file) return;
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        showMediaError('Unsupported image format. Please use JPG, PNG, WEBP, or GIF.');
+        return;
+      }
+      if (file.size > MAX_IMAGE_SIZE) {
+        showMediaError(`Image is too large (${formatSize(file.size)}). Maximum size is 10 MB.`);
+        return;
+      }
+      selectedImageFile = file;
+      imageName.textContent = file.name;
+      imageSize.textContent = formatSize(file.size);
+      imageType.textContent = file.type;
+      imageInfo.classList.remove('hidden');
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        imagePreview.src = e.target.result;
+        imagePreview.classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+
+      imageRemoveBtn.classList.remove('hidden');
+      hideMediaError();
+      hideMediaResult();
+    }
+
+    function removeImageFile() {
+      selectedImageFile = null;
+      imageInput.value = '';
+      imageInfo.classList.add('hidden');
+      imagePreview.classList.add('hidden');
+      imagePreview.src = '';
+      imageRemoveBtn.classList.add('hidden');
+      hideMediaError();
+      hideMediaResult();
+    }
+
+    imageDropzone.addEventListener('click', () => imageInput.click());
+    imageDropzone.addEventListener('dragover', (e) => { e.preventDefault(); imageDropzone.classList.add('dragover'); });
+    imageDropzone.addEventListener('dragleave', () => imageDropzone.classList.remove('dragover'));
+    imageDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      imageDropzone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleImageFile(file);
+    });
+    imageInput.addEventListener('change', () => {
+      if (imageInput.files[0]) handleImageFile(imageInput.files[0]);
+    });
+    imageRemoveBtn.addEventListener('click', removeImageFile);
+    imageChangeBtn.addEventListener('click', () => imageInput.click());
+
+    $$('.quick-media-img').forEach(btn => {
+      btn.addEventListener('click', () => {
+        imagePrompt.value = btn.dataset.prompt;
+      });
+    });
+
+    // ---- AUDIO HANDLERS ----
+    function handleAudioFile(file) {
+      if (!file) return;
+      const validTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/mp4', 'audio/m4a', 'audio/aac', 'audio/flac'];
+      if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|m4a|aac|flac)$/i)) {
+        showMediaError('Unsupported audio format. Please use MP3, WAV, M4A, AAC, or FLAC.');
+        return;
+      }
+      if (file.size > MAX_AUDIO_SIZE) {
+        showMediaError(`Audio file is too large (${formatSize(file.size)}). Maximum size is 20 MB.`);
+        return;
+      }
+      selectedAudioFile = file;
+      audioName.textContent = file.name;
+      audioSize.textContent = formatSize(file.size);
+      audioType.textContent = file.type || 'audio/' + file.name.split('.').pop();
+      audioInfo.classList.remove('hidden');
+
+      const url = URL.createObjectURL(file);
+      audioPreview.src = url;
+      audioPreview.classList.remove('hidden');
+
+      audioRemoveBtn.classList.remove('hidden');
+      hideMediaError();
+      hideMediaResult();
+    }
+
+    function removeAudioFile() {
+      selectedAudioFile = null;
+      audioInput.value = '';
+      audioInfo.classList.add('hidden');
+      audioPreview.classList.add('hidden');
+      audioPreview.src = '';
+      audioRemoveBtn.classList.add('hidden');
+      hideMediaError();
+      hideMediaResult();
+    }
+
+    audioDropzone.addEventListener('click', () => audioInput.click());
+    audioDropzone.addEventListener('dragover', (e) => { e.preventDefault(); audioDropzone.classList.add('dragover'); });
+    audioDropzone.addEventListener('dragleave', () => audioDropzone.classList.remove('dragover'));
+    audioDropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      audioDropzone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleAudioFile(file);
+    });
+    audioInput.addEventListener('change', () => {
+      if (audioInput.files[0]) handleAudioFile(audioInput.files[0]);
+    });
+    audioRemoveBtn.addEventListener('click', removeAudioFile);
+    audioChangeBtn.addEventListener('click', () => audioInput.click());
+
+    // ---- SHARED RESULT HANDLERS ----
+    function showMediaError(msg) {
+      errorPanel.classList.remove('hidden');
+      errorDetail.textContent = msg;
+    }
+    function hideMediaError() {
+      errorPanel.classList.add('hidden');
+      errorDetail.textContent = '';
+    }
+    function hideMediaResult() {
+      resultCard.classList.add('hidden');
+      srtBox.classList.add('hidden');
+      srtBtn.classList.add('hidden');
+      currentSrt = null;
+    }
+    function hideMediaProgress() {
+      progressEl.classList.add('hidden');
+    }
+
+    // ---- IMAGE ANALYZE ----
+    async function analyzeMediaImage() {
+      if (isProcessing) return;
+      if (!selectedImageFile) {
+        showMediaError('Please select an image first.');
+        return;
+      }
+      if (selectedImageFile.size > MAX_IMAGE_SIZE) {
+        showMediaError('Image is too large. Maximum size is 10 MB.');
+        return;
+      }
+      const userPrompt = imagePrompt.value.trim();
+      if (!userPrompt) {
+        showMediaError('Please enter a prompt or select a quick action.');
+        return;
+      }
+
+      isProcessing = true;
+      imageAnalyzeBtn.disabled = true;
+      imageAnalyzeBtn.textContent = 'Analyzing…';
+      hideMediaError();
+      hideMediaResult();
+      progress.show();
+      progress.setStatus('Preparing…');
+
+      try {
+        progress.setStatus('Sending to AI…');
+        const base64DataUrl = await readFileAsDataURL(selectedImageFile);
+        progress.setStatus('Processing…');
+
+        const response = await fetchWithTimeout(`${API_BASE}/imgchat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: base64DataUrl,
+            userPrompt: userPrompt
+          })
+        }, 180000);
+
+        progress.setStatus('Finishing…');
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data?.error || data?.message || `Server error (${response.status})`);
+        if (!data.success) throw new Error(data?.error || data?.message || 'API returned success: false');
+        if (!data.response) throw new Error('No response text returned from API.');
+
+        resultText.textContent = data.response;
+        resultCard.classList.remove('hidden');
+        srtBtn.classList.add('hidden');
+        srtBox.classList.add('hidden');
+        progress.complete();
+      } catch (err) {
+        progress.fail();
+        showMediaError(err.message || 'An unexpected error occurred. Please try again.');
+      } finally {
+        isProcessing = false;
+        imageAnalyzeBtn.disabled = false;
+        imageAnalyzeBtn.textContent = 'Analyze Image';
+      }
+    }
+
+    // ---- AUDIO TRANSCRIBE ----
+    async function transcribeMediaAudio() {
+      if (isProcessing) return;
+      if (!selectedAudioFile) {
+        showMediaError('Please select an audio file first.');
+        return;
+      }
+      if (selectedAudioFile.size > MAX_AUDIO_SIZE) {
+        showMediaError('Audio file is too large. Maximum size is 20 MB.');
+        return;
+      }
+
+      isProcessing = true;
+      audioTranscribeBtn.disabled = true;
+      audioTranscribeBtn.textContent = 'Transcribing…';
+      hideMediaError();
+      hideMediaResult();
+      progress.show();
+      progress.setStatus('Preparing…');
+
+      try {
+        progress.setStatus('Sending to AI…');
+        const base64DataUrl = await readFileAsDataURL(selectedAudioFile);
+        progress.setStatus('Processing…');
+
+        const mime = selectedAudioFile.type || 'audio/mpeg';
+        const filename = selectedAudioFile.name || 'clip.mp3';
+
+        const response = await fetchWithTimeout(`${API_BASE}/transcribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            audio: base64DataUrl,
+            filename: filename,
+            mime: mime
+          })
+        }, 180000);
+
+        progress.setStatus('Finishing…');
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data?.error || data?.message || `Server error (${response.status})`);
+        if (!data.text) throw new Error('No transcription text returned from API.');
+
+        resultText.textContent = data.text;
+        resultCard.classList.remove('hidden');
+
+        if (data.srt) {
+          currentSrt = data.srt;
+          srtBtn.classList.remove('hidden');
+          srtBox.textContent = data.srt;
+        } else {
+          srtBtn.classList.add('hidden');
+          srtBox.classList.add('hidden');
+          currentSrt = null;
+        }
+        progress.complete();
+      } catch (err) {
+        progress.fail();
+        showMediaError(err.message || 'An unexpected error occurred. Please try again.');
+      } finally {
+        isProcessing = false;
+        audioTranscribeBtn.disabled = false;
+        audioTranscribeBtn.textContent = 'Transcribe Audio';
+      }
+    }
+
+    imageAnalyzeBtn.addEventListener('click', analyzeMediaImage);
+    audioTranscribeBtn.addEventListener('click', transcribeMediaAudio);
+    retryBtn.addEventListener('click', () => {
+      if (currentMode === 'image') {
+        analyzeMediaImage();
+      } else {
+        transcribeMediaAudio();
+      }
+    });
+
+    copyBtn.addEventListener('click', () => {
+      const text = resultText.textContent;
+      if (text) copyToClipboard(text, copyBtn);
+    });
+
+    clearBtn.addEventListener('click', () => {
+      resultText.textContent = '';
+      hideMediaResult();
+    });
+
+    newFileBtn.addEventListener('click', () => {
+      if (currentMode === 'image') {
+        removeImageFile();
+      } else {
+        removeAudioFile();
+      }
+      hideMediaResult();
+    });
+
+    srtBtn.addEventListener('click', () => {
+      if (currentSrt) {
+        srtBox.classList.toggle('hidden');
+        srtBtn.textContent = srtBox.classList.contains('hidden') ? 'Show SRT' : 'Hide SRT';
+      }
+    });
+  })();
+</script>
+</body>
+</html>
