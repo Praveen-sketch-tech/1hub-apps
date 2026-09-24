@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoViral Pro</title>
+  <style>
+    :root {
+      --bg: #09090b;
+      --card: #121214;
+      --border: #27272a;
+      --accent: #8b5cf6;
+      --soft: rgba(139,92,246,.14);
+      --text: #fafafa;
+      --muted: #a1a1aa;
+      --ok: #22c55e;
+      --err: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px 14px 50px;
+      line-height: 1.45;
+    }
+    .wrap { max-width: 560px; margin: 0 auto; }
+    .logo { text-align: center; margin-bottom: 18px; }
+    .logo h1 {
+      font-size: 1.45rem; font-weight: 700;
+      background: linear-gradient(135deg,#a78bfa,#e879f9);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .logo p { color: var(--muted); font-size: .82rem; margin-top: 3px; }
+
+    .tabs {
+      display: flex; gap: 4px; margin-bottom: 12px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 4px;
+    }
+    .tab {
+      flex: 1; border: none; background: transparent; color: var(--muted);
+      padding: 8px 4px; border-radius: 9px; font-size: .78rem;
+      font-weight: 600; cursor: pointer;
+    }
+    .tab.on { background: var(--soft); color: #c4b5fd; }
+
+    .panel { display: none; }
+    .panel.on { display: block; }
+
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px; margin-bottom: 10px;
+    }
+    label {
+      display: block; font-size: .74rem; font-weight: 500;
+      color: var(--muted); margin-bottom: 6px;
+    }
+    textarea, input[type=text], input[type=number], select {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px; color: var(--text);
+      font-size: .88rem; outline: none;
+    }
+    textarea { min-height: 100px; resize: vertical; }
+    textarea:focus, select:focus, input:focus { border-color: var(--accent); }
+    .row { display: grid; gap: 8px; margin-top: 10px; }
+    .row.g3 { grid-template-columns: 1fr 1fr 1fr; }
+    .row.g2 { grid-template-columns: 1fr 1fr; }
+
+    .check {
+      display: flex; align-items: center; gap: 8px;
+      font-size: .82rem; color: var(--text); margin-top: 8px;
+      cursor: pointer; user-select: none;
+    }
+    .check input { width: auto; accent-color: var(--accent); }
+
+    .btn {
+      width: 100%; margin-top: 12px; border: none; border-radius: 11px;
+      padding: 12px; font-size: .92rem; font-weight: 600; cursor: pointer;
+      background: linear-gradient(135deg,#7c3aed,#a855f7); color: #fff;
+    }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn.sec {
+      background: transparent; border: 1px solid var(--border); color: var(--text);
+    }
+    .btn.sm { padding: 8px 12px; font-size: .8rem; width: auto; margin: 0; }
+
+    .status {
+      text-align: center; font-size: .78rem; color: var(--muted);
+      margin-top: 8px; min-height: 16px;
+    }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--err); }
+
+    /* Per-batch result blocks */
+    .batch-block {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 16px;
+      animation: up .25s ease;
+    }
+    .batch-block h2 {
+      font-size: .95rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .batch-block h2 .num {
+      background: var(--soft);
+      color: #c4b5fd;
+      font-size: .75rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .sub {
+      margin-bottom: 12px;
+    }
+    .sub-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .sub-head h3 { font-size: .84rem; font-weight: 600; }
+    .tag {
+      font-size: .68rem; padding: 2px 8px; border-radius: 20px;
+      background: #1c1c1f; color: var(--muted);
+    }
+    .tag.done { background: rgba(34,197,94,.12); color: var(--ok); }
+    .tag.run { background: var(--soft); color: #c4b5fd; }
+    .tag.fail { background: rgba(239,68,68,.12); color: var(--err); }
+
+    .media {
+      background: var(--bg); border-radius: 10px; border: 1px solid var(--border);
+      min-height: 48px; overflow: hidden;
+      display: flex; flex-wrap: wrap; gap: 5px; padding: 4px;
+      align-items: center; justify-content: center;
+    }
+    .thumbs { display: flex; flex-wrap: wrap; gap: 5px; width: 100%; justify-content: center; }
+    .thumbs img {
+      width: calc(25% - 5px); aspect-ratio: 9/16; object-fit: cover; border-radius: 6px;
+    }
+    .media audio, .media video { width: 100%; display: block; }
+    .thumbs-out { display: flex; flex-wrap: wrap; gap: 5px; width: 100%; justify-content: center; }
+    .thumbs-out img {
+      width: calc(33% - 5px); aspect-ratio: 9/16; object-fit: cover;
+      border-radius: 8px; cursor: pointer; border: 2px solid transparent;
+    }
+    .thumbs-out img:hover { border-color: var(--accent); }
+
+    .bar-wrap { padding: 16px 12px; width: 100%; text-align: center; }
+    .bar-label { font-size: .8rem; margin-bottom: 7px; }
+    .bar-bg { height: 5px; background: #1c1c1f; border-radius: 4px; overflow: hidden; }
+    .bar-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg,#7c3aed,#c084fc);
+      transition: width .2s;
+    }
+    .bar-pct { margin-top: 6px; font-size: .72rem; color: var(--muted); }
+
+    .dl {
+      display: inline-flex; margin-top: 8px; margin-right: 6px;
+      padding: 6px 11px; border: 1px solid var(--border); border-radius: 9px;
+      color: var(--text); font-size: .76rem; font-weight: 500;
+      text-decoration: none; cursor: pointer;
+    }
+    .dl:hover { border-color: var(--accent); background: var(--soft); }
+
+    .hist-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px; border: 1px solid var(--border); border-radius: 10px;
+      margin-bottom: 6px; font-size: .8rem;
+    }
+    .hist-item span { color: var(--muted); font-size: .72rem; }
+    .queue-item {
+      font-size: .8rem; padding: 8px 10px; border-radius: 8px;
+      background: var(--bg); border: 1px solid var(--border); margin-bottom: 5px;
+    }
+    .queue-item.done { border-color: rgba(34,197,94,.4); }
+    .queue-item.run { border-color: var(--accent); }
+    .queue-item.fail { border-color: var(--err); }
+
+    .hint { font-size: .72rem; color: var(--muted); margin-top: 4px; }
+    .logo-preview {
+      width: 48px; height: 48px; object-fit: contain; border-radius: 8px;
+      background: #000; border: 1px solid var(--border); margin-top: 6px;
+    }
+    #resultsRoot { margin-top: 8px; }
+    @keyframes up {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo">
+      <h1>AutoViral Pro</h1>
+      <p>12 features · multi-scene · captions · brand · batch</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" data-tab="create" onclick="switchTab('create')">Create</button>
+      <button class="tab" data-tab="batch" onclick="switchTab('batch')">Batch</button>
+      <button class="tab" data-tab="brand" onclick="switchTab('brand')">Brand</button>
+      <button class="tab" data-tab="history" onclick="switchTab('history')">History</button>
+    </div>
+
+    <div class="panel on" id="panel-create">
+      <div class="card">
+        <label>Script</label>
+        <textarea id="prompt" placeholder="Script likho... multi-scene auto banega"></textarea>
+        <button class="btn sec sm" style="margin-top:8px" onclick="improveScript()">✦ Make more viral</button>
+
+        <div class="row g3">
+          <div>
+            <label>Format</label>
+            <select id="ratio">
+              <option value="9:16">9:16 Reels</option>
+              <option value="16:9">16:9 YouTube</option>
+              <option value="1:1">1:1 Square</option>
+            </select>
+          </div>
+          <div>
+            <label>Scenes</label>
+            <select id="sceneCount">
+              <option value="auto">Auto</option>
+              <option value="3">3</option>
+              <option value="4" selected>4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+            </select>
+          </div>
+          <div>
+            <label>Max duration</label>
+            <select id="maxDur">
+              <option value="0">Full</option>
+              <option value="30">30 sec</option>
+              <option value="60">60 sec</option>
+              <option value="90">90 sec</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row g2" style="margin-top:10px">
+          <div>
+            <label>Voice</label>
+            <select id="voiceSelect"><option value="214">Swara · Hindi</option></select>
+          </div>
+          <div>
+            <label>Music</label>
+            <select id="musicMode">
+              <option value="off">Off</option>
+              <option value="soft">Soft ambient</option>
+              <option value="upload">Upload file</option>
+            </select>
+          </div>
+        </div>
+        <input type="file" id="musicFile" accept="audio/*" style="display:none;margin-top:8px" />
+
+        <label class="check"><input type="checkbox" id="optCaptions" checked> On-screen captions</label>
+        <label class="check"><input type="checkbox" id="optFade" checked> Scene crossfade</label>
+        <label class="check"><input type="checkbox" id="optHook" checked> Strong hook (first 2s)</label>
+        <label class="check"><input type="checkbox" id="optThumbs" checked> Export thumbnails</label>
+
+        <button class="btn" id="generateBtn" onclick="startGenerate()">Generate Video</button>
+        <div class="status" id="globalStatus"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-batch">
+      <div class="card">
+        <label>Multiple scripts (--- se alag karo)</label>
+        <textarea id="batchScripts" style="min-height:140px" placeholder="Script 1...
+
+---
+
+Script 2..."></textarea>
+        <p class="hint">Har block alag video. Create tab ki settings use hongi.</p>
+        <button class="btn" id="batchBtn" onclick="startBatch()">Run Batch</button>
+        <div class="status" id="batchStatus"></div>
+        <div id="batchQueue" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-brand">
+      <div class="card">
+        <label>Brand name</label>
+        <input type="text" id="brandName" placeholder="My Channel" />
+        <label style="margin-top:10px">Logo (watermark)</label>
+        <input type="file" id="logoFile" accept="image/*" />
+        <img id="logoPreview" class="logo-preview" style="display:none" />
+        <div class="row g2" style="margin-top:10px">
+          <div>
+            <label>Watermark opacity</label>
+            <select id="wmOpacity">
+              <option value="0.25">Light</option>
+              <option value="0.45" selected>Medium</option>
+              <option value="0.7">Strong</option>
+            </select>
+          </div>
+          <div>
+            <label>Watermark position</label>
+            <select id="wmPos">
+              <option value="br">Bottom right</option>
+              <option value="bl">Bottom left</option>
+              <option value="tr">Top right</option>
+              <option value="tl">Top left</option>
+            </select>
+          </div>
+        </div>
+        <label style="margin-top:10px">Default voice (brand)</label>
+        <select id="brandVoice"><option value="214">Swara · Hindi</option></select>
+        <label class="check"><input type="checkbox" id="brandLockVoice" checked> Always use brand voice</label>
+        <label class="check"><input type="checkbox" id="brandShowName"> Show brand name on video</label>
+        <button class="btn sec" style="margin-top:12px" onclick="saveBrand()">Save Brand Kit</button>
+        <div class="status" id="brandStatus"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-history">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <label style="margin:0">Saved projects</label>
+          <button class="btn sec sm" onclick="clearHistory()">Clear all</button>
+        </div>
+        <div id="historyList"><p class="hint">Abhi koi project nahi</p></div>
+      </div>
+    </div>
+
+    <!-- All results stack here (Create + Batch) -->
+    <div id="resultsRoot"></div>
+  </div>
+
+  <script>
+    const BASE = 'https://ahm7xmakki.com';
+    const STYLE = 'cinematic photography, consistent color grade, soft volumetric lighting, shallow depth of field, cohesive film look, same visual style and palette throughout, matching aesthetic, high detail';
+
+    let brandLogoImg = null;
+    let uploadedMusicUrl = null;
+    let resultCounter = 0;
+
+    function switchTab(name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === name));
+      document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'panel-' + name));
+      if (name === 'history') renderHistory();
+    }
+
+    async function loadVoices() {
+      const sels = [document.getElementById('voiceSelect'), document.getElementById('brandVoice')];
+      try {
+        const res = await fetch(BASE + '/api/voices');
+        const data = await res.json();
+        if (!data.success) throw new Error();
+        sels.forEach(sel => {
+          sel.innerHTML = '';
+          const hindi = data.voices.filter(v => (v.language || '').toLowerCase() === 'hindi');
+          const multi = data.voices.filter(v => (v.language || '').toLowerCase() === 'multilingual');
+          function add(label, list) {
+            if (!list.length) return;
+            const og = document.createElement('optgroup');
+            og.label = label;
+            list.forEach(v => {
+              const o = document.createElement('option');
+              o.value = v.index;
+              o.textContent = v.name + ' · ' + v.gender;
+              if (v.index === 214) o.selected = true;
+              og.appendChild(o);
+            });
+            sel.appendChild(og);
+          }
+          add('Hindi', hindi);
+          add('Multilingual', multi);
+          sel.value = '214';
+        });
+      } catch (_) {
+        sels.forEach(sel => {
+          sel.innerHTML = '<option value="214">Swara · Hindi</option><option value="213">Madhur · Hindi</option>';
+        });
+      }
+      loadBrand();
+    }
+    loadVoices();
+
+    document.getElementById('logoFile').addEventListener('change', e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const url = URL.createObjectURL(f);
+      const img = new Image();
+      img.onload = () => {
+        brandLogoImg = img;
+        const prev = document.getElementById('logoPreview');
+        prev.src = url;
+        prev.style.display = 'block';
+      };
+      img.src = url;
+    });
+    document.getElementById('musicMode').addEventListener('change', e => {
+      document.getElementById('musicFile').style.display = e.target.value === 'upload' ? 'block' : 'none';
+    });
+    document.getElementById('musicFile').addEventListener('change', e => {
+      const f = e.target.files[0];
+      if (f) uploadedMusicUrl = URL.createObjectURL(f);
+    });
+
+    function saveBrand() {
+      const data = {
+        name: document.getElementById('brandName').value.trim(),
+        opacity: document.getElementById('wmOpacity').value,
+        pos: document.getElementById('wmPos').value,
+        voice: document.getElementById('brandVoice').value,
+        lockVoice: document.getElementById('brandLockVoice').checked,
+        showName: document.getElementById('brandShowName').checked
+      };
+      localStorage.setItem('av_brand', JSON.stringify(data));
+      if (brandLogoImg) {
+        const c = document.createElement('canvas');
+        c.width = brandLogoImg.naturalWidth || brandLogoImg.width;
+        c.height = brandLogoImg.naturalHeight || brandLogoImg.height;
+        c.getContext('2d').drawImage(brandLogoImg, 0, 0);
+        try { localStorage.setItem('av_logo', c.toDataURL('image/png')); } catch (_) {}
+      }
+      document.getElementById('brandStatus').textContent = 'Brand kit saved';
+      document.getElementById('brandStatus').className = 'status ok';
+    }
+
+    function loadBrand() {
+      try {
+        const data = JSON.parse(localStorage.getItem('av_brand') || '{}');
+        if (data.name) document.getElementById('brandName').value = data.name;
+        if (data.opacity) document.getElementById('wmOpacity').value = data.opacity;
+        if (data.pos) document.getElementById('wmPos').value = data.pos;
+        if (data.voice) {
+          document.getElementById('brandVoice').value = data.voice;
+          if (data.lockVoice) document.getElementById('voiceSelect').value = data.voice;
+        }
+        document.getElementById('brandLockVoice').checked = data.lockVoice !== false;
+        document.getElementById('brandShowName').checked = !!data.showName;
+        const logoData = localStorage.getItem('av_logo');
+        if (logoData) {
+          const img = new Image();
+          img.onload = () => {
+            brandLogoImg = img;
+            const prev = document.getElementById('logoPreview');
+            prev.src = logoData;
+            prev.style.display = 'block';
+          };
+          img.src = logoData;
+        }
+      } catch (_) {}
+    }
+
+    function improveScript() {
+      let t = document.getElementById('prompt').value.trim();
+      if (!t) return;
+      const hooks = ['Wait for this — ', 'You need to see this. ', 'Most people get this wrong. ', 'Here is the truth: '];
+      const ctas = [' Follow for more.', ' Save this for later.', ' Comment if this helped.', ' Share with someone who needs this.'];
+      const hook = hooks[Math.floor(Math.random() * hooks.length)];
+      const cta = ctas[Math.floor(Math.random() * ctas.length)];
+      t = t.replace(/\s+/g, ' ').trim();
+      if (!/^[A-Z0-9]/.test(t)) t = t.charAt(0).toUpperCase() + t.slice(1);
+      if (!hooks.some(h => t.startsWith(h.trim()))) t = hook + t;
+      if (!ctas.some(c => t.endsWith(c.trim()))) t = t.replace(/[.!?]?$/, '') + '.' + cta;
+      document.getElementById('prompt').value = t;
+      setGlobal('Script improved', 'ok');
+    }
+
+    function setGlobal(msg, type) {
+      const el = document.getElementById('globalStatus');
+      el.textContent = msg || '';
+      el.className = 'status' + (type ? ' ' + type : '');
+    }
+
+    function splitScenes(text, count) {
+      const cleaned = text.replace(/\s+/g, ' ').trim();
+      let parts = cleaned.split(/(?<=[.!?।])\s+/).map(s => s.trim()).filter(Boolean);
+      if (!parts.length) parts = [cleaned];
+      if (count === 'auto') {
+        const words = cleaned.split(/\s+/).length;
+        count = Math.min(6, Math.max(2, Math.round(words / 28)));
+      } else count = Number(count) || 4;
+      count = Math.min(count, Math.max(1, parts.length));
+      if (parts.length <= count) return parts;
+      const scenes = [];
+      const per = Math.ceil(parts.length / count);
+      for (let i = 0; i < parts.length; i += per) scenes.push(parts.slice(i, i + per).join(' '));
+      while (scenes.length > count) {
+        const last = scenes.pop();
+        scenes[scenes.length - 1] += ' ' + last;
+      }
+      return scenes;
+    }
+    function extractTheme(full) {
+      return (full.split(/[.!?।]/)[0] || full).split(/\s+/).slice(0, 8).join(' ') || 'cinematic scene';
+    }
+    function scenePrompt(scene, theme) {
+      return scene.split(/\s+/).slice(0, 12).join(' ') + ', ' + theme + ', ' + STYLE;
+    }
+
+    // ---- Result block UI ----
+    function createResultBlock(label) {
+      resultCounter++;
+      const id = 'rb' + resultCounter;
+      const root = document.getElementById('resultsRoot');
+      const block = document.createElement('div');
+      block.className = 'batch-block';
+      block.id = id;
+      block.innerHTML = `
+        <h2><span>${label}</span><span class="num">#${resultCounter}</span></h2>
+        <div class="sub" data-part="scenes">
+          <div class="sub-head"><h3>Scenes</h3><span class="tag run" data-badge="scenes">…</span></div>
+          <div class="media" data-media="scenes"></div>
+        </div>
+        <div class="sub" data-part="audio">
+          <div class="sub-head"><h3>Voiceover</h3><span class="tag run" data-badge="audio">…</span></div>
+          <div class="media" data-media="audio"></div>
+          <a class="dl" data-dl="audio" style="display:none" download>Download audio</a>
+        </div>
+        <div class="sub" data-part="video">
+          <div class="sub-head"><h3>Video</h3><span class="tag run" data-badge="video">…</span></div>
+          <div class="media" data-media="video">
+            <div class="bar-wrap">
+              <div class="bar-label" data-vtext>Starting...</div>
+              <div class="bar-bg"><div class="bar-fill" data-vfill style="width:0%"></div></div>
+              <div class="bar-pct" data-vpct>0%</div>
+            </div>
+          </div>
+          <a class="dl" data-dl="video" style="display:none" download>Download video</a>
+        </div>
+        <div class="sub" data-part="thumbs" style="display:none">
+          <div class="sub-head"><h3>Thumbnails</h3><span class="tag done">Ready</span></div>
+          <div class="media thumbs-out" data-media="thumbs"></div>
+        </div>
+      `;
+      root.appendChild(block);
+      block.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return {
+        id,
+        el: block,
+        setBadge(part, text, type) {
+          const b = block.querySelector('[data-badge="' + part + '"]');
+          if (b) { b.textContent = text; b.className = 'tag' + (type ? ' ' + type : ''); }
+        },
+        setProgress(pct, text) {
+          const fill = block.querySelector('[data-vfill]');
+          const pctEl = block.querySelector('[data-vpct]');
+          const textEl = block.querySelector('[data-vtext]');
+          if (fill) fill.style.width = pct + '%';
+          if (pctEl) pctEl.textContent = Math.round(pct) + '%';
+          if (text && textEl) textEl.textContent = text;
+        },
+        media(part) { return block.querySelector('[data-media="' + part + '"]'); },
+        showDl(part, url, name) {
+          const a = block.querySelector('[data-dl="' + part + '"]');
+          if (!a) return;
+          a.href = url; a.download = name; a.style.display = 'inline-flex';
+        },
+        showThumbs(frames) {
+          const sub = block.querySelector('[data-part="thumbs"]');
+          const med = block.querySelector('[data-media="thumbs"]');
+          if (!frames || !frames.length) return;
+          sub.style.display = 'block';
+          med.innerHTML = '';
+          frames.forEach((src, i) => {
+            const im = document.createElement('img');
+            im.src = src;
+            im.title = 'Thumb ' + (i + 1);
+            im.onclick = () => {
+              const a = document.createElement('a');
+              a.href = src; a.download = 'thumb-' + (i + 1) + '.jpg'; a.click();
+            };
+            med.appendChild(im);
+          });
+        },
+        fail(msg) {
+          this.setBadge('video', 'Failed', 'fail');
+          this.setProgress(0, msg || 'Failed');
+        }
+      };
+    }
+
+    async function genImages(scenes, ratio, theme, ui) {
+      ui.setBadge('scenes', '0/' + scenes.length, 'run');
+      const wrap = ui.media('scenes');
+      wrap.innerHTML = '<div class="thumbs"></div>';
+      const thumbs = wrap.querySelector('.thumbs');
+      const urls = [];
+      for (let i = 0; i < scenes.length; i++) {
+        ui.setBadge('scenes', (i + 1) + '/' + scenes.length, 'run');
+        const res = await fetch(BASE + '/api/tti', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: scenePrompt(scenes[i], theme), ratio })
+        });
+        const data = await res.json();
+        if (!data.success || !data.imageUrl) throw new Error(data.message || 'Image failed');
+        urls.push(data.imageUrl);
+        const img = document.createElement('img');
+        img.crossOrigin = 'anonymous';
+        img.src = data.imageUrl;
+        thumbs.appendChild(img);
+      }
+      ui.setBadge('scenes', scenes.length + ' scenes', 'done');
+      return urls;
+    }
+
+    async function genVoice(text, voiceIndex, maxDur, ui) {
+      ui.setBadge('audio', 'Generating', 'run');
+      let rate = 0;
+      if (maxDur > 0) {
+        const estSec = text.split(/\s+/).length / 2.2;
+        if (estSec > maxDur) rate = Math.min(40, Math.round((estSec / maxDur - 1) * 50));
+      }
+      const maxLen = 1900;
+      const chunks = [];
+      let rem = text;
+      while (rem.length > 0) {
+        if (rem.length <= maxLen) { chunks.push(rem); break; }
+        let cut = rem.lastIndexOf('. ', maxLen);
+        if (cut < maxLen * 0.5) cut = rem.lastIndexOf(' ', maxLen);
+        if (cut < 0) cut = maxLen;
+        chunks.push(rem.slice(0, cut + 1).trim());
+        rem = rem.slice(cut + 1).trim();
+      }
+      const blobs = [];
+      for (let i = 0; i < chunks.length; i++) {
+        ui.setBadge('audio', (i + 1) + '/' + chunks.length, 'run');
+        const res = await fetch(BASE + '/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ voiceIndex: Number(voiceIndex) || 214, text: chunks[i], pitch: 0, rate })
+        });
+        if (!res.ok) throw new Error('TTS ' + res.status);
+        blobs.push(await res.blob());
+      }
+      const audioBlob = new Blob(blobs, { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const wrap = ui.media('audio');
+      wrap.innerHTML = '';
+      const audio = document.createElement('audio');
+      audio.controls = true; audio.src = audioUrl;
+      wrap.appendChild(audio);
+      ui.showDl('audio', audioUrl, 'voice-' + Date.now() + '.mp3');
+      ui.setBadge('audio', 'Ready', 'done');
+      return { blob: audioBlob, url: audioUrl };
+    }
+
+    async function loadImg(url) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((res, rej) => {
+        img.onload = res;
+        img.onerror = () => rej(new Error('Image load failed'));
+        img.src = url;
+      });
+      return img;
+    }
+
+    function wrapCaption(ctx, text, maxW, fontSize) {
+      ctx.font = '600 ' + fontSize + 'px Inter, system-ui, sans-serif';
+      const words = text.split(/\s+/);
+      const lines = [];
+      let line = '';
+      for (const w of words) {
+        const test = line ? line + ' ' + w : w;
+        if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+        else line = test;
+      }
+      if (line) lines.push(line);
+      return lines.slice(0, 3);
+    }
+
+    function drawCaption(ctx, text, W, H) {
+      if (!text) return;
+      const fontSize = Math.round(W * 0.045);
+      const lines = wrapCaption(ctx, text, W * 0.88, fontSize);
+      const lineH = fontSize * 1.25;
+      const y0 = H * 0.72;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(W * 0.04, y0 - 12, W * 0.92, lines.length * lineH + 20);
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.font = '600 ' + fontSize + 'px Inter, system-ui, sans-serif';
+      lines.forEach((ln, i) => ctx.fillText(ln, W / 2, y0 + i * lineH));
+      ctx.textAlign = 'left';
+    }
+
+    function drawWatermark(ctx, W, H) {
+      const brand = JSON.parse(localStorage.getItem('av_brand') || '{}');
+      const op = parseFloat(document.getElementById('wmOpacity').value) || 0.45;
+      const pos = document.getElementById('wmPos').value || 'br';
+      const pad = Math.round(W * 0.03);
+      if (brandLogoImg) {
+        const lw = W * 0.14;
+        const lh = lw * (brandLogoImg.height / brandLogoImg.width);
+        let x = pad, y = pad;
+        if (pos === 'br') { x = W - lw - pad; y = H - lh - pad; }
+        if (pos === 'bl') { x = pad; y = H - lh - pad; }
+        if (pos === 'tr') { x = W - lw - pad; y = pad; }
+        ctx.globalAlpha = op;
+        ctx.drawImage(brandLogoImg, x, y, lw, lh);
+        ctx.globalAlpha = 1;
+      }
+      if (document.getElementById('brandShowName').checked && brand.name) {
+        ctx.globalAlpha = op + 0.2;
+        ctx.font = '600 ' + Math.round(W * 0.028) + 'px Inter, sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = pos.includes('r') ? 'right' : 'left';
+        const tx = pos.includes('r') ? W - pad : pad;
+        const ty = pos.includes('t') ? pad + (brandLogoImg ? W * 0.16 : 0) + 16 : H - pad;
+        ctx.textBaseline = pos.includes('t') ? 'top' : 'bottom';
+        ctx.fillText(brand.name, tx, ty);
+        ctx.globalAlpha = 1;
+        ctx.textAlign = 'left';
+      }
+    }
+
+    function drawKenBurns(ctx, img, W, H, t, zoomIn, strength) {
+      strength = strength || 1.15;
+      const start = zoomIn ? 1.0 : strength;
+      const end = zoomIn ? strength : 1.0;
+      const scale = start + (end - start) * t;
+      const panX = (zoomIn ? 1 : -1) * t * 0.035;
+      const panY = (zoomIn ? 1 : -1) * t * 0.025;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+      const fit = Math.max(W / img.width, H / img.height) * scale;
+      const dw = img.width * fit;
+      const dh = img.height * fit;
+      ctx.drawImage(img, (W - dw) / 2 + panX * W, (H - dh) / 2 + panY * H, dw, dh);
+    }
+
+    function lerpImg(ctx, a, b, W, H, t, zoomIn) {
+      drawKenBurns(ctx, a, W, H, 1, zoomIn);
+      ctx.globalAlpha = t;
+      drawKenBurns(ctx, b, W, H, 0, !zoomIn);
+      ctx.globalAlpha = 1;
+    }
+
+    function createAmbient(audioCtx) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+      osc.type = 'sine';
+      osc.frequency.value = 110;
+      filter.type = 'lowpass';
+      filter.frequency.value = 400;
+      gain.gain.value = 0.04;
+      osc.connect(filter);
+      filter.connect(gain);
+      const dest = audioCtx.createMediaStreamDestination();
+      gain.connect(dest);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      return { stop: () => { try { osc.stop(); } catch (_) {} }, stream: dest.stream };
+    }
+
+    async function renderVideo(imageUrls, scenes, audioObj, ratio, opts, ui) {
+      ui.setBadge('video', 'Rendering', 'run');
+      ui.setProgress(5, 'Loading images...');
+
+      const images = [];
+      for (let i = 0; i < imageUrls.length; i++) {
+        ui.setProgress(5 + (i / imageUrls.length) * 12, 'Image ' + (i + 1));
+        images.push(await loadImg(imageUrls[i]));
+      }
+
+      const audio = new Audio();
+      audio.src = audioObj.url;
+      audio.crossOrigin = 'anonymous';
+      await new Promise((res, rej) => {
+        audio.onloadedmetadata = res;
+        audio.onerror = () => rej(new Error('Audio failed'));
+      });
+
+      let duration = audio.duration || 8;
+      if (opts.maxDur > 0 && duration > opts.maxDur) duration = opts.maxDur;
+
+      const weights = scenes.map(s => Math.max(1, s.split(/\s+/).length));
+      const totalW = weights.reduce((a, b) => a + b, 0);
+      const sceneDurations = weights.map(w => (w / totalW) * duration);
+      const sceneEnds = [];
+      let acc = 0;
+      for (const d of sceneDurations) { acc += d; sceneEnds.push(acc); }
+
+      let W = 720, H = 1280;
+      if (ratio === '16:9') { W = 1280; H = 720; }
+      else if (ratio === '1:1') { W = 720; H = 720; }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      const mimeCandidates = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+      let mime = mimeCandidates.find(m => MediaRecorder.isTypeSupported(m));
+      if (!mime) throw new Error('MediaRecorder not supported');
+
+      const stream = canvas.captureStream(30);
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const voiceSrc = audioCtx.createMediaElementSource(audio);
+      const voiceGain = audioCtx.createGain();
+      voiceGain.gain.value = 1;
+      const mix = audioCtx.createMediaStreamDestination();
+      voiceSrc.connect(voiceGain);
+      voiceGain.connect(mix);
+      voiceGain.connect(audioCtx.destination);
+
+      let ambientCtrl = null;
+      if (opts.music === 'soft') {
+        ambientCtrl = createAmbient(audioCtx);
+        ambientCtrl.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+      } else if (opts.music === 'upload' && uploadedMusicUrl) {
+        const bg = new Audio(uploadedMusicUrl);
+        bg.crossOrigin = 'anonymous';
+        bg.loop = true;
+        await new Promise(r => { bg.onloadedmetadata = r; bg.onerror = r; });
+        const bgSrc = audioCtx.createMediaElementSource(bg);
+        const bgGain = audioCtx.createGain();
+        bgGain.gain.value = 0.18;
+        bgSrc.connect(bgGain);
+        bgGain.connect(mix);
+        bgGain.connect(audioCtx.destination);
+        bg.currentTime = 0;
+        await bg.play().catch(() => {});
+        ambientCtrl = { stop: () => bg.pause() };
+      }
+      mix.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+
+      const chunks = [];
+      const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 2800000 });
+      recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+      const stopped = new Promise(r => { recorder.onstop = () => r(); });
+      const thumbFrames = [];
+
+      recorder.start(120);
+      await audioCtx.resume();
+      audio.currentTime = 0;
+      await audio.play();
+
+      const start = performance.now();
+      const fadeSec = opts.fade ? 0.45 : 0;
+
+      await new Promise(resolve => {
+        function tick() {
+          const elapsed = (performance.now() - start) / 1000;
+          if (elapsed >= duration) { resolve(); return; }
+          let idx = 0;
+          for (let i = 0; i < sceneEnds.length; i++) {
+            if (elapsed < sceneEnds[i]) { idx = i; break; }
+            idx = i;
+          }
+          const sceneStart = idx === 0 ? 0 : sceneEnds[idx - 1];
+          const sceneLen = sceneDurations[idx] || 1;
+          const t = Math.min(1, Math.max(0, (elapsed - sceneStart) / sceneLen));
+          const zoomIn = idx % 2 === 0;
+          const hookBoost = (opts.hook && elapsed < 2) ? 1.28 : 1.15;
+          const timeToEnd = sceneEnds[idx] - elapsed;
+          if (opts.fade && idx < images.length - 1 && timeToEnd < fadeSec) {
+            lerpImg(ctx, images[idx], images[idx + 1], W, H, 1 - timeToEnd / fadeSec, zoomIn);
+          } else {
+            drawKenBurns(ctx, images[idx], W, H, t, zoomIn, hookBoost);
+          }
+          if (opts.captions) drawCaption(ctx, scenes[idx], W, H);
+          drawWatermark(ctx, W, H);
+          if (opts.thumbs) {
+            [0.1, 0.4, 0.7].forEach((m, mi) => {
+              if (!thumbFrames[mi] && elapsed >= duration * m) {
+                thumbFrames[mi] = canvas.toDataURL('image/jpeg', 0.85);
+              }
+            });
+          }
+          ui.setProgress(18 + Math.min(75, (elapsed / duration) * 75), 'Scene ' + (idx + 1) + '/' + images.length);
+          if (!audio.ended) requestAnimationFrame(tick);
+          else resolve();
+        }
+        audio.onended = () => resolve();
+        requestAnimationFrame(tick);
+      });
+
+      await new Promise(r => setTimeout(r, 200));
+      recorder.stop();
+      audio.pause();
+      if (ambientCtrl) ambientCtrl.stop();
+      await stopped;
+      stream.getTracks().forEach(t => t.stop());
+      try { audioCtx.close(); } catch (_) {}
+
+      ui.setProgress(96, 'Finishing...');
+      const videoBlob = new Blob(chunks, { type: mime });
+      const videoUrl = URL.createObjectURL(videoBlob);
+      const wrap = ui.media('video');
+      wrap.innerHTML = '';
+      const video = document.createElement('video');
+      video.controls = true; video.src = videoUrl; video.style.width = '100%';
+      wrap.appendChild(video);
+      ui.showDl('video', videoUrl, 'autoviral-' + Date.now() + '.webm');
+      ui.setBadge('video', 'Ready', 'done');
+      ui.setProgress(100, 'Done');
+      if (opts.thumbs) ui.showThumbs(thumbFrames.filter(Boolean));
+      return { videoUrl, videoBlob, thumbFrames };
+    }
+
+    function saveProject(entry) {
+      const list = JSON.parse(localStorage.getItem('av_history') || '[]');
+      list.unshift(entry);
+      localStorage.setItem('av_history', JSON.stringify(list.slice(0, 30)));
+    }
+    function renderHistory() {
+      const list = JSON.parse(localStorage.getItem('av_history') || '[]');
+      const el = document.getElementById('historyList');
+      if (!list.length) { el.innerHTML = '<p class="hint">Abhi koi project nahi</p>'; return; }
+      el.innerHTML = list.map(p =>
+        '<div class="hist-item"><div><strong>' + (p.title || 'Project') + '</strong><br><span>' +
+        p.date + ' · ' + (p.scenes || '?') + ' scenes</span></div>' +
+        (p.videoUrl ? '<a class="dl" href="' + p.videoUrl + '" download>Video</a>' : '') +
+        '</div>'
+      ).join('');
+    }
+    function clearHistory() {
+      localStorage.removeItem('av_history');
+      renderHistory();
+    }
+
+    function getOpts() {
+      let voice = document.getElementById('voiceSelect').value;
+      const brand = JSON.parse(localStorage.getItem('av_brand') || '{}');
+      if (brand.lockVoice && brand.voice) voice = brand.voice;
+      return {
+        ratio: document.getElementById('ratio').value,
+        sceneCount: document.getElementById('sceneCount').value,
+        maxDur: Number(document.getElementById('maxDur').value) || 0,
+        voice,
+        music: document.getElementById('musicMode').value,
+        captions: document.getElementById('optCaptions').checked,
+        fade: document.getElementById('optFade').checked,
+        hook: document.getElementById('optHook').checked,
+        thumbs: document.getElementById('optThumbs').checked
+      };
+    }
+
+    async function runOne(script, opts, label, statusFn) {
+      const ui = createResultBlock(label);
+      const scenes = splitScenes(script, opts.sceneCount);
+      const theme = extractTheme(script);
+      try {
+        statusFn && statusFn('Images...');
+        const urls = await genImages(scenes, opts.ratio, theme, ui);
+        statusFn && statusFn('Voice...');
+        const audioObj = await genVoice(script, opts.voice, opts.maxDur, ui);
+        statusFn && statusFn('Render...');
+        const out = await renderVideo(urls, scenes, audioObj, opts.ratio, opts, ui);
+        saveProject({
+          title: script.slice(0, 48) + (script.length > 48 ? '…' : ''),
+          date: new Date().toLocaleString(),
+          scenes: scenes.length,
+          videoUrl: out.videoUrl
+        });
+        return out;
+      } catch (e) {
+        ui.fail(e.message || String(e));
+        throw e;
+      }
+    }
+
+    async function startGenerate() {
+      const prompt = document.getElementById('prompt').value.trim();
+      if (!prompt) { setGlobal('Script likho', 'err'); return; }
+      const opts = getOpts();
+      const btn = document.getElementById('generateBtn');
+      btn.disabled = true;
+      setGlobal('');
+      try {
+        await runOne(prompt, opts, 'Create', setGlobal);
+        setGlobal('Ready', 'ok');
+      } catch (e) {
+        console.error(e);
+        setGlobal(e.message || String(e), 'err');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function startBatch() {
+      const raw = document.getElementById('batchScripts').value.trim();
+      if (!raw) {
+        document.getElementById('batchStatus').textContent = 'Scripts likho';
+        return;
+      }
+      const scripts = raw.split(/\n\s*---\s*\n/).map(s => s.trim()).filter(Boolean);
+      if (!scripts.length) return;
+      const opts = getOpts();
+      const btn = document.getElementById('batchBtn');
+      btn.disabled = true;
+      const q = document.getElementById('batchQueue');
+      q.innerHTML = scripts.map((s, i) =>
+        '<div class="queue-item" id="q' + i + '">#' + (i + 1) + ' ' + s.slice(0, 42) + '…</div>'
+      ).join('');
+      const st = document.getElementById('batchStatus');
+
+      for (let i = 0; i < scripts.length; i++) {
+        const item = document.getElementById('q' + i);
+        item.className = 'queue-item run';
+        st.textContent = 'Batch ' + (i + 1) + '/' + scripts.length;
+        st.className = 'status';
+        try {
+          await runOne(scripts[i], opts, 'Batch ' + (i + 1), msg => {
+            st.textContent = 'Batch ' + (i + 1) + ': ' + msg;
+          });
+          item.className = 'queue-item done';
+          item.textContent += ' ✓';
+        } catch (e) {
+          item.className = 'queue-item fail';
+          item.textContent += ' ✗';
+        }
+      }
+      st.textContent = 'Batch complete — neeche saare results';
+      st.className = 'status ok';
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>
