@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Code Extractor — AI Response to Project Files</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --bg:#0a0c10; --bg-2:#0d1117; --panel:#11161d; --panel-2:#161b22; --panel-3:#1c2128;
+  --border:#21262d; --border-2:#30363d; --border-3:#3d444d;
+  --text:#e6edf3; --text-2:#c9d1d9; --muted:#7d8590; --muted-2:#6e7681;
+  --accent:#58a6ff; --accent-2:#1f6feb;
+  --green:#3fb950; --yellow:#d29922; --red:#f85149; --purple:#bc8cff;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow-md:0 4px 12px rgba(0,0,0,.5);
+  --shadow-lg:0 12px 32px rgba(0,0,0,.6); --glow:0 0 0 1px rgba(88,166,255,.3),0 0 20px rgba(88,166,255,.15);
+  --radius:8px; --radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg); color:var(--text); font-size:13px; line-height:1.5;
+  display:flex; flex-direction:column; -webkit-font-smoothing:antialiased;
+}
+code,pre,.mono{font-family:'JetBrains Mono','SF Mono',Monaco,Consolas,monospace}
+
+header{
+  position:relative; padding:14px 20px; display:flex; align-items:center;
+  justify-content:space-between; gap:12px; flex-wrap:wrap;
+  background:linear-gradient(180deg,#0d1117 0%,#0a0c10 100%);
+  border-bottom:1px solid var(--border);
+}
+header::before{
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(88,166,255,.5),transparent);
+}
+.logo{display:flex; align-items:center; gap:10px}
+.logo-mark{
+  width:32px; height:32px; border-radius:8px; display:grid; place-items:center;
+  background:linear-gradient(135deg,#1f6feb,#8957e5);
+  box-shadow:0 4px 12px rgba(31,111,235,.4);
+}
+.logo-mark svg{width:18px; height:18px; color:#fff}
+.logo-text{display:flex; flex-direction:column; line-height:1.15}
+.logo-title{font-size:14px; font-weight:600; letter-spacing:-.01em}
+.logo-sub{font-size:10px; color:var(--muted); font-weight:500; letter-spacing:.02em}
+.header-actions{display:flex; gap:8px; align-items:center}
+.pill{
+  display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:100px;
+  font-size:10px; font-weight:600; letter-spacing:.03em; text-transform:uppercase;
+  background:rgba(63,185,80,.12); color:var(--green); border:1px solid rgba(63,185,80,.3);
+}
+.pill::before{content:''; width:5px; height:5px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); animation:pulse 2s infinite}
+.pill.working{background:rgba(88,166,255,.12); color:var(--accent); border-color:rgba(88,166,255,.3)}
+.pill.working::before{background:var(--accent); box-shadow:0 0 6px var(--accent)}
+.pill.err{background:rgba(248,81,73,.12); color:var(--red); border-color:rgba(248,81,73,.3)}
+.pill.err::before{background:var(--red); box-shadow:0 0 6px var(--red)}
+.pill.warn{background:rgba(210,153,34,.12); color:var(--yellow); border-color:rgba(210,153,34,.3)}
+.pill.warn::before{background:var(--yellow); box-shadow:0 0 6px var(--yellow)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  padding:7px 13px; border-radius:6px; border:1px solid var(--border-2);
+  background:var(--panel-2); color:var(--text); font-size:12px; font-weight:500;
+  font-family:inherit; cursor:pointer; transition:all .15s ease; white-space:nowrap;
+  user-select:none;
+}
+.btn:hover{background:var(--panel-3); border-color:var(--border-3); transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.4; cursor:not-allowed; transform:none}
+.btn svg{width:14px; height:14px; flex-shrink:0}
+.btn.primary{
+  background:linear-gradient(180deg,#1f6feb,#1a5fd0); border-color:#1a5fd0; color:#fff;
+  box-shadow:0 1px 0 rgba(255,255,255,.1) inset, 0 4px 12px rgba(31,111,235,.3);
+}
+.btn.primary:hover{background:linear-gradient(180deg,#2a7cf5,#1f6feb); border-color:#2a7cf5}
+.btn.success{
+  background:linear-gradient(180deg,#2ea043,#238636); border-color:#238636; color:#fff;
+  box-shadow:0 1px 0 rgba(255,255,255,.1) inset, 0 4px 12px rgba(35,134,54,.3);
+}
+.btn.success:hover{background:linear-gradient(180deg,#3fb950,#2ea043)}
+.btn.ghost{background:transparent; border-color:transparent; color:var(--muted)}
+.btn.ghost:hover{background:var(--panel-2); color:var(--text)}
+.btn.sm{padding:5px 10px; font-size:11px}
+
+.main{
+  display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px;
+  flex:1; overflow:hidden; background:var(--bg);
+}
+@media(max-width:1000px){.main{grid-template-columns:1fr}}
+.panel{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg);
+  display:flex; flex-direction:column; overflow:hidden; box-shadow:var(--shadow-sm);
+}
+.panel-head{
+  padding:10px 14px; display:flex; align-items:center; justify-content:space-between;
+  background:linear-gradient(180deg,var(--panel-2),var(--panel)); border-bottom:1px solid var(--border);
+}
+.panel-title{display:flex; align-items:center; gap:7px; font-size:12px; font-weight:600; color:var(--text-2)}
+.panel-title svg{width:14px; height:14px; color:var(--muted)}
+.panel-meta{font-size:11px; color:var(--muted); font-weight:500}
+.toolbar{
+  padding:8px 14px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;
+  background:var(--bg-2); border-bottom:1px solid var(--border);
+}
+.toolbar .spacer{margin-left:auto}
+.stat-line{display:flex; gap:12px; font-size:11px; color:var(--muted); font-weight:500}
+.stat-line b{color:var(--accent); font-weight:600}
+
+.editor-wrap{flex:1; position:relative; overflow:hidden}
+textarea{
+  width:100%; height:100%; background:var(--bg-2); color:var(--text); border:none; outline:none;
+  padding:14px 16px; font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.6;
+  resize:none; tab-size:2;
+}
+textarea::placeholder{color:var(--muted-2)}
+textarea::-webkit-scrollbar{width:10px; height:10px}
+textarea::-webkit-scrollbar-track{background:transparent}
+textarea::-webkit-scrollbar-thumb{background:var(--border-2); border-radius:5px; border:2px solid var(--bg-2)}
+textarea::-webkit-scrollbar-thumb:hover{background:var(--border-3)}
+
+.status-bar{
+  padding:7px 14px; display:flex; justify-content:space-between; align-items:center;
+  background:var(--bg-2); border-top:1px solid var(--border); font-size:11px; color:var(--muted);
+}
+.status-left{display:flex; align-items:center; gap:7px}
+.dot{width:7px; height:7px; border-radius:50%; background:var(--muted); transition:all .2s}
+.dot.ok{background:var(--green); box-shadow:0 0 8px rgba(63,185,80,.6)}
+.dot.err{background:var(--red); box-shadow:0 0 8px rgba(248,81,73,.6)}
+.dot.warn{background:var(--yellow); box-shadow:0 0 8px rgba(210,153,34,.6)}
+.dot.working{background:var(--accent); box-shadow:0 0 8px rgba(88,166,255,.6); animation:pulse 1s infinite}
+
+.results{flex:1; overflow-y:auto; padding:12px; background:var(--bg)}
+.results::-webkit-scrollbar{width:10px}
+.results::-webkit-scrollbar-track{background:transparent}
+.results::-webkit-scrollbar-thumb{background:var(--border-2); border-radius:5px; border:2px solid var(--bg)}
+.results::-webkit-scrollbar-thumb:hover{background:var(--border-3)}
+
+.tree-card{
+  background:var(--bg-2); border:1px solid var(--border); border-radius:var(--radius);
+  margin-bottom:12px; overflow:hidden;
+}
+.tree-head{
+  padding:8px 12px; background:var(--panel-2); border-bottom:1px solid var(--border);
+  font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase;
+  letter-spacing:.05em; display:flex; align-items:center; gap:6px;
+}
+.tree-head svg{width:12px; height:12px}
+.tree{
+  font-family:'JetBrains Mono',monospace; font-size:11.5px; line-height:1.7;
+  padding:12px; white-space:pre; overflow-x:auto; color:var(--text-2);
+}
+.tree .dir{color:var(--accent); font-weight:500}
+.tree .file{color:var(--text-2)}
+
+.section-label{
+  font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase;
+  letter-spacing:.08em; margin:0 2px 8px; display:flex; align-items:center; gap:6px;
+}
+.section-label svg{width:12px; height:12px}
+.file-list{display:flex; flex-direction:column; gap:6px}
+.file{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  overflow:hidden; transition:all .15s ease; position:relative;
+}
+.file::before{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:2px;
+  background:var(--accent); opacity:0; transition:opacity .15s;
+}
+.file:hover{border-color:var(--border-2); background:var(--panel-2)}
+.file:hover::before{opacity:1}
+.file.open{border-color:var(--accent); box-shadow:var(--glow)}
+.file.open::before{opacity:1}
+.fh{
+  padding:9px 12px; display:flex; gap:10px; align-items:center;
+  cursor:pointer; user-select:none;
+}
+.fh:hover{background:rgba(88,166,255,.04)}
+.ficon{
+  width:26px; height:26px; border-radius:6px; display:grid; place-items:center;
+  background:var(--panel-3); border:1px solid var(--border); flex-shrink:0;
+}
+.ficon svg{width:14px; height:14px}
+.fpath{
+  font-family:'JetBrains Mono',monospace; font-size:12px; flex:1;
+  color:var(--text); word-break:break-all; font-weight:500;
+}
+.ftag{
+  font-size:9px; padding:2px 7px; border-radius:100px; font-weight:700;
+  letter-spacing:.04em; text-transform:uppercase; flex-shrink:0;
+}
+.ftag.js{background:rgba(210,153,34,.15); color:var(--yellow); border:1px solid rgba(210,153,34,.3)}
+.ftag.json{background:rgba(188,140,255,.15); color:var(--purple); border:1px solid rgba(188,140,255,.3)}
+.ftag.html{background:rgba(248,81,73,.15); color:var(--red); border:1px solid rgba(248,81,73,.3)}
+.ftag.css{background:rgba(88,166,255,.15); color:var(--accent); border:1px solid rgba(88,166,255,.3)}
+.ftag.md{background:rgba(63,185,80,.15); color:var(--green); border:1px solid rgba(63,185,80,.3)}
+.ftag.ts{background:rgba(88,166,255,.15); color:var(--accent); border:1px solid rgba(88,166,255,.3)}
+.ftag.tsx{background:rgba(188,140,255,.15); color:var(--purple); border:1px solid rgba(188,140,255,.3)}
+.ftag.py{background:rgba(63,185,80,.15); color:var(--green); border:1px solid rgba(63,185,80,.3)}
+.ftag.sql{background:rgba(210,153,34,.15); color:var(--yellow); border:1px solid rgba(210,153,34,.3)}
+.ftag.sh{background:rgba(125,133,144,.15); color:var(--muted); border:1px solid rgba(125,133,144,.3)}
+.ftag.yaml{background:rgba(248,81,73,.15); color:var(--red); border:1px solid rgba(248,81,73,.3)}
+.ftag.file{background:rgba(125,133,144,.15); color:var(--muted); border:1px solid rgba(125,133,144,.3)}
+.fmeta{font-size:10.5px; color:var(--muted); font-family:'JetBrains Mono',monospace; white-space:nowrap; flex-shrink:0}
+.fchev{color:var(--muted); transition:transform .2s; display:flex; flex-shrink:0}
+.fchev svg{width:12px; height:12px}
+.file.open .fchev{transform:rotate(90deg); color:var(--accent)}
+.fb{
+  display:none; border-top:1px solid var(--border); background:var(--bg-2);
+  max-height:420px; overflow:auto;
+}
+.file.open .fb{display:block; animation:slideDown .2s ease}
+@keyframes slideDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.fb::-webkit-scrollbar{width:8px; height:8px}
+.fb::-webkit-scrollbar-thumb{background:var(--border-2); border-radius:4px}
+.fb pre{
+  padding:12px 14px; font-size:11.5px; line-height:1.65; color:var(--text-2);
+  font-family:'JetBrains Mono',monospace; white-space:pre; overflow-x:auto; margin:0;
+}
+
+.empty{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:60px 20px; text-align:center; color:var(--muted);
+}
+.empty-icon{
+  width:56px; height:56px; border-radius:14px; display:grid; place-items:center;
+  background:var(--panel-2); border:1px solid var(--border); margin-bottom:16px;
+}
+.empty-icon svg{width:26px; height:26px; color:var(--muted-2)}
+.empty h3{font-size:14px; color:var(--text-2); font-weight:600; margin-bottom:6px}
+.empty p{font-size:12px; max-width:280px; line-height:1.6}
+.empty kbd{
+  font-family:'JetBrains Mono',monospace; font-size:10px; padding:2px 6px;
+  background:var(--panel-3); border:1px solid var(--border-2); border-radius:4px;
+  color:var(--text-2); box-shadow:0 1px 0 var(--border-2);
+}
+
+.toast{
+  position:fixed; bottom:20px; right:20px; z-index:999;
+  display:flex; align-items:center; gap:10px;
+  padding:11px 15px; border-radius:10px; font-size:12.5px; font-weight:500;
+  background:var(--panel-2); border:1px solid var(--border-2);
+  box-shadow:var(--shadow-lg); transform:translateY(80px); opacity:0;
+  transition:all .3s cubic-bezier(.4,0,.2,1); pointer-events:none; max-width:380px;
+}
+.toast.show{transform:translateY(0); opacity:1}
+.toast-icon{width:20px; height:20px; border-radius:50%; display:grid; place-items:center; flex-shrink:0}
+.toast-icon svg{width:12px; height:12px}
+.toast.info .toast-icon{background:rgba(88,166,255,.2); color:var(--accent)}
+.toast.ok .toast-icon{background:rgba(63,185,80,.2); color:var(--green)}
+.toast.err .toast-icon{background:rgba(248,81,73,.2); color:var(--red)}
+.toast.warn .toast-icon{background:rgba(210,153,34,.2); color:var(--yellow)}
+
+.skeleton{
+  padding:60px 20px; display:flex; flex-direction:column; align-items:center; gap:12px;
+}
+.skel-ring{
+  width:32px; height:32px; border:3px solid var(--border-2);
+  border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.skel-text{font-size:12px; color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="12" y1="18" x2="12" y2="12"/>
+        <line x1="9" y1="15" x2="15" y2="15"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <div class="logo-title">Code Extractor</div>
+      <div class="logo-sub">AI Response → Project Files</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span class="pill" id="pill">Ready</span>
+    <button class="btn ghost sm" id="btnSample">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M2 12h20"/></svg>
+      Sample
+    </button>
+    <button class="btn ghost sm" id="btnClear">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      Clear
+    </button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+        Input
+      </div>
+      <div class="panel-meta">Paste the AI response</div>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" id="btnAnalyze">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Analyze
+      </button>
+      <div class="spacer"></div>
+      <div class="stat-line">
+        <span>Lines <b id="sL">0</b></span>
+        <span>Chars <b id="sC">0</b></span>
+      </div>
+    </div>
+    <div class="editor-wrap">
+      <textarea id="input" placeholder="Paste the complete AI response here...
+
+Supported format:
+## 1. `manifest.json`
+```json
+{ &quot;manifest_version&quot;: 3 }
+```"></textarea>
+    </div>
+    <div class="status-bar">
+      <div class="status-left"><span class="dot" id="dot"></span><span id="st">Ready</span></div>
+      <span id="si">Ctrl + Enter to analyze</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Output
+      </div>
+      <div class="panel-meta" id="oh">No files</div>
+    </div>
+    <div class="toolbar">
+      <button class="btn success" id="btnZip" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Download ZIP
+      </button>
+      <button class="btn sm" id="btnExp" disabled>Expand All</button>
+      <button class="btn sm" id="btnCol" disabled>Collapse All</button>
+      <div class="spacer"></div>
+      <div class="stat-line">
+        <span>Files <b id="sF">0</b></span>
+        <span><b id="sS">0 B</b></span>
+      </div>
+    </div>
+    <div class="results" id="results">
+      <div class="empty">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <h3>No files extracted yet</h3>
+        <p>Paste an AI response on the left and press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to begin</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmt=b=>b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB';
+
+const ICONS={
+  json:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  js:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m10 12-2 2 2 2M14 12l2 2-2 2"/></svg>',
+  ts:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m10 12-2 2 2 2M14 12l2 2-2 2"/></svg>',
+  tsx:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="12" cy="15" r="2"/></svg>',
+  html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  css:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20zM2 12h20"/></svg>',
+  md:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>',
+  py:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  sql:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
+  file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+};
+function ftype(p){
+  if(p.endsWith('.json'))return'json';
+  if(p.endsWith('.tsx'))return'tsx';
+  if(p.endsWith('.ts'))return'ts';
+  if(p.endsWith('.js')||p.endsWith('.mjs')||p.endsWith('.cjs'))return'js';
+  if(p.endsWith('.html')||p.endsWith('.htm'))return'html';
+  if(p.endsWith('.css'))return'css';
+  if(p.endsWith('.md'))return'md';
+  if(p.endsWith('.py'))return'py';
+  if(p.endsWith('.sql'))return'sql';
+  if(p.endsWith('.sh')||p.endsWith('.bash'))return'sh';
+  if(p.endsWith('.yml')||p.endsWith('.yaml'))return'yaml';
+  return'file';
+}
+function ftag(p){const t=ftype(p);const m={json:'JSON',js:'JS',ts:'TS',tsx:'TSX',html:'HTML',css:'CSS',md:'MD',py:'PY',sql:'SQL',sh:'SH',yaml:'YAML',file:'FILE'};return`<span class="ftag ${t}">${m[t]||'FILE'}</span>`}
+function fcolor(t){return t==='json'?'#bc8cff':t==='js'?'#d29922':t==='ts'||t==='tsx'?'#58a6ff':t==='html'?'#f85149':t==='css'?'#58a6ff':t==='md'?'#3fb950':t==='py'?'#3fb950':t==='sql'?'#d29922':'#7d8590'}
+
+// Languages that are NOT files (commands, shell)
+const NON_FILE_LANGS = new Set(['bash','sh','shell','zsh','console','cmd','powershell','ps1','terminal','fish']);
+// Languages that indicate a file (stronger signal)
+const FILE_LANGS = new Set(['json','js','javascript','ts','typescript','tsx','jsx','html','htm','css','scss','sass','less','md','markdown','py','python','sql','yml','yaml','toml','ini','xml','env','vue','svelte','go','rs','java','kt','swift','c','cpp','h','hpp','php','rb','sh']);
+
+let toastT;
+function toast(msg,type='info'){
+  const icons={info:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',ok:'<polyline points="20 6 9 17 4 12"/>',err:'<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',warn:'<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'};
+  const t=$('toast');
+  t.className='toast '+type;
+  t.innerHTML=`<div class="toast-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${icons[type]||icons.info}</svg></div><div>${esc(msg)}</div>`;
+  t.classList.add('show');
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2800);
+}
+function setStatus(t,k=''){
+  $('st').textContent=t;
+  $('dot').className='dot '+k;
+  const p=$('pill');
+  p.className='pill '+(k==='working'?'working':k==='err'?'err':k==='warn'?'warn':'');
+  p.textContent = k==='working'?'Working':k==='ok'?'Complete':k==='err'?'Error':k==='warn'?'Warning':'Ready';
+}
+
+// ===== TREE DETECTION =====
+function isTreeContent(text){
+  // Has tree-drawing characters AND no code-y syntax
+  if(!/[├└│─]/.test(text)) return false;
+  // Must not contain lots of code punctuation
+  const codeChars = (text.match(/[{};=()<>]/g)||[]).length;
+  const treeChars = (text.match(/[├└│─]/g)||[]).length;
+  return treeChars >= 3 && codeChars < treeChars;
+}
+function looksLikeTreeHeading(heading){
+  return /(tree|structure|folder|directory|layout|filesystem)/i.test(heading);
+}
+
+// ===== PARSE =====
+function parse(text){
+  const files={};
+  let tree=null;
+
+  const fenceRe=/```([a-zA-Z0-9_+\-]*)\s*\n([\s\S]*?)```/g;
+  const blocks=[];let m;
+  while((m=fenceRe.exec(text))!==null){
+    blocks.push({lang:(m[1]||'').toLowerCase(),content:m[2],start:m.index,end:m.index+m[0].length});
+  }
+
+  for(const b of blocks){
+    const content=b.content;
+    const trimmed=content.trim();
+
+    // ---- FIX 2: Tree block detection ----
+    if(isTreeContent(content)){
+      if(!tree) tree=content.replace(/\s+$/,'');
+      continue;
+    }
+
+    // ---- FIX 1: Skip shell/bash blocks ----
+    if(NON_FILE_LANGS.has(b.lang)){
+      continue;
+    }
+
+    // Also skip if no lang AND content looks like a shell command sequence
+    if(!b.lang && looksLikeShellCommands(trimmed)){
+      continue;
+    }
+
+    // ---- FIX 3: Find path from heading ----
+    const before=text.slice(Math.max(0,b.start-600),b.start);
+    const headingContext=extractHeadingContext(before);
+    let path=findPath(before,b,headingContext);
+
+    if(!path){
+      // Try infer from lang/content
+      path=infer(b);
+    }
+    if(!path)continue;
+
+    path=cleanPath(path);
+    if(!path)continue;
+
+    if(files[path]){
+      if(files[path].content.trim()!==content.trim()){
+        files[path].content+='\n\n/* merged */\n\n'+content;
+      }
+    } else {
+      files[path]={content,lang:b.lang};
+    }
+  }
+
+  return {files,tree};
+}
+
+// Detect shell-only content (multiple commands, no code structure)
+function looksLikeShellCommands(text){
+  const lines=text.split('\n').filter(l=>l.trim() && !l.trim().startsWith('#'));
+  if(lines.length===0) return false;
+  // Shell signature: starts with commands like npx/npm/cd/curl/openssl/git/docker/etc
+  const cmdRe=/^\s*(npx|npm|yarn|pnpm|cd|ls|mkdir|rm|cp|mv|cat|echo|curl|wget|git|docker|kubectl|openssl|ssh|scp|chmod|chown|sudo|apt|brew|pip|python|node|deno|bun|export|source|\.\/)\b/;
+  const cmdLines=lines.filter(l=>cmdRe.test(l)).length;
+  return cmdLines >= Math.ceil(lines.length*0.6);
+}
+
+// Extract nearest heading above the block
+function extractHeadingContext(before){
+  // Last markdown heading
+  const lines=before.split('\n');
+  for(let i=lines.length-1;i>=0;i--){
+    const ln=lines[i].trim();
+    if(/^#{1,6}\s+/.test(ln)) return ln;
+  }
+  return '';
+}
+
+function findPath(before,block,headingContext){
+  const c=[];let m;
+
+  // Pattern priority order
+  const pats=[
+    // 1. Bold filename with backticks: **`path/to/file.ext`**
+    [/\*\*`([a-zA-Z0-9_\-./()@]+\.[a-zA-Z0-9]+)`\*\*/g,12],
+    // 2. Bold filename with colon: **`path/to/file.ext`**:
+    [/`([a-zA-Z0-9_\-./()@]+\.[a-zA-Z0-9]+)`\s*:/g,11],
+    // 3. Backtick path in heading
+    [/`([a-zA-Z0-9_\-./()@]+\.[a-zA-Z0-9]+)`/g,10],
+    // 4. Heading with just filename: ## 2. path.ext
+    [/^#{1,6}\s*(?:\d+(?:\.\d+)*[.)]?\s*)?(?:File:\s*)?`?([a-zA-Z0-9_\-./()@]+\.[a-zA-Z0-9]+)`?\s*$/gm,9],
+    // 5. filename.ext:
+    [/([a-zA-Z0-9_\-./()@]+\.[a-zA-Z0-9]+)\s*:/g,7],
+    // 6. File: path.ext or Path: path.ext
+    [/(?:file|filename|path)\s*[:\-]\s*`?([a-zA-Z0-9_\-./()@]+\.[a-zA-Z0-9]+)`?/gi,6]
+  ];
+
+  for(const[p,s]of pats){
+    const re=new RegExp(p.source,p.flags);
+    while((m=re.exec(before))!==null){
+      // Filter out URLs
+      if(m[1].includes('//')||/^https?:/i.test(m[1]))continue;
+      c.push({p:m[1],s,i:m.index});
+    }
+  }
+
+  // Prefer candidates that come from the nearest heading
+  if(headingContext && c.length>1){
+    const headingLower=headingContext.toLowerCase();
+    for(const cand of c){
+      if(headingLower.includes(cand.p.toLowerCase())){
+        cand.s+=5;
+      }
+    }
+  }
+
+  if(!c.length)return null;
+  c.sort((a,b)=>b.s!==a.s?b.s-a.s:b.i-a.i);
+  return c[0].p;
+}
+
+function infer(b){
+  const c=b.content.trim();
+  const lang=b.lang;
+
+  // Lang-based defaults
+  if(lang==='json'){
+    if(/"manifest_version"\s*:/.test(c))return'manifest.json';
+    if(/"name"\s*:/.test(c)&&/"version"\s*:/.test(c))return'package.json';
+    if(/"compilerOptions"\s*:/.test(c))return'tsconfig.json';
+    return null; // Don't guess generic data.json
+  }
+  if(lang==='html'||/^<!DOCTYPE html>/i.test(c))return'index.html';
+  if(lang==='css'||lang==='scss')return'styles.css';
+  if(lang==='md'||lang==='markdown')return null; // Too generic, need heading
+  if(lang==='sql')return null; // Need heading
+  if(lang==='yml'||lang==='yaml')return null;
+  if(lang==='ts'||lang==='typescript'){
+    if(/from ['"]@supabase\/ssr['"]/.test(c)&&/createBrowserClient/.test(c))return'lib/supabase/client.ts';
+    if(/from ['"]@supabase\/ssr['"]/.test(c)&&/createServerClient/.test(c))return'lib/supabase/server.ts';
+    if(/server-only/.test(c))return'lib/supabase/admin.ts';
+    return null;
+  }
+  if(lang==='tsx'){
+    return null;
+  }
+  if(lang==='js'||lang==='javascript'){
+    if(/chrome\.runtime\.onMessage/.test(c))return'background/service-worker.js';
+    return null;
+  }
+  return null;
+}
+
+function cleanPath(p){
+  if(!p)return null;
+  p=p.trim().replace(/^`|`$/g,'').replace(/^\.\//,'').replace(/^\/+/,'');
+  // Reject if contains shell-like content
+  if(/[\s;|&`$<>]/.test(p))return null;
+  if(!/\.[a-zA-Z0-9]{1,8}$/.test(p))return null;
+  if(p.length>200)return null;
+  if(p.split('/').some(seg=>seg==='..'||seg===''))return null;
+  return p;
+}
+
+// ===== RENDER =====
+let FILES={};
+function render(files,tree){
+  const r=$('results');
+  const paths=Object.keys(files).sort();
+  if(!paths.length){
+    r.innerHTML='<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><h3>No files were detected</h3><p>Ensure each code block is preceded by a heading that contains the filename</p></div>';
+    return;
+  }
+  let html='';
+  if(tree){
+    const colored=esc(tree)
+      .replace(/^([\w\-]+)\/$/gm,'<span class="dir">$1/</span>')
+      .replace(/(│   |    )([\w\-.]+)/g,(m,sp,n)=>sp+'<span class="file">'+n+'</span>');
+    html+=`<div class="tree-card"><div class="tree-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Project Structure</div><div class="tree">${colored}</div></div>`;
+  }
+  html+=`<div class="section-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Files (${paths.length})</div><div class="file-list">`;
+  let total=0;
+  for(const p of paths){
+    const f=files[p];const size=new Blob([f.content]).size;total+=size;
+    const id='f_'+p.replace(/[^a-zA-Z0-9]/g,'_');
+    const ft=ftype(p);
+    html+=`<div class="file" id="${id}"><div class="fh" onclick="toggle('${id}')">
+      <div class="ficon" style="color:${fcolor(ft)}">${ICONS[ft]||ICONS.file}</div>
+      <div class="fpath">${esc(p)}</div>${ftag(p)}
+      <div class="fmeta">${f.content.split('\n').length} lines · ${fmt(size)}</div>
+      <div class="fchev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </div><div class="fb"><pre>${esc(f.content)}</pre></div></div>`;
+  }
+  html+='</div>';
+  r.innerHTML=html;
+  $('sF').textContent=paths.length;
+  $('sS').textContent=fmt(total);
+  $('oh').textContent=paths.length+' files';
+  $('btnZip').disabled=false;$('btnExp').disabled=false;$('btnCol').disabled=false;
+  FILES=files;
+}
+window.toggle=id=>{const e=document.getElementById(id);if(e)e.classList.toggle('open')};
+
+async function downloadZip(){
+  const paths=Object.keys(FILES);
+  if(!paths.length)return;
+  const zip=new JSZip();
+  for(const p of paths)zip.file(p,FILES[p].content);
+  if(!FILES['README.md'])zip.file('README.md','# Extracted Project\n\nGenerated: '+new Date().toISOString()+'\n\n## Files\n\n'+paths.map(p=>'- `'+p+'`').join('\n')+'\n');
+  try{
+    setStatus('Creating archive...','working');
+    const blob=await zip.generateAsync({type:'blob'},m=>setStatus('Creating archive · '+m.percent.toFixed(0)+'%','working'));
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='project-'+Date.now()+'.zip';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    setStatus('Archive ready','ok');
+    toast('ZIP archive downloaded successfully','ok');
+  }catch(e){setStatus('Download failed','err');toast('Error: '+e.message,'err')}
+}
+
+const SAMPLE=[
+'## 1. Project Structure','```','demo-app/','├── manifest.json','├── background/','│   └── worker.js','└── popup/','    └── popup.html','```','',
+'## 2. `manifest.json`','```json','{"manifest_version":3,"name":"Demo App","version":"1.0.0"}','```','',
+'## 3. `background/worker.js`','```js','console.log("worker running");','```','',
+'## 4. `popup/popup.html`','```html','<!DOCTYPE html>','<html><body><h1>Demo</h1></body></html>','```','',
+'## 5. `README.md`','```md','# Demo App','Test project.','```'
+].join('\n');
+
+$('input').addEventListener('input',()=>{
+  const v=$('input').value;
+  $('sL').textContent=v?v.split('\n').length:0;
+  $('sC').textContent=v.length;
+});
+$('btnAnalyze').addEventListener('click',()=>{
+  const text=$('input').value.trim();
+  if(!text){toast('Please paste a response first','warn');return}
+  setStatus('Analyzing response...','working');
+  $('results').innerHTML='<div class="skeleton"><div class="skel-ring"></div><div class="skel-text">Parsing files...</div></div>';
+  setTimeout(()=>{
+    try{
+      const r=parse(text);
+      render(r.files,r.tree);
+      const n=Object.keys(r.files).length;
+      if(n===0){
+        setStatus('No files detected','warn');
+        toast('No files detected in the response','warn');
+      } else {
+        setStatus('Extracted '+n+' file'+(n===1?'':'s'),'ok');
+        toast('Successfully extracted '+n+' file'+(n===1?'':'s'),'ok');
+      }
+    }catch(e){console.error(e);setStatus('Analysis failed','err');toast('Error: '+e.message,'err')}
+  },150);
+});
+$('btnSample').addEventListener('click',()=>{
+  $('input').value=SAMPLE;$('input').dispatchEvent(new Event('input'));
+  toast('Sample loaded — click Analyze to continue','info');
+});
+$('btnClear').addEventListener('click',()=>{
+  $('input').value='';$('input').dispatchEvent(new Event('input'));
+  FILES={};
+  $('results').innerHTML='<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><h3>No files extracted yet</h3><p>Paste an AI response on the left and press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to begin</p></div>';
+  ['btnZip','btnExp','btnCol'].forEach(id=>$(id).disabled=true);
+  $('sF').textContent='0';$('sS').textContent='0 B';$('oh').textContent='No files';
+  setStatus('Ready','');
+  toast('Workspace cleared','info');
+});
+$('btnZip').addEventListener('click',downloadZip);
+$('btnExp').addEventListener('click',()=>document.querySelectorAll('.file').forEach(e=>e.classList.add('open')));
+$('btnCol').addEventListener('click',()=>document.querySelectorAll('.file').forEach(e=>e.classList.remove('open')));
+$('input').addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter')$('btnAnalyze').click();
+});
+setStatus('Ready','');
+</script>
+</body></html>
