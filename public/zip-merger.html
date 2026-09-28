@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ZIP Merger — Old + New → Revised</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<style>
+  :root{
+    --bg:#0f172a; --bg2:#1e293b; --bg3:#334155;
+    --fg:#e2e8f0; --fg2:#94a3b8; --acc:#3b82f6; --acc2:#2563eb;
+    --green:#22c55e; --red:#ef4444; --yellow:#eab308; --gray:#64748b;
+    --border:#334155; --radius:10px;
+  }
+  .light{
+    --bg:#f8fafc; --bg2:#ffffff; --bg3:#f1f5f9;
+    --fg:#0f172a; --fg2:#475569; --border:#e2e8f0;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--fg); min-height:100vh;
+    transition:background .3s,color .3s;
+    padding:20px;
+  }
+  .container{max-width:1200px; margin:0 auto;}
+  header{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:24px; flex-wrap:wrap; gap:12px;
+  }
+  h1{font-size:1.6rem; font-weight:700;}
+  h1 span{color:var(--acc);}
+  .subtitle{font-size:.85rem; color:var(--fg2); margin-top:4px;}
+  .btn{
+    padding:10px 18px; border:none; border-radius:var(--radius);
+    background:var(--acc); color:#fff; font-size:.9rem; font-weight:600;
+    cursor:pointer; transition:all .2s;
+  }
+  .btn:hover{background:var(--acc2); transform:translateY(-1px);}
+  .btn:disabled{opacity:.4; cursor:not-allowed; transform:none;}
+  .btn-ghost{background:transparent; border:1px solid var(--border); color:var(--fg);}
+  .btn-ghost:hover{background:var(--bg3);}
+  .btn-success{background:var(--green);}
+  .btn-sm{padding:6px 12px; font-size:.8rem;}
+
+  .uploads{
+    display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;
+  }
+  @media(max-width:700px){ .uploads{grid-template-columns:1fr;} }
+  .drop{
+    background:var(--bg2); border:2px dashed var(--border);
+    border-radius:var(--radius); padding:28px 20px; text-align:center;
+    cursor:pointer; transition:all .2s; position:relative;
+  }
+  .drop:hover{border-color:var(--acc); background:var(--bg3);}
+  .drop.dragover{border-color:var(--acc); background:var(--bg3); transform:scale(1.01);}
+  .drop.loaded{border-style:solid; border-color:var(--green);}
+  .drop-icon{font-size:2.4rem; margin-bottom:8px;}
+  .drop-label{font-weight:600; font-size:1rem; margin-bottom:4px;}
+  .drop-hint{font-size:.8rem; color:var(--fg2);}
+  .drop-file{
+    margin-top:10px; font-size:.85rem; font-weight:600;
+    color:var(--green); word-break:break-all;
+  }
+  .drop input{display:none;}
+  .badge{
+    display:inline-block; padding:2px 8px; border-radius:20px;
+    font-size:.7rem; font-weight:700; text-transform:uppercase;
+    margin-left:6px;
+  }
+  .badge-new{background:var(--green); color:#fff;}
+  .badge-old{background:var(--yellow); color:#000;}
+
+  .panel{
+    background:var(--bg2); border:1px solid var(--border);
+    border-radius:var(--radius); padding:16px 18px; margin-bottom:16px;
+  }
+  .panel h2{
+    font-size:.95rem; font-weight:700; margin-bottom:12px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .check-row{
+    display:flex; align-items:center; gap:10px; font-size:.9rem;
+    cursor:pointer; padding:6px 0;
+  }
+  .check-row input{width:16px; height:16px; cursor:pointer; accent-color:var(--acc);}
+
+  .actions{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;}
+
+  .progress-wrap{display:none; margin-bottom:20px;}
+  .progress-wrap.active{display:block;}
+  .progress-bar{
+    height:8px; background:var(--bg3); border-radius:4px; overflow:hidden;
+  }
+  .progress-fill{
+    height:100%; width:0%; background:var(--acc); transition:width .3s;
+  }
+  .progress-text{font-size:.8rem; color:var(--fg2); margin-top:6px; text-align:center;}
+
+  .preview{display:none; margin-bottom:20px;}
+  .preview.active{display:block;}
+  .stats{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:10px; margin-bottom:14px;
+  }
+  .stat{
+    background:var(--bg3); border-radius:8px; padding:12px; text-align:center;
+  }
+  .stat-num{font-size:1.4rem; font-weight:700;}
+  .stat-lbl{font-size:.72rem; color:var(--fg2); text-transform:uppercase; letter-spacing:.5px;}
+  .stat.added .stat-num{color:var(--green);}
+  .stat.replaced .stat-num{color:var(--yellow);}
+  .stat.kept .stat-num{color:var(--acc);}
+
+  .search-bar{
+    width:100%; padding:8px 12px; border-radius:8px; border:1px solid var(--border);
+    background:var(--bg); color:var(--fg); font-size:.85rem; margin-bottom:12px;
+  }
+  .file-list{max-height:400px; overflow-y:auto; border:1px solid var(--border); border-radius:8px;}
+  .file-row{
+    display:flex; align-items:center; gap:10px; padding:8px 12px;
+    border-bottom:1px solid var(--border); font-size:.82rem;
+    font-family:ui-monospace,monospace;
+  }
+  .file-row:last-child{border-bottom:none;}
+  .file-row:hover{background:var(--bg3);}
+  .file-tag{
+    font-size:.65rem; padding:2px 6px; border-radius:4px;
+    font-weight:700; text-transform:uppercase; min-width:70px; text-align:center;
+  }
+  .tag-added{background:var(--green); color:#fff;}
+  .tag-replaced{background:var(--yellow); color:#000;}
+  .tag-kept{background:var(--acc); color:#fff;}
+  .file-name{flex:1; word-break:break-all;}
+
+  .toast{
+    position:fixed; bottom:24px; right:24px; background:var(--bg2);
+    border:1px solid var(--border); border-left:4px solid var(--acc);
+    padding:12px 18px; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.3);
+    font-size:.85rem; max-width:340px; transform:translateX(400px);
+    transition:transform .3s; z-index:1000;
+  }
+  .toast.show{transform:translateX(0);}
+  .toast.error{border-left-color:var(--red);}
+  .toast.success{border-left-color:var(--green);}
+
+  .privacy{
+    text-align:center; font-size:.78rem; color:var(--fg2);
+    margin-top:24px; padding:12px;
+  }
+  .footer-note{
+    text-align:center; font-size:.72rem; color:var(--fg2);
+    margin-top:8px; opacity:.7;
+  }
+  .icon-btn{
+    background:transparent; border:1px solid var(--border); color:var(--fg);
+    width:38px; height:38px; border-radius:8px; cursor:pointer;
+    font-size:1.1rem; display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:hover{background:var(--bg3);}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div>
+      <h1>🗜️ ZIP <span>Merger</span></h1>
+      <div class="subtitle">Old ZIP + New ZIP → Revised ZIP (100% client-side)</div>
+    </div>
+    <button class="icon-btn" id="themeBtn" title="Toggle theme">🌙</button>
+  </header>
+
+  <!-- Upload zones -->
+  <div class="uploads">
+    <div class="drop" id="oldDrop">
+      <div class="drop-icon">📦</div>
+      <div class="drop-label">OLD ZIP <span class="badge badge-old">Base</span></div>
+      <div class="drop-hint">Click ya drag & drop</div>
+      <div class="drop-file" id="oldFile"></div>
+      <input type="file" id="oldInput" accept=".zip" />
+    </div>
+    <div class="drop" id="newDrop">
+      <div class="drop-icon">🆕</div>
+      <div class="drop-label">NEW ZIP <span class="badge badge-new">Updates</span></div>
+      <div class="drop-hint">Click ya drag & drop</div>
+      <div class="drop-file" id="newFile"></div>
+      <input type="file" id="newInput" accept=".zip" />
+    </div>
+  </div>
+
+  <!-- Simple options -->
+  <div class="panel">
+    <h2>⚙️ Options</h2>
+    <label class="check-row">
+      <input type="checkbox" id="addReport" checked />
+      Revised ZIP ke andar <code style="color:var(--acc)">_merge_report.txt</code> add karo
+    </label>
+  </div>
+
+  <!-- Action buttons -->
+  <div class="actions">
+    <button class="btn" id="analyzeBtn" disabled>🔍 Analyze & Preview</button>
+    <button class="btn btn-success" id="mergeBtn" disabled>📥 Merge & Download</button>
+    <button class="btn btn-ghost" id="resetBtn">↺ Reset</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">Ready</div>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview panel" id="preview">
+    <h2>📊 Preview <span id="previewSummary" style="font-weight:400;font-size:.8rem;color:var(--fg2);"></span></h2>
+    <div class="stats" id="stats"></div>
+    <input type="text" class="search-bar" id="searchBar" placeholder="🔎 Search files..." />
+    <div style="margin-bottom:10px;font-size:.78rem;color:var(--fg2);">
+      Filter:
+      <button class="btn btn-ghost btn-sm" data-filter="all">All</button>
+      <button class="btn btn-ghost btn-sm" data-filter="added">Added</button>
+      <button class="btn btn-ghost btn-sm" data-filter="replaced">Replaced</button>
+      <button class="btn btn-ghost btn-sm" data-filter="kept">Kept (old)</button>
+    </div>
+    <div class="file-list" id="fileList"></div>
+  </div>
+
+  <div class="privacy">
+    🔒 <strong>100% Private:</strong> Aapki files browser me hi process hoti hain — koi server upload nahi hota.
+  </div>
+  <div class="footer-note">Built with JSZip • Single-file app • Works offline (after first load)</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   ZIP MERGER — Fixed version
+   ------------------------------------------------------------
+   Merge rule:
+     - Detect a single common top-level folder in each ZIP.
+       If found, strip it for comparison ("effective path").
+     - Merge by effective path (case-sensitive).
+         * in both     -> NEW wins (REPLACED)
+         * only in NEW -> ADDED
+         * only in OLD -> KEPT
+     - Output prefix:
+         * Use NEW zip's detected top-level folder (if any)
+         * else output at root
+     - Never nest OLD's wrapper folder inside the output.
+   ============================================================ */
+
+const $ = (id) => document.getElementById(id);
+
+const state = {
+  oldZip: null,
+  newZip: null,
+  preview: null,
+  filter: 'all',
+  search: '',
+  theme: 'dark',
+  _rows: []
+};
+
+/* ---------- Toast ---------- */
+function toast(msg, type='info', ms=3000){
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type==='error'?'error':type==='success'?'success':'');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(()=>{ t.className='toast'; }, ms);
+}
+
+/* ---------- Theme ---------- */
+$('themeBtn').onclick = () => {
+  state.theme = state.theme==='dark' ? 'light' : 'dark';
+  document.body.classList.toggle('light', state.theme==='light');
+  $('themeBtn').textContent = state.theme==='dark' ? '🌙' : '☀️';
+};
+
+/* ---------- Helpers ---------- */
+function humanSize(bytes){
+  if(!bytes) return '0 B';
+  const u = ['B','KB','MB','GB'];
+  let i = 0;
+  while(bytes >= 1024 && i < u.length-1){ bytes /= 1024; i++; }
+  return bytes.toFixed(i===0?0:1) + ' ' + u[i];
+}
+
+function normalizePath(name){
+  return String(name).replace(/\\/g, '/');
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- Progress ---------- */
+function setProgress(pct, text){
+  $('progressWrap').classList.add('active');
+  $('progressFill').style.width = Math.max(0,Math.min(100,pct)) + '%';
+  $('progressText').textContent = text || (Math.round(pct) + '%');
+}
+function hideProgress(){
+  $('progressWrap').classList.remove('active');
+  $('progressFill').style.width = '0%';
+}
+
+/* ============================================================
+   CORE: detect common top-level folder
+   ------------------------------------------------------------
+   Returns { prefix, stripped: Map<effectivePath, entry> }
+   prefix is "" if no common folder.
+   Case-sensitive comparison for the folder name itself.
+   ============================================================ */
+function detectAndStrip(zip){
+  // Collect file paths (skip directory entries)
+  const files = [];
+  zip.forEach((relPath, entry) => {
+    if(entry.dir) return;
+    const p = normalizePath(relPath);
+    if(!p) return;
+    files.push({ path: p, entry });
+  });
+
+  if(files.length === 0){
+    return { prefix: '', files: [] };
+  }
+
+  // Find first segment of every path
+  const firstSegs = new Set();
+  let allHaveSlash = true;
+  for(const f of files){
+    const idx = f.path.indexOf('/');
+    if(idx === -1){ allHaveSlash = false; break; }
+    firstSegs.add(f.path.slice(0, idx));
+  }
+
+  let prefix = '';
+  if(allHaveSlash && firstSegs.size === 1){
+    // Exactly one common top-level folder -> strip it
+    prefix = [...firstSegs][0];
+  }
+
+  const stripped = files.map(f => {
+    let eff = f.path;
+    if(prefix){
+      eff = f.path.slice(prefix.length + 1); // drop "prefix/"
+    }
+    return { effective: eff, entry: f.entry, original: f.path };
+  });
+
+  return { prefix, files: stripped };
+}
+
+/* ---------- Drop zones ---------- */
+function setupDrop(dropEl, inputEl, fileLabelEl, key){
+  dropEl.onclick = () => inputEl.click();
+  inputEl.onchange = (e) => {
+    if(e.target.files[0]) handleZip(e.target.files[0], dropEl, fileLabelEl, key);
+  };
+  dropEl.addEventListener('dragover', e => { e.preventDefault(); dropEl.classList.add('dragover'); });
+  dropEl.addEventListener('dragleave', () => dropEl.classList.remove('dragover'));
+  dropEl.addEventListener('drop', e => {
+    e.preventDefault(); dropEl.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if(f) handleZip(f, dropEl, fileLabelEl, key);
+  });
+}
+
+async function handleZip(file, dropEl, fileLabelEl, key){
+  if(!file.name.toLowerCase().endsWith('.zip')){
+    toast('Sirf .zip files allowed hain', 'error');
+    return;
+  }
+  const head = await file.slice(0,4).arrayBuffer();
+  const bytes = new Uint8Array(head);
+  if(!(bytes[0]===0x50 && bytes[1]===0x4B)){
+    toast('Ye valid ZIP file nahi lagti', 'error');
+    return;
+  }
+
+  dropEl.classList.add('loaded');
+  fileLabelEl.textContent = `✔ ${file.name} (${humanSize(file.size)})`;
+
+  try{
+    setProgress(10, 'Reading ' + key + ' zip...');
+    const z = await JSZip.loadAsync(file);
+    if(key==='old') state.oldZip = z;
+    else state.newZip = z;
+    setProgress(100, 'Loaded');
+    setTimeout(hideProgress, 400);
+    toast(`${key.toUpperCase()} ZIP loaded: ${Object.keys(z.files).length} entries`, 'success');
+  }catch(err){
+    toast('ZIP load fail: ' + err.message, 'error');
+    console.error(err);
+  }
+
+  // Reset preview if we now have different inputs
+  state.preview = null;
+  state._rows = [];
+  $('preview').classList.remove('active');
+  updateButtons();
+}
+
+function updateButtons(){
+  const both = state.oldZip && state.newZip;
+  $('analyzeBtn').disabled = !both;
+  $('mergeBtn').disabled = !both || !state.preview;
+}
+
+/* ---------- Reset ---------- */
+$('resetBtn').onclick = () => {
+  state.oldZip = state.newZip = null;
+  state.preview = null;
+  state._rows = [];
+  $('oldFile').textContent = '';
+  $('newFile').textContent = '';
+  $('oldDrop').classList.remove('loaded');
+  $('newDrop').classList.remove('loaded');
+  $('oldInput').value = '';
+  $('newInput').value = '';
+  $('preview').classList.remove('active');
+  hideProgress();
+  updateButtons();
+  toast('Reset done', 'success');
+};
+
+/* ---------- Analyze ---------- */
+async function analyze(){
+  if(!state.oldZip || !state.newZip) return;
+
+  setProgress(5, 'Analyzing...');
+
+  const oldInfo = detectAndStrip(state.oldZip);
+  const newInfo = detectAndStrip(state.newZip);
+
+  setProgress(40, 'Comparing...');
+
+  // Build maps keyed by EFFECTIVE path (case-sensitive)
+  const mapOld = new Map();  // effective -> { original, entry }
+  const mapNew = new Map();
+
+  for(const f of oldInfo.files){
+    if(!mapOld.has(f.effective)){
+      mapOld.set(f.effective, { original: f.original, entry: f.entry });
+    }
+  }
+  for(const f of newInfo.files){
+    if(!mapNew.has(f.effective)){
+      mapNew.set(f.effective, { original: f.original, entry: f.entry });
+    }
+  }
+
+  const added = [];
+  const replaced = [];
+  const kept = [];
+
+  // New zip side
+  for(const [eff, n] of mapNew){
+    if(mapOld.has(eff)){
+      const o = mapOld.get(eff);
+      replaced.push({
+        effective: eff,
+        oldOriginal: o.original,
+        newOriginal: n.original,
+        newEntry: n.entry
+      });
+    }else{
+      added.push({ effective: eff, entry: n.entry });
+    }
+  }
+
+  // Old-only
+  for(const [eff, o] of mapOld){
+    if(!mapNew.has(eff)){
+      kept.push({ effective: eff, entry: o.entry });
+    }
+  }
+
+  // Sort for stable display
+  const byPath = (a,b) => a.effective < b.effective ? -1 : a.effective > b.effective ? 1 : 0;
+  added.sort(byPath);
+  replaced.sort(byPath);
+  kept.sort(byPath);
+
+  state.preview = {
+    added,
+    replaced,
+    kept,
+    outputPrefix: newInfo.prefix,       // "" if NEW has no wrapper folder
+    oldPrefix: oldInfo.prefix,
+    newPrefix: newInfo.prefix
+  };
+
+  setProgress(100, 'Analyzed');
+  setTimeout(hideProgress, 400);
+
+  renderPreview();
+  updateButtons();
+
+  const outLayout = newInfo.prefix
+    ? `output keeps "${newInfo.prefix}/" prefix`
+    : 'output at root';
+  toast(
+    `Done — ${added.length} added, ${replaced.length} replaced, ${kept.length} kept (${outLayout})`,
+    'success',
+    4000
+  );
+}
+
+/* ---------- Render Preview ---------- */
+function renderPreview(){
+  if(!state.preview) return;
+  $('preview').classList.add('active');
+
+  const { added, replaced, kept, outputPrefix } = state.preview;
+  const total = added.length + replaced.length + kept.length;
+
+  $('stats').innerHTML = `
+    <div class="stat added"><div class="stat-num">${added.length}</div><div class="stat-lbl">Added</div></div>
+    <div class="stat replaced"><div class="stat-num">${replaced.length}</div><div class="stat-lbl">Replaced</div></div>
+    <div class="stat kept"><div class="stat-num">${kept.length}</div><div class="stat-lbl">Kept from Old</div></div>
+  `;
+
+  const prefixNote = outputPrefix
+    ? `output prefix: <code style="color:var(--acc)">${escapeHtml(outputPrefix)}/</code>`
+    : `output at root (no prefix)`;
+  $('previewSummary').innerHTML = `— ${total} files • ${prefixNote}`;
+
+  const rows = [];
+  added.forEach(f => rows.push({ type:'added', path: f.effective }));
+  replaced.forEach(f => rows.push({ type:'replaced', path: f.effective }));
+  kept.forEach(f => rows.push({ type:'kept', path: f.effective }));
+
+  state._rows = rows;
+  renderRows();
+}
+
+function renderRows(){
+  if(!state._rows) return;
+  const filter = state.filter;
+  const search = state.search.toLowerCase();
+
+  const list = $('fileList');
+  list.innerHTML = '';
+
+  let shown = 0;
+  state._rows.forEach((r) => {
+    if(filter!=='all' && r.type !== filter) return;
+    if(search && !r.path.toLowerCase().includes(search)) return;
+
+    shown++;
+    const row = document.createElement('div');
+    row.className = 'file-row';
+    row.innerHTML = `
+      <span class="file-tag tag-${r.type}">${r.type}</span>
+      <span class="file-name">${escapeHtml(r.path)}</span>
+    `;
+    list.appendChild(row);
+  });
+
+  if(shown === 0){
+    list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--fg2);font-size:.85rem;">Koi file nahi mili</div>`;
+  }
+}
+
+/* ---------- Filters & Search ---------- */
+document.querySelectorAll('[data-filter]').forEach(btn => {
+  btn.onclick = () => {
+    state.filter = btn.dataset.filter;
+    renderRows();
+  };
+});
+$('searchBar').oninput = (e) => {
+  state.search = e.target.value;
+  renderRows();
+};
+
+/* ---------- Merge & Download ---------- */
+async function mergeAndDownload(){
+  if(!state.preview) return;
+  const { added, replaced, kept, outputPrefix, oldPrefix, newPrefix } = state.preview;
+  const addReport = $('addReport').checked;
+
+  setProgress(2, 'Building revised zip...');
+
+  const out = new JSZip();
+  const total = added.length + replaced.length + kept.length || 1;
+  let processed = 0;
+
+  const joinOut = (eff) => outputPrefix ? (outputPrefix + '/' + eff) : eff;
+
+  // 1) Added — from NEW
+  for(const f of added){
+    const data = await f.entry.async('blob');
+    out.file(joinOut(f.effective), data);
+    processed++;
+    setProgress(2 + (processed/total)*80, `Adding ${f.effective}`);
+  }
+
+  // 2) Replaced — NEW wins
+  for(const f of replaced){
+    const data = await f.newEntry.async('blob');
+    out.file(joinOut(f.effective), data);
+    processed++;
+    setProgress(2 + (processed/total)*80, `Replacing ${f.effective}`);
+  }
+
+  // 3) Kept — from OLD (but written at OUTPUT prefix, NOT old's wrapper)
+  for(const f of kept){
+    const data = await f.entry.async('blob');
+    out.file(joinOut(f.effective), data);
+    processed++;
+    setProgress(2 + (processed/total)*80, `Keeping ${f.effective}`);
+  }
+
+  // 4) Optional report
+  if(addReport){
+    const lines = [];
+    lines.push('ZIP Merge Report');
+    lines.push('================');
+    lines.push('Date: ' + new Date().toISOString());
+    lines.push('');
+    lines.push('Detected top-level folders:');
+    lines.push('  OLD: ' + (oldPrefix || '(none)'));
+    lines.push('  NEW: ' + (newPrefix || '(none)'));
+    lines.push('Output prefix   : ' + (outputPrefix || '(root)'));
+    lines.push('');
+    lines.push(`ADDED (${added.length}) [from NEW]:`);
+    for(const f of added) lines.push('  + ' + f.effective);
+    lines.push('');
+    lines.push(`REPLACED (${replaced.length}) [NEW wins over OLD]:`);
+    for(const f of replaced) lines.push('  ~ ' + f.effective);
+    lines.push('');
+    lines.push(`KEPT (${kept.length}) [only in OLD]:`);
+    for(const f of kept) lines.push('  = ' + f.effective);
+    lines.push('');
+    lines.push(`Total files in revised ZIP: ${total}`);
+    lines.push('');
+    lines.push('Generated by ZIP Merger (client-side)');
+    out.file('_merge_report.txt', lines.join('\n'));
+  }
+
+  setProgress(85, 'Generating zip...');
+
+  const blob = await out.generateAsync(
+    { type:'blob', compression:'DEFLATE', compressionOptions:{ level: 6 } },
+    (meta) => setProgress(85 + meta.percent*0.15, 'Compressing... ' + Math.round(meta.percent) + '%')
+  );
+
+  setProgress(100, 'Done');
+
+  const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  saveAs(blob, `revised_${ts}.zip`);
+
+  setTimeout(hideProgress, 600);
+  toast('✅ Revised ZIP download ho gaya!', 'success', 4000);
+}
+
+/* ---------- Wire buttons ---------- */
+setupDrop($('oldDrop'), $('oldInput'), $('oldFile'), 'old');
+setupDrop($('newDrop'), $('newInput'), $('newFile'), 'new');
+
+$('analyzeBtn').onclick = analyze;
+$('mergeBtn').onclick = mergeAndDownload;
+
+/* ---------- Init ---------- */
+updateButtons();
+</script>
+</body>
+</html>
