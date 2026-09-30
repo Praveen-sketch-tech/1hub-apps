@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>◈ Smart PDF Tools</title>
+<style>
+  :root{
+    --bg:#f4f5fa; --panel:#fff; --border:#e3e6f0; --text:#171a26; --muted:#6b7280;
+    --primary:#4f46e5; --primary-dark:#4338ca; --primary-soft:#eef0ff;
+    --danger:#dc2626; --ok:#059669; --radius:16px;
+    --shadow:0 1px 2px rgba(16,24,40,.05), 0 8px 24px -12px rgba(16,24,40,.18);
+  }
+  *{box-sizing:border-box} html,body{margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;
+    background:radial-gradient(1100px 500px at 50% -220px,#e6e8ff 0%,transparent 60%),var(--bg);
+    color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased}
+  .app{max-width:980px;margin:0 auto;padding:38px 20px 80px}
+  header{text-align:center;margin-bottom:34px}
+  .brand{display:inline-flex;align-items:center;gap:10px;font-size:26px;font-weight:750;letter-spacing:-.02em}
+  .brand .glyph{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;
+    background:linear-gradient(135deg,var(--primary),#7c3aed);color:#fff;font-size:19px;
+    box-shadow:0 6px 16px -6px rgba(79,70,229,.7)}
+  .tagline{color:var(--muted);font-size:14.5px;margin:12px auto 0;max-width:600px;line-height:1.55}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:16px}
+  .chip{font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:4px 10px;border-radius:999px;
+    background:var(--primary-soft);color:var(--primary-dark);border:1px solid #dfe2ff}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px 18px;text-align:left;cursor:pointer;transition:.16s ease;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;gap:9px;font-family:inherit;color:inherit}
+  .card:hover{transform:translateY(-2px);border-color:#c9cdf7;
+    box-shadow:0 4px 8px rgba(16,24,40,.06),0 16px 32px -16px rgba(79,70,229,.4)}
+  .card .ico{font-size:24px;line-height:1}
+  .card .ttl{font-weight:680;font-size:15.5px}
+  .card .dsc{font-size:12.8px;color:var(--muted);line-height:1.5}
+  .card .badge-new{align-self:flex-start;font-size:10px;font-weight:700;letter-spacing:.04em;
+    padding:2px 7px;border-radius:99px;background:#dcfce7;color:#15803d;margin-left:auto}
+  .hidden{display:none !important}
+  .ws-head{margin-bottom:20px}
+  .back{background:none;border:none;color:var(--primary);font-weight:620;font-size:13.5px;
+    cursor:pointer;padding:0;font-family:inherit;margin-bottom:14px;display:inline-flex;gap:6px;align-items:center}
+  .back:hover{text-decoration:underline}
+  .ws-title{display:flex;align-items:center;gap:11px;font-size:22px;font-weight:730;margin:0;letter-spacing:-.02em}
+  .ws-desc{color:var(--muted);font-size:13.8px;margin:7px 0 0}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:18px;margin-bottom:14px;box-shadow:var(--shadow)}
+  .dropzone{border:2px dashed #ccd1e6;border-radius:13px;padding:30px 20px;text-align:center;
+    cursor:pointer;transition:.15s ease;background:#fafbff}
+  .dropzone:hover,.dropzone.over{border-color:var(--primary);background:var(--primary-soft)}
+  .dz-icon{font-size:30px;margin-bottom:8px}
+  .dz-main{font-weight:640;font-size:14.5px}
+  .dz-sub{color:var(--muted);font-size:12.5px;margin-top:5px}
+  #fileList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  #fileList:not(:empty){margin-top:14px}
+  .file-item{display:flex;align-items:center;gap:10px;background:#fafbff;border:1px solid var(--border);
+    border-radius:11px;padding:9px 11px;font-size:13.3px}
+  .file-item .idx{flex:0 0 auto;width:22px;height:22px;border-radius:6px;display:grid;place-items:center;
+    font-size:11px;font-weight:700;background:var(--primary-soft);color:var(--primary-dark)}
+  .file-item .fname{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:560}
+  .file-item .meta{flex:0 0 auto;color:var(--muted);font-size:11.8px;white-space:nowrap}
+  .move-group{display:flex;gap:2px;flex:0 0 auto}
+  .icon-btn{border:1px solid var(--border);background:#fff;border-radius:7px;width:26px;height:26px;
+    display:grid;place-items:center;cursor:pointer;font-size:12px;color:var(--muted);font-family:inherit;
+    transition:.12s;padding:0}
+  .icon-btn:hover{background:var(--primary-soft);color:var(--primary-dark);border-color:#c9cdf7}
+  .icon-btn.rm:hover{background:#fee2e2;color:var(--danger);border-color:#fecaca}
+  .icon-btn.rot{width:auto;padding:0 7px;font-size:11px;font-weight:650;gap:3px}
+  .opt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field > span{font-size:12.6px;font-weight:640;color:#3b4157;display:flex;justify-content:space-between;align-items:center}
+  .field > span b{color:var(--primary);font-variant-numeric:tabular-nums}
+  .field input[type=text],.field input[type=number],.field input[type=password],.field select,.field textarea{
+    font-family:inherit;font-size:13.4px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;
+    background:#fff;color:var(--text);outline:none;transition:.14s;width:100%}
+  .field textarea{resize:vertical;min-height:150px;line-height:1.55}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.13)}
+  .field input[type=range]{width:100%;accent-color:var(--primary)}
+  .hint{font-size:12.2px;color:var(--muted);margin:12px 0 0;line-height:1.6}
+  .notice{font-size:12.2px;color:#92400e;background:#fef3c7;border:1px solid #fde68a;
+    padding:9px 12px;border-radius:10px;margin-top:12px;line-height:1.55}
+  .actions{display:flex;gap:10px;align-items:center;margin-top:4px;flex-wrap:wrap}
+  .btn{font-family:inherit;font-size:13.6px;font-weight:640;padding:11px 18px;border-radius:11px;
+    border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;transition:.15s}
+  .btn:hover{background:#f6f7fc;border-color:#cfd4e8}
+  .btn.primary{background:linear-gradient(135deg,var(--primary),#6d28d9);border-color:transparent;color:#fff;
+    box-shadow:0 8px 20px -10px rgba(79,70,229,.9)}
+  .btn.primary:hover{filter:brightness(1.07)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(.3)}
+  .btn.small{padding:6px 12px;font-size:12.4px;border-radius:8px}
+  .btn.ghost{background:transparent}
+  #progressWrap{margin-top:16px}
+  .bar{height:8px;border-radius:99px;background:#e8eaf5;overflow:hidden}
+  #barFill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--primary),#8b5cf6);transition:width .22s ease}
+  #progressText{font-size:12.4px;color:var(--muted);margin-top:8px}
+  .rte-toolbar{display:flex;flex-wrap:wrap;gap:4px;padding:8px;border:1px solid var(--border);
+    border-radius:12px 12px 0 0;background:#fafbff;border-bottom:none;align-items:center}
+  .rte-btn{border:1px solid transparent;background:transparent;border-radius:6px;min-width:32px;height:32px;
+    padding:0 8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;
+    font-weight:600;color:#3b4157;font-family:inherit;transition:.12s;gap:4px}
+  .rte-btn:hover{background:#eef0f8}
+  .rte-btn.active{background:var(--primary-soft);color:var(--primary-dark);border-color:#c9cdf7}
+  .rte-btn svg{width:16px;height:16px;display:block}
+  .rte-sep{width:1px;height:22px;background:var(--border);margin:0 4px}
+  .rte-select{height:32px;padding:0 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;
+    font-size:12.5px;background:#fff;cursor:pointer}
+  .rte-editor{border:1px solid var(--border);border-radius:0 0 12px 12px;background:#fff;
+    padding:16px;min-height:220px;max-height:450px;overflow-y:auto;line-height:1.6;
+    font-size:16px;outline:none;transition:.14s;color:#111}
+  .rte-editor:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.13)}
+  .rte-editor:empty:before{content:attr(data-placeholder);color:#a0a6b8;pointer-events:none}
+  .rte-editor div,.rte-editor p{margin:0}
+  .edit-topbar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fafbff;
+    border:1px solid var(--border);border-radius:12px;margin-bottom:12px;flex-wrap:wrap}
+  .edit-topbar .label{font-size:12.4px;color:var(--muted);font-weight:600}
+  .edit-topbar .label b{color:var(--text)}
+  .edit-viewer{background:#eef0f8;border-radius:12px;padding:14px;min-height:300px;max-height:640px;
+    overflow:auto;text-align:center;line-height:0}
+  .edit-canvas-wrap{position:relative;display:inline-block;line-height:0;vertical-align:top}
+  .edit-canvas-wrap canvas{display:block;border-radius:6px;
+    box-shadow:0 4px 20px rgba(0,0,0,.18);background:#fff}
+  .edit-overlay{position:absolute;top:0;left:0;pointer-events:none}
+  .edit-overlay .txt-hit{position:absolute;pointer-events:auto;cursor:pointer;background:transparent;
+    border:1px solid transparent;border-radius:3px;transition:.1s}
+  .edit-overlay .txt-hit:hover{background:rgba(79,70,229,.14);border-color:rgba(79,70,229,.5)}
+  .edit-overlay .txt-hit.selected{background:rgba(220,38,38,.14);border-color:rgba(220,38,38,.7)}
+  .edit-overlay .txt-hit.edited{background:rgba(5,150,105,.15);border-color:rgba(5,150,105,.6)}
+  .edit-bottom{margin-top:14px;padding:14px;background:#fafbff;border:1px solid var(--border);
+    border-radius:12px;display:none}
+  .edit-bottom.open{display:block}
+  .edit-bottom .head{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px}
+  .edit-bottom .orig-text{font-size:12.8px;background:#fff;border:1px solid var(--border);
+    border-radius:8px;padding:6px 10px;margin-bottom:10px;word-break:break-word;max-height:60px;overflow:auto;color:#6b7280}
+  .edit-bottom .input-row{display:flex;gap:8px}
+  .edit-bottom .input-row input{flex:1;font-family:inherit;font-size:14px;padding:10px 12px;
+    border:1px solid var(--border);border-radius:10px;outline:none;background:#fff;min-width:0}
+  .edit-bottom .input-row input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.13)}
+  .edit-info{font-size:11.6px;color:var(--muted);margin-top:8px;display:flex;gap:12px;flex-wrap:wrap}
+  .edit-info .chip2{background:#fff;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-weight:600}
+  .edit-stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--muted)}
+  .edit-stats b{color:var(--ok)}
+  .empty-note{color:var(--muted);font-size:12.5px;text-align:center;padding:20px;line-height:1.6}
+  #previewPanel{margin-top:14px}
+  .preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+  .preview-card{background:#fafbff;border:1px solid var(--border);border-radius:12px;padding:10px;
+    display:flex;flex-direction:column;gap:8px;transition:.15s;overflow:hidden;position:relative;cursor:zoom-in}
+  .preview-card:hover{border-color:#c9cdf7;box-shadow:0 6px 18px -10px rgba(79,70,229,.5)}
+  .preview-canvas-wrap{background:#eef0f8;border-radius:8px;display:grid;place-items:center;
+    min-height:180px;overflow:hidden;position:relative}
+  .preview-canvas-wrap canvas{display:block;max-width:100%;height:auto;border-radius:6px;
+    box-shadow:0 2px 8px rgba(0,0,0,.14);background:#fff}
+  .preview-loading{color:var(--muted);font-size:12px;padding:40px 10px;text-align:center;width:100%}
+  .preview-zoom{position:absolute;inset:0;display:grid;place-items:center;background:rgba(23,26,38,.42);
+    color:#fff;font-size:12.4px;font-weight:640;opacity:0;transition:.15s;pointer-events:none}
+  .preview-card:hover .preview-zoom{opacity:1}
+  .preview-name{font-size:12.3px;font-weight:620;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .preview-meta{font-size:11.3px;color:var(--muted)}
+  #results{margin-top:16px}
+  .res-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+  .res-head h3{margin:0;font-size:15.5px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .res-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto}
+  .res-list li{display:flex;align-items:center;gap:10px;font-size:13.2px;background:#fafbff;
+    border:1px solid var(--border);border-radius:11px;padding:9px 11px}
+  .res-list .fname{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:560}
+  .res-list .meta{color:var(--muted);font-size:11.8px;flex:0 0 auto}
+  .badge-ok{color:var(--ok);font-weight:700;font-size:11.5px}
+  .modal{position:fixed;inset:0;background:rgba(15,18,32,.72);-webkit-backdrop-filter:blur(3px);
+    backdrop-filter:blur(3px);z-index:200;display:grid;place-items:center;padding:10px}
+  .modal-box{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 24px 60px -20px rgba(0,0,0,.55);
+    max-width:1000px;width:100%;max-height:96vh;display:flex;flex-direction:column}
+  .modal-head{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .modal-head span{flex:1;min-width:120px;font-weight:650;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .modal-zoom{display:flex;gap:4px;align-items:center;font-size:12px;color:var(--muted)}
+  .modal-zoom button{border:1px solid var(--border);background:#fff;border-radius:6px;width:26px;height:26px;
+    cursor:pointer;font-family:inherit;font-size:14px;line-height:1;color:var(--muted);padding:0}
+  .modal-zoom button:hover{background:var(--primary-soft);color:var(--primary-dark)}
+  .modal-zoom .zval{min-width:44px;text-align:center;font-variant-numeric:tabular-nums}
+  .modal-body{flex:1;overflow:auto;background:#e9ebf3;padding:12px;min-height:200px;display:block}
+  .modal-body-inner{display:flex;justify-content:center;min-width:min-content}
+  .modal-body canvas{display:block;border-radius:4px;box-shadow:0 6px 24px rgba(0,0,0,.2);background:#fff}
+  .modal-foot{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--border);flex-wrap:wrap}
+  #modalPageInfo{font-size:12.6px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:64px;text-align:center}
+  #toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:#171a26;color:#fff;
+    font-size:13.2px;font-weight:550;padding:11px 18px;border-radius:11px;opacity:0;pointer-events:none;
+    transition:.22s ease;z-index:300;max-width:90vw;text-align:center}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  #toast.err{background:#b91c1c}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:46px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><span class="glyph">◈</span><span>Smart PDF Tools</span></div>
+    <p class="tagline">Merge, split, extract, images-to-PDF, compress, edit text, unlock, protect aur create karo PDFs — sab kuch browser ke andar.</p>
+    <div class="chips">
+      <span class="chip">PDF Read</span><span class="chip">PDF Write</span><span class="chip">PDF Edit</span>
+      <span class="chip">Image Processing</span><span class="chip">Canvas</span>
+      <span class="chip">ZIP Handling</span><span class="chip">Drag &amp; Drop</span>
+    </div>
+  </header>
+
+  <section id="start"><div class="cards" id="toolCards"></div></section>
+
+  <section id="workspace" class="hidden">
+    <div class="ws-head">
+      <button class="back" id="backBtn">← All tools</button>
+      <h2 class="ws-title" id="wsTitle"></h2>
+      <p class="ws-desc" id="wsDesc"></p>
+    </div>
+
+    <div class="panel" id="uploadPanel">
+      <div class="dropzone" id="dropzone">
+        <div class="dz-icon">📥</div>
+        <div class="dz-main" id="dzMain">Drop files here or click to browse</div>
+        <div class="dz-sub" id="dzSub"></div>
+      </div>
+      <input type="file" id="fileInput" hidden />
+      <ul id="fileList"></ul>
+    </div>
+
+    <div class="panel" id="optionsPanel"></div>
+
+    <div class="actions">
+      <button class="btn primary" id="runBtn" disabled>Run</button>
+      <button class="btn" id="clearBtn">Clear</button>
+    </div>
+
+    <div id="progressWrap" class="hidden">
+      <div class="bar"><div id="barFill"></div></div>
+      <div id="progressText"></div>
+    </div>
+
+    <div class="panel hidden" id="previewPanel">
+      <div class="res-head" style="margin-bottom:12px">
+        <h3>👁️ Preview</h3>
+        <span style="color:var(--muted);font-size:12.2px">Click any page to enlarge</span>
+      </div>
+      <div class="preview-grid" id="previewGrid"></div>
+    </div>
+
+    <div id="results" class="hidden"></div>
+  </section>
+
+  <footer>Built with <b>pdf-lib</b> · <b>pdf.js</b> · <b>JSZip</b> · <b>fontkit</b> — 100% offline processing.<br />Nothing you open here ever leaves your device.</footer>
+</div>
+
+<div class="modal hidden" id="previewModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span id="modalTitle">Preview</span>
+      <div class="modal-zoom">
+        <button id="zoomOut" title="Zoom out">−</button>
+        <span class="zval" id="zoomVal">100%</span>
+        <button id="zoomIn" title="Zoom in">+</button>
+        <button id="zoomFit" title="Fit width" style="width:auto;padding:0 8px;font-size:11px">Fit</button>
+      </div>
+      <button class="icon-btn" id="modalClose" title="Close">✕</button>
+    </div>
+    <div class="modal-body"><div class="modal-body-inner"><canvas id="modalCanvas"></canvas></div></div>
+    <div class="modal-foot">
+      <button class="btn small" id="modalPrev">◀ Prev</button>
+      <span id="modalPageInfo">1 / 1</span>
+      <button class="btn small" id="modalNext">Next ▶</button>
+      <span style="flex:1"></span>
+      <button class="btn small primary" id="modalDownload">⬇ Download this file</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+
+<script>
+(function () {
+  'use strict';
+  const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const TOOLS = {
+    merge:    { name:'Merge PDF',        icon:'🔗', action:'Merge PDFs',       max:Infinity, kind:'pdf',   desc:'Combine multiple PDFs into one.' },
+    split:    { name:'Split PDF',        icon:'✂️', action:'Split PDF',        max:1,        kind:'pdf',   desc:'Break one PDF into several files.' },
+    extract:  { name:'Extract Pages',    icon:'📄', action:'Extract Pages',    max:1,        kind:'pdf',   desc:'Pull out specific pages into a new PDF.' },
+    compress: { name:'Compress PDF',     icon:'🗜️', action:'Compress PDF',     max:1,        kind:'pdf',   desc:'Shrink file size.' },
+    rotate:   { name:'Rotate PDF',       icon:'🔄', action:'Rotate PDF',       max:1,        kind:'pdf',   desc:'Rotate pages by 90°, 180° or 270°.' },
+    images:   { name:'Images to PDF',    icon:'🖼️', action:'Create PDF',       max:Infinity, kind:'image', desc:'Turn JPG/PNG into a single PDF.' },
+    create:   { name:'Create PDF',       icon:'📝', action:'PDF generate karo',max:0,        kind:'none',  desc:'Rich text editor — bold, italic, alignment, Hindi + English.', isNew:true },
+    editText: { name:'Edit Text in PDF', icon:'✏️', action:'PDF save karo',    max:1,        kind:'pdf',   desc:'Click existing text to edit it — formatting preserved.', isNew:true },
+    protect:  { name:'Protect PDF',      icon:'🔒', action:'Protect PDF',      max:1,        kind:'pdf',   desc:'Add password protection.',            isNew:true },
+    unlock:   { name:'Unlock PDF',       icon:'🔓', action:'Unlock PDF',       max:1,        kind:'pdf',   desc:'Remove known password protection.',   isNew:true }
+  };
+
+  const state = {
+    tool: null, files: [], results: [], busy: false,
+    editDoc: null, editBytes: null, editPage: 1, editScale: 1,
+    editItems: [], editModified: {}, editSelectedId: null, editTotalPages: 0
+  };
+
+  const $ = (s) => document.querySelector(s);
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  function fmtSize(b){ if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(2)+' MB'; }
+  const uid = () => Math.random().toString(36).slice(2,9);
+  const baseName = (n) => n.replace(/\.[^.]+$/,'');
+  let toastTimer;
+  function toast(msg, isErr){
+    const t = $('#toast'); t.textContent = msg;
+    t.className = 'show' + (isErr ? ' err' : '');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.className = ''), 3400);
+  }
+  function triggerDownload(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+  function rgbToHex(str){
+    const m = String(str).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if(!m) return null;
+    const r = parseInt(m[1],10), g = parseInt(m[2],10), b = parseInt(m[3],10);
+    return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+  }
+  function hexToRgb01(hex){
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+    if(!m) return { r:0, g:0, b:0 };
+    const n = parseInt(m[1], 16);
+    return { r:((n>>16)&255)/255, g:((n>>8)&255)/255, b:(n&255)/255 };
+  }
+  function isLight(hex){
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+    if(!m) return true;
+    const n = parseInt(m[1],16);
+    const r = (n>>16)&255, g = (n>>8)&255, b = n&255;
+    return (r*0.299 + g*0.587 + b*0.114) > 150;
+  }
+
+  function parseRanges(str, total){
+    const parts = String(str).split(',').map(s=>s.trim()).filter(Boolean);
+    if(!parts.length) throw new Error('Enter at least one range.');
+    const out = [];
+    for(const part of parts){
+      const m = part.match(/^(\d+)\s*-\s*(\d+)?$/);
+      if(m){
+        let a = parseInt(m[1],10), b = m[2] ? parseInt(m[2],10) : total;
+        if(a>b){ const t=a; a=b; b=t; }
+        a = Math.max(1,a); b = Math.min(total,b);
+        const arr = []; for(let i=a; i<=b; i++) arr.push(i-1);
+        if(arr.length) out.push(arr);
+      } else if(/^\d+$/.test(part)){
+        const n = parseInt(part,10);
+        if(n>=1 && n<=total) out.push([n-1]);
+        else throw new Error(`Page ${n} out of range.`);
+      } else throw new Error(`Invalid: "${part}"`);
+    }
+    return out;
+  }
+  function rangeLabel(indices){
+    if(indices.length===1) return 'p'+(indices[0]+1);
+    const runs=[]; let s=indices[0], p=indices[0];
+    for(let i=1;i<indices.length;i++){
+      if(indices[i]===p+1){ p=indices[i]; continue; }
+      runs.push([s,p]); s=p=indices[i];
+    }
+    runs.push([s,p]);
+    return runs.map(([a,b])=> a===b ? `p${a+1}` : `p${a+1}-${b+1}`).join('_');
+  }
+
+  async function loadPdfLibDoc(file){
+    const buf = await file.arrayBuffer();
+    return PDFDocument.load(buf, { ignoreEncryption:true, updateMetadata:false });
+  }
+  function loadPdfJs(bytes){ return pdfjsLib.getDocument({ data: bytes.slice(0) }).promise; }
+  function canvasToJpegBytes(canvas, q){
+    return new Promise((res, rej) => {
+      canvas.toBlob(b => { if(!b) return rej(new Error('encode failed'));
+        b.arrayBuffer().then(ab => res(new Uint8Array(ab))); }, 'image/jpeg', q);
+    });
+  }
+  function setProgress(f, text){
+    $('#progressWrap').classList.remove('hidden');
+    $('#barFill').style.width = Math.max(0, Math.min(1,f))*100 + '%';
+    $('#progressText').textContent = text || '';
+  }
+  function hideProgress(){
+    $('#progressWrap').classList.add('hidden');
+    $('#barFill').style.width = '0%'; $('#progressText').textContent = '';
+  }
+
+  function renderStart(){
+    $('#toolCards').innerHTML = Object.entries(TOOLS).map(([key,t]) => `
+      <button class="card" data-tool="${key}">
+        <div style="display:flex;align-items:center;width:100%">
+          <span class="ico">${t.icon}</span>
+          ${t.isNew ? '<span class="badge-new">NEW</span>' : ''}
+        </div>
+        <span class="ttl">${t.name}</span>
+        <span class="dsc">${t.desc}</span>
+      </button>`).join('');
+  }
+  $('#toolCards').addEventListener('click', e => {
+    const btn = e.target.closest('[data-tool]');
+    if(btn) openTool(btn.dataset.tool);
+  });
+
+  function openTool(key){
+    state.tool = key;
+    state.files = []; state.results = [];
+    state.editDoc = null; state.editBytes = null; state.editPage = 1;
+    state.editItems = []; state.editModified = {}; state.editSelectedId = null;
+    hideProgress(); renderResults(); setBusy(false);
+
+    const t = TOOLS[key];
+    $('#start').classList.add('hidden');
+    $('#workspace').classList.remove('hidden');
+    $('#wsTitle').innerHTML = `<span>${t.icon}</span><span>${t.name}</span>`;
+    $('#wsDesc').textContent = t.desc;
+    $('#runBtn').textContent = t.action;
+
+    const noUpload = t.kind === 'none';
+    $('#uploadPanel').classList.toggle('hidden', noUpload);
+    $('#dzMain').textContent = t.kind === 'image' ? 'Drop images here or click to browse' : 'Drop PDF files here or click to browse';
+    $('#dzSub').textContent = t.max === 1 ? 'Single file · processed locally' : 'Multiple files · reorder with ▲▼';
+
+    const input = $('#fileInput');
+    input.value = '';
+    input.accept = t.kind === 'image' ? 'image/*' : '.pdf,application/pdf';
+    input.multiple = t.max !== 1 && t.max !== 0;
+
+    renderOptions(); renderFiles();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  $('#backBtn').addEventListener('click', () => {
+    closeModal();
+    state.tool = null; state.files = []; state.results = [];
+    $('#workspace').classList.add('hidden');
+    $('#start').classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  const dz = $('#dropzone');
+  const fileInput = $('#fileInput');
+  dz.addEventListener('click', () => fileInput.click());
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('over');
+    if(e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', () => {
+    if(fileInput.files.length) addFiles(fileInput.files);
+    fileInput.value = '';
+  });
+  async function addFiles(list){
+    const t = TOOLS[state.tool];
+    let incoming = Array.from(list).filter(f => {
+      if(t.kind === 'image') return f.type.startsWith('image/');
+      return f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+    });
+    if(!incoming.length){ toast(t.kind === 'image' ? 'Choose image files.' : 'Choose PDF files.', true); return; }
+    if(t.max === 1){ state.files = []; incoming = incoming.slice(0,1); }
+    for(const f of incoming) state.files.push({ id:uid(), file:f, name:f.name, size:f.size, pages:null, rot:0 });
+    renderFiles(); renderResults();
+    await loadPageCounts();
+    if(state.tool === 'editText' && state.files.length){ await loadForEditing(state.files[0]); }
+  }
+  async function loadPageCounts(){
+    const items = state.files.filter(it => !it.pages && /\.pdf$/i.test(it.name));
+    for(const it of items){
+      try { const d = await loadPdfLibDoc(it.file); it.pages = d.getPageCount(); } catch(e){ it.pages = null; }
+      renderFiles();
+    }
+  }
+
+  function renderFiles(){
+    const wrap = $('#fileList');
+    const t = TOOLS[state.tool];
+    if(!state.files.length){ wrap.innerHTML = ''; updateRunBtn(); return; }
+    const multi = t.max !== 1 && t.max !== 0;
+    wrap.innerHTML = state.files.map((it,i) => `
+      <li class="file-item">
+        <span class="idx">${i+1}</span>
+        <span class="fname" title="${escapeHtml(it.name)}">${escapeHtml(it.name)}</span>
+        <span class="meta">${fmtSize(it.size)}${it.pages ? ` · ${it.pages} pg` : ''}</span>
+        ${state.tool === 'images' ? `<button class="icon-btn rot" data-rot="${it.id}">↻ ${it.rot||0}°</button>` : ''}
+        ${multi ? `<span class="move-group">
+               <button class="icon-btn" data-up="${it.id}" ${i===0?'disabled':''}>▲</button>
+               <button class="icon-btn" data-down="${it.id}" ${i===state.files.length-1?'disabled':''}>▼</button>
+             </span>` : ''}
+        <button class="icon-btn rm" data-remove="${it.id}">✕</button>
+      </li>`).join('');
+    updateRunBtn();
+  }
+  $('#fileList').addEventListener('click', e => {
+    const up = e.target.closest('[data-up]'), down = e.target.closest('[data-down]');
+    const rm = e.target.closest('[data-remove]'), rot = e.target.closest('[data-rot]');
+    if(up){ const i = state.files.findIndex(f => f.id === up.dataset.up);
+      if(i>0){ [state.files[i-1],state.files[i]] = [state.files[i],state.files[i-1]]; renderFiles(); } }
+    else if(down){ const i = state.files.findIndex(f => f.id === down.dataset.down);
+      if(i>-1 && i<state.files.length-1){ [state.files[i+1],state.files[i]] = [state.files[i],state.files[i+1]]; renderFiles(); } }
+    else if(rm){ state.files = state.files.filter(f => f.id !== rm.dataset.remove);
+      renderFiles(); renderResults();
+      if(state.tool === 'editText'){ state.editDoc = null; state.editBytes = null; state.editItems = []; state.editModified = {}; renderOptions(); } }
+    else if(rot){ const it = state.files.find(f => f.id === rot.dataset.rot);
+      if(it){ it.rot = (it.rot + 90) % 360; renderFiles(); } }
+  });
+
+  function renderOptions(){
+    const p = $('#optionsPanel');
+    const t = state.tool;
+
+    if(t === 'merge'){ p.innerHTML = `<p class="hint">Files merged top→bottom. Reorder with ▲▼.</p>`; return; }
+    if(t === 'split'){
+      p.innerHTML = `<div class="opt-grid"><label class="field"><span>Page ranges</span>
+        <input type="text" id="optRange" placeholder="e.g. 1-3, 4, 5-8" /></label></div>
+        <p class="hint">Each comma-separated entry becomes its own file.</p>`; return;
+    }
+    if(t === 'extract'){
+      p.innerHTML = `<div class="opt-grid"><label class="field"><span>Pages to keep</span>
+        <input type="text" id="optPages" placeholder="e.g. 1, 3, 5-7" /></label></div>`; return;
+    }
+    if(t === 'compress'){
+      p.innerHTML = `<div class="opt-grid">
+        <label class="field"><span>Quality <b id="qVal">70%</b></span>
+          <input type="range" id="optQuality" min="0.3" max="0.95" step="0.05" value="0.7" /></label>
+        <label class="field"><span>Resolution</span>
+          <select id="optScale"><option value="1">72 DPI</option><option value="1.5" selected>108 DPI</option><option value="2">144 DPI</option><option value="3">216 DPI</option></select></label>
+        </div>`;
+      const q = $('#optQuality'); q.addEventListener('input', () => { $('#qVal').textContent = Math.round(q.value*100)+'%'; });
+      return;
+    }
+    if(t === 'rotate'){
+      p.innerHTML = `<div class="opt-grid">
+        <label class="field"><span>Rotation</span>
+          <select id="optAngle"><option value="90">90° CW</option><option value="180">180°</option><option value="270">90° CCW</option></select></label>
+        <label class="field"><span>Pages (blank=all)</span><input type="text" id="optPages" placeholder="e.g. 1, 3" /></label></div>`; return;
+    }
+    if(t === 'images'){
+      p.innerHTML = `<div class="opt-grid">
+        <label class="field"><span>Page size</span>
+          <select id="optSize"><option value="fit">Fit to image</option><option value="a4" selected>A4</option><option value="letter">Letter</option></select></label>
+        <label class="field"><span>Orientation</span>
+          <select id="optOrient"><option value="auto" selected>Auto</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
+        <label class="field"><span>Margin (pt)</span><input type="number" id="optMargin" value="24" min="0" max="90" /></label>
+        </div>`; return;
+    }
+
+    if(t === 'create'){
+      const svgAlignL = '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="3" width="12" height="1.6" rx="0.8"/><rect x="2" y="7.2" width="8" height="1.6" rx="0.8"/><rect x="2" y="11.4" width="12" height="1.6" rx="0.8"/></svg>';
+      const svgAlignC = '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="3" width="12" height="1.6" rx="0.8"/><rect x="4" y="7.2" width="8" height="1.6" rx="0.8"/><rect x="2" y="11.4" width="12" height="1.6" rx="0.8"/></svg>';
+      const svgAlignR = '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="3" width="12" height="1.6" rx="0.8"/><rect x="6" y="7.2" width="8" height="1.6" rx="0.8"/><rect x="2" y="11.4" width="12" height="1.6" rx="0.8"/></svg>';
+      const svgAlignJ = '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="3" width="12" height="1.6" rx="0.8"/><rect x="2" y="7.2" width="12" height="1.6" rx="0.8"/><rect x="2" y="11.4" width="12" height="1.6" rx="0.8"/></svg>';
+      const svgHighlight = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M11.5 1.5 14.5 4.5 7 12H4V9L11.5 1.5zM2 13h12v1.5H2z"/></svg>';
+      const svgClear = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 3.5 8 7.5 12 3.5l1 1L9 8.5l4 4-1 1L8 9.5l-4 4-1-1 4-4-4-4z"/></svg>';
+
+      p.innerHTML = `
+        <div class="rte-toolbar" id="rteToolbar">
+          <button type="button" class="rte-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+          <button type="button" class="rte-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+          <button type="button" class="rte-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+          <span class="rte-sep"></span>
+          <button type="button" class="rte-btn" data-cmd="hiliteColor" data-val="#fef08a" title="Highlight">${svgHighlight}</button>
+          <button type="button" class="rte-btn" data-cmd="removeFormat" title="Clear formatting">${svgClear}</button>
+          <span class="rte-sep"></span>
+          <button type="button" class="rte-btn" data-cmd="justifyLeft" title="Left">${svgAlignL}</button>
+          <button type="button" class="rte-btn" data-cmd="justifyCenter" title="Center">${svgAlignC}</button>
+          <button type="button" class="rte-btn" data-cmd="justifyRight" title="Right">${svgAlignR}</button>
+          <button type="button" class="rte-btn" data-cmd="justifyFull" title="Justify">${svgAlignJ}</button>
+          <span class="rte-sep"></span>
+          <select class="rte-select" id="rteFontSize" title="Font size">
+            <option value="2">13px</option>
+            <option value="3" selected>16px</option>
+            <option value="4">18px</option>
+            <option value="5">24px</option>
+            <option value="6">32px</option>
+            <option value="7">48px</option>
+          </select>
+          <select class="rte-select" id="rteColor" title="Text colour">
+            <option value="#111111">⬛ Black</option>
+            <option value="#dc2626">🟥 Red</option>
+            <option value="#2563eb">🟦 Blue</option>
+            <option value="#16a34a">🟩 Green</option>
+            <option value="#9333ea">🟪 Purple</option>
+            <option value="#ea580c">🟧 Orange</option>
+          </select>
+          <select class="rte-select" id="rteFontFamily" title="Font">
+            <option value="auto" selected>Auto</option>
+            <option value="helvetica">Helvetica</option>
+            <option value="times">Times</option>
+            <option value="courier">Courier</option>
+            <option value="noto">Noto Sans</option>
+          </select>
+        </div>
+        <div class="rte-editor" id="rteEditor" contenteditable="true"
+          data-placeholder="Yahan type karo — Hindi ya English. Toolbar se formatting lagao..."></div>
+        <p class="hint">Bold, Italic, Underline, Highlight, Alignment, Color sab preserve hoga.</p>`;
+      setTimeout(wireRteToolbar, 0);
+      return;
+    }
+
+    if(t === 'editText'){
+      p.innerHTML = `
+        <div class="edit-topbar">
+          <button class="btn small" id="editPrevPage" ${state.editPage<=1?'disabled':''}>◀ Prev</button>
+          <span class="label">Page <b id="editPageLabel">${state.editPage}</b> / ${state.editTotalPages || '?'}</span>
+          <button class="btn small" id="editNextPage">Next ▶</button>
+          <span style="flex:1"></span>
+          <span class="label">Text items: <b id="editCountLabel">${state.editItems.filter(x=>x.page===state.editPage).length}</b></span>
+        </div>
+        <div class="edit-viewer" id="editViewer">
+          ${state.editDoc
+            ? `<div class="edit-canvas-wrap" id="editCanvasWrap">
+                 <canvas id="editCanvas"></canvas>
+                 <div class="edit-overlay" id="editOverlay"></div>
+               </div>`
+            : `<div class="empty-note" style="display:inline-block">📄 Upload a PDF above to start editing.</div>`}
+        </div>
+        <div class="edit-bottom" id="editBottom">
+          <div class="head">Original text (read-only):</div>
+          <div class="orig-text" id="editOrigText"></div>
+          <div class="head">New text (centered in the original's position):</div>
+          <div class="input-row">
+            <input type="text" id="editNewText" placeholder="Type new text…" />
+            <button class="btn small" id="editCancelBtn">Cancel</button>
+            <button class="btn small primary" id="editApplyBtn">Save</button>
+          </div>
+          <div class="edit-info" id="editInfo"></div>
+        </div>
+        <div class="edit-stats" id="editStats"></div>
+        <p class="hint">PDF page par jo bhi text hai, us par click karo. Naya text <b>original ke exact center mein</b> draw hoga.</p>`;
+      if(state.editDoc){ wireEditStage(); }
+      return;
+    }
+
+    if(t === 'protect'){
+      p.innerHTML = `
+        <div class="opt-grid">
+          <label class="field"><span>User password</span>
+            <input type="password" id="protectUser" placeholder="required to open" /></label>
+          <label class="field"><span>Owner password (optional)</span>
+            <input type="password" id="protectOwner" placeholder="defaults to user password" /></label>
+        </div>
+        <div class="opt-grid" style="margin-top:14px">
+          <label class="field"><span>Allow printing</span>
+            <select id="protectPrint"><option value="1" selected>Yes</option><option value="0">No</option></select></label>
+          <label class="field"><span>Allow copying</span>
+            <select id="protectCopy"><option value="1">Yes</option><option value="0" selected>No</option></select></label>
+          <label class="field"><span>Allow modifying</span>
+            <select id="protectMod"><option value="1">Yes</option><option value="0" selected>No</option></select></label>
+        </div>
+        <div class="notice">ℹ️ AES encryption via CDN library. Offline fallback uses our own password gate.</div>`;
+      return;
+    }
+
+    if(t === 'unlock'){
+      p.innerHTML = `
+        <div class="opt-grid">
+          <label class="field"><span>Password (if needed)</span>
+            <input type="password" id="unlockPw" placeholder="blank for owner-locked PDFs" /></label>
+        </div>
+        <p class="hint">Removes owner-password protection.</p>`;
+      return;
+    }
+  }
+
+  function wireRteToolbar(){
+    const editor = $('#rteEditor');
+    if(!editor) return;
+    editor.addEventListener('input', updateRteToolbarState);
+    editor.addEventListener('keyup', updateRteToolbarState);
+    editor.addEventListener('mouseup', updateRteToolbarState);
+    document.querySelectorAll('#rteToolbar .rte-btn').forEach(btn => {
+      btn.addEventListener('mousedown', e => e.preventDefault());
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        const cmd = btn.dataset.cmd;
+        const val = btn.dataset.val || null;
+        try {
+          if(cmd === 'hiliteColor'){
+            document.execCommand('hiliteColor', false, val);
+            document.execCommand('backColor', false, val);
+          } else {
+            document.execCommand(cmd, false, val);
+          }
+        } catch(err){ console.warn(err); }
+        editor.focus();
+        updateRteToolbarState();
+      });
+    });
+    $('#rteFontSize')?.addEventListener('change', e => {
+      document.execCommand('fontSize', false, e.target.value);
+      editor.focus();
+    });
+    $('#rteColor')?.addEventListener('change', e => {
+      document.execCommand('foreColor', false, e.target.value);
+      editor.focus();
+    });
+    $('#rteFontFamily')?.addEventListener('change', () => { editor.focus(); });
+  }
+  function updateRteToolbarState(){
+    const cmds = ['bold','italic','underline','justifyLeft','justifyCenter','justifyRight','justifyFull'];
+    for(const c of cmds){
+      try {
+        const active = document.queryCommandState(c);
+        const btn = document.querySelector(`.rte-btn[data-cmd="${c}"]`);
+        if(btn) btn.classList.toggle('active', active);
+      } catch(e){}
+    }
+  }
+
+  function setBusy(b){ state.busy = b; updateRunBtn(); $('#clearBtn').disabled = b; $('#backBtn').disabled = b; }
+  function updateRunBtn(){
+    const t = TOOLS[state.tool];
+    let ready = t.kind === 'none' ? true : state.files.length > 0;
+    $('#runBtn').disabled = state.busy || !ready;
+  }
+  $('#clearBtn').addEventListener('click', () => {
+    state.files = []; state.results = [];
+    state.editDoc = null; state.editBytes = null; state.editItems = []; state.editModified = {};
+    renderFiles(); renderResults(); hideProgress();
+    fileInput.value = '';
+    if(state.tool === 'editText' || state.tool === 'create') renderOptions();
+  });
+  $('#runBtn').addEventListener('click', run);
+
+  async function run(){
+    if(state.busy) return;
+    setBusy(true); state.results = []; renderResults(); hideProgress();
+    try {
+      switch(state.tool){
+        case 'merge':    await runMerge();    break;
+        case 'split':    await runSplit();    break;
+        case 'extract':  await runExtract();  break;
+        case 'compress': await runCompress(); break;
+        case 'rotate':   await runRotate();   break;
+        case 'images':   await runImages();   break;
+        case 'create':   await runCreate();   break;
+        case 'editText': await runEditText(); break;
+        case 'protect':  await runProtect();  break;
+        case 'unlock':   await runUnlock();   break;
+      }
+      setProgress(1, 'Done ✓');
+      toast(`Created ${state.results.length} file${state.results.length>1?'s':''}.`);
+    } catch(err){
+      console.error(err);
+      hideProgress();
+      toast(err?.message || 'Something went wrong.', true);
+    } finally {
+      setBusy(false);
+      renderResults();
+      renderPreviews();
+    }
+  }
+
+  async function runMerge(){
+    const out = await PDFDocument.create();
+    for(let i=0;i<state.files.length;i++){
+      const it = state.files[i];
+      setProgress(i/state.files.length, `Adding ${it.name}…`);
+      const src = await loadPdfLibDoc(it.file);
+      const copied = await out.copyPages(src, src.getPageIndices());
+      copied.forEach(pg => out.addPage(pg));
+    }
+    const bytes = await out.save();
+    const name = state.files.length === 1 ? baseName(state.files[0].name)+'-copy.pdf' : 'merged.pdf';
+    state.results.push({ name, blob: new Blob([bytes], { type:'application/pdf' }) });
+  }
+  async function runSplit(){
+    const it = state.files[0];
+    const src = await loadPdfLibDoc(it.file);
+    const totalPages = src.getPageCount();
+    const ranges = parseRanges($('#optRange').value, totalPages);
+    const base = baseName(it.name);
+    for(let i=0;i<ranges.length;i++){
+      setProgress((i+1)/ranges.length, `Part ${i+1}/${ranges.length}…`);
+      const doc = await PDFDocument.create();
+      const copied = await doc.copyPages(src, ranges[i]);
+      copied.forEach(pg => doc.addPage(pg));
+      const bytes = await doc.save();
+      state.results.push({ name: `${base}_${rangeLabel(ranges[i])}.pdf`, blob: new Blob([bytes], { type:'application/pdf' }) });
+    }
+  }
+  async function runExtract(){
+    const it = state.files[0];
+    const src = await loadPdfLibDoc(it.file);
+    const totalPages = src.getPageCount();
+    const indices = parseRanges($('#optPages').value, totalPages).flat();
+    const doc = await PDFDocument.create();
+    const copied = await doc.copyPages(src, indices);
+    copied.forEach(pg => doc.addPage(pg));
+    const bytes = await doc.save();
+    state.results.push({ name: `${baseName(it.name)}_extracted.pdf`, blob: new Blob([bytes], { type:'application/pdf' }) });
+  }
+  async function runCompress(){
+    const it = state.files[0];
+    const quality = parseFloat($('#optQuality').value);
+    const scale = parseFloat($('#optScale').value);
+    const bytes = new Uint8Array(await it.file.arrayBuffer());
+    const pdf = await loadPdfJs(bytes);
+    const out = await PDFDocument.create();
+    for(let i=1;i<=pdf.numPages;i++){
+      setProgress((i-1)/pdf.numPages, `Compress page ${i}/${pdf.numPages}…`);
+      const page = await pdf.getPage(i);
+      const baseVp = page.getViewport({ scale:1 });
+      const vp = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.floor(vp.width));
+      canvas.height = Math.max(1, Math.floor(vp.height));
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      const jpeg = await canvasToJpegBytes(canvas, quality);
+      const embedded = await out.embedJpg(jpeg);
+      const np = out.addPage([baseVp.width, baseVp.height]);
+      np.drawImage(embedded, { x:0, y:0, width:baseVp.width, height:baseVp.height });
+    }
+    const outBytes = await out.save();
+    state.results.push({ name: `${baseName(it.name)}_compressed.pdf`, blob: new Blob([outBytes], { type:'application/pdf' }) });
+  }
+  async function runRotate(){
+    const it = state.files[0];
+    const angle = parseInt($('#optAngle').value, 10);
+    const pageStr = $('#optPages').value.trim();
+    const doc = await loadPdfLibDoc(it.file);
+    const total = doc.getPageCount();
+    let indices = pageStr ? parseRanges(pageStr, total).flat() : doc.getPageIndices();
+    for(const idx of indices){
+      const p = doc.getPage(idx);
+      const cur = p.getRotation().angle || 0;
+      p.setRotation(degrees((cur + angle + 360) % 360));
+    }
+    const bytes = await doc.save();
+    state.results.push({ name: `${baseName(it.name)}_rotated.pdf`, blob: new Blob([bytes], { type:'application/pdf' }) });
+  }
+  const PAGE_SIZES = { a4:[595.28,841.89], letter:[612,792], legal:[612,1008] };
+  function loadImageFromFile(file){
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => res({ img, url });
+      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Image read failed')); };
+      img.src = url;
+    });
+  }
+  async function prepareImage(file, rotation){
+    const { img, url } = await loadImageFromFile(file);
+    try {
+      const nw = img.naturalWidth, nh = img.naturalHeight;
+      const swap = rotation % 180 !== 0;
+      const outW = swap ? nh : nw, outH = swap ? nw : nh;
+      if(rotation === 0 && (file.type === 'image/jpeg' || file.type === 'image/png')){
+        return { bytes: new Uint8Array(await file.arrayBuffer()), kind: file.type === 'image/png' ? 'png' : 'jpg', width: outW, height: outH };
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = outW; canvas.height = outH;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,outW,outH);
+      ctx.translate(outW/2, outH/2);
+      ctx.rotate(rotation*Math.PI/180);
+      ctx.drawImage(img, -nw/2, -nh/2);
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
+      return { bytes: new Uint8Array(await blob.arrayBuffer()), kind:'jpg', width: outW, height: outH };
+    } finally { URL.revokeObjectURL(url); }
+  }
+  function computePlacement(iw, ih, sizeKey, margin, orientation){
+    if(sizeKey === 'fit') return { pageW: iw*0.75, pageH: ih*0.75, x:0, y:0, w: iw*0.75, h: ih*0.75 };
+    let [pw, ph] = PAGE_SIZES[sizeKey];
+    const wantLand = orientation === 'landscape' || (orientation === 'auto' && iw > ih);
+    if(wantLand) [pw, ph] = [ph, pw];
+    const availW = Math.max(1, pw - margin*2), availH = Math.max(1, ph - margin*2);
+    const scale = Math.min(availW/iw, availH/ih);
+    const w = iw*scale, h = ih*scale;
+    return { pageW: pw, pageH: ph, x:(pw-w)/2, y:(ph-h)/2, w, h };
+  }
+  async function runImages(){
+    const sizeKey = $('#optSize').value;
+    const orientation = $('#optOrient').value;
+    const margin = Math.max(0, parseFloat($('#optMargin').value)||0);
+    const out = await PDFDocument.create();
+    for(let i=0;i<state.files.length;i++){
+      const it = state.files[i];
+      setProgress(i/state.files.length, `Adding ${it.name}…`);
+      const prepared = await prepareImage(it.file, it.rot||0);
+      const embedded = prepared.kind === 'png' ? await out.embedPng(prepared.bytes) : await out.embedJpg(prepared.bytes);
+      const place = computePlacement(prepared.width, prepared.height, sizeKey, margin, orientation);
+      const page = out.addPage([place.pageW, place.pageH]);
+      page.drawImage(embedded, { x: place.x, y: place.y, width: place.w, height: place.h });
+    }
+    const bytes = await out.save();
+    const name = state.files.length === 1 ? baseName(state.files[0].name)+'.pdf' : 'images.pdf';
+    state.results.push({ name, blob: new Blob([bytes], { type:'application/pdf' }) });
+  }
+
+  /* ============================================================
+     FONT LOADING
+     ============================================================ */
+  const NOTO_URLS = {
+    latinRegular: ['https://cdn.jsdelivr.net/gh/notofonts/noto-fonts@main/hinted/ttf/NotoSans/NotoSans-Regular.ttf'],
+    latinBold:    ['https://cdn.jsdelivr.net/gh/notofonts/noto-fonts@main/hinted/ttf/NotoSans/NotoSans-Bold.ttf'],
+    devaRegular:  ['https://cdn.jsdelivr.net/gh/notofonts/noto-fonts@main/hinted/ttf/NotoSansDevanagari/NotoSansDevanagari-Regular.ttf'],
+    devaBold:     ['https://cdn.jsdelivr.net/gh/notofonts/noto-fonts@main/hinted/ttf/NotoSansDevanagari/NotoSansDevanagari-Bold.ttf']
+  };
+  const fontBytesCache = new Map();
+  async function fetchFont(urls){
+    if(fontBytesCache.has(urls[0])) return fontBytesCache.get(urls[0]);
+    let lastErr = null;
+    for(const url of urls){
+      try {
+        const res = await fetch(url);
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        const buf = new Uint8Array(await res.arrayBuffer());
+        if(buf.length < 500) throw new Error('Too small');
+        fontBytesCache.set(urls[0], buf);
+        return buf;
+      } catch(e){ lastErr = e; }
+    }
+    throw lastErr;
+  }
+  function hasDevanagari(str){ return /[\u0900-\u097F]/.test(str); }
+
+  /* ============================================================
+     CREATE PDF — with corrected parser (walks attached DOM, no cloning)
+     ============================================================ */
+  async function runCreate(){
+    const editor = $('#rteEditor');
+    if(!editor) throw new Error('Editor not found.');
+
+    // ---- DEBUG: dump innerHTML ----
+    console.log('[Create PDF] editor.innerHTML =', editor.innerHTML);
+    console.log('[Create PDF] editor.innerText =', editor.innerText);
+
+    let lines = [];
+    try { lines = parseRichText(editor); }
+    catch(e){ console.error('[Create PDF] parse error:', e); }
+    console.log('[Create PDF] parsed lines =', JSON.parse(JSON.stringify(lines)));
+
+    const hasContent = lines.some(l => l.runs.some(r => r.text && r.text.trim()));
+    if(!hasContent){
+      // Fallback: plain text
+      const text = (editor.innerText || editor.textContent || '').replace(/\u00a0/g, ' ');
+      if(!text.trim()) throw new Error('Please type something first.');
+      lines = text.split(/\r?\n/).map(t => ({
+        align: 'left', fontFamily: 'auto',
+        runs: t ? [{ text: t, bold:false, italic:false, underline:false, size:16, color:'#111111', bg:null }] : []
+      }));
+    }
+
+    if(!lines.length) throw new Error('Please type something first.');
+
+    const fontChoice = $('#rteFontFamily')?.value || 'auto';
+    const [pw, ph] = PAGE_SIZES.a4;
+    const margin = 56;
+    const usableW = pw - margin * 2;
+    const lineHeightMul = 1.5;
+
+    setProgress(0.05, 'Preparing…');
+    const doc = await PDFDocument.create();
+    if(window.fontkit && typeof doc.registerFontkit === 'function'){
+      try { doc.registerFontkit(window.fontkit); } catch(e){ console.warn(e); }
+    }
+
+    setProgress(0.1, 'Loading fonts…');
+    const helv = {
+      regular:    await doc.embedFont(StandardFonts.Helvetica),
+      bold:       await doc.embedFont(StandardFonts.HelveticaBold),
+      italic:     await doc.embedFont(StandardFonts.HelveticaOblique),
+      boldItalic: await doc.embedFont(StandardFonts.HelveticaBoldOblique)
+    };
+    const times = {
+      regular:    await doc.embedFont(StandardFonts.TimesRoman),
+      bold:       await doc.embedFont(StandardFonts.TimesRomanBold),
+      italic:     await doc.embedFont(StandardFonts.TimesRomanItalic),
+      boldItalic: await doc.embedFont(StandardFonts.TimesRomanBoldItalic)
+    };
+    const courier = {
+      regular:    await doc.embedFont(StandardFonts.Courier),
+      bold:       await doc.embedFont(StandardFonts.CourierBold),
+      italic:     await doc.embedFont(StandardFonts.CourierOblique),
+      boldItalic: await doc.embedFont(StandardFonts.CourierBoldOblique)
+    };
+
+    const noto = { regular:null, bold:null };
+    const deva = { regular:null, bold:null };
+    const needNoto = fontChoice === 'noto' || fontChoice === 'auto';
+    const needDeva = lines.some(l => l.runs.some(r => hasDevanagari(r.text)));
+
+    if(needNoto){
+      try {
+        noto.regular = await doc.embedFont(await fetchFont(NOTO_URLS.latinRegular), { subset:true });
+        try { noto.bold = await doc.embedFont(await fetchFont(NOTO_URLS.latinBold), { subset:true }); } catch(e){}
+      } catch(e){ console.warn('Noto fetch failed', e); }
+    }
+    if(needDeva){
+      try {
+        deva.regular = await doc.embedFont(await fetchFont(NOTO_URLS.devaRegular), { subset:true });
+        try { deva.bold = await doc.embedFont(await fetchFont(NOTO_URLS.devaBold), { subset:true }); } catch(e){}
+      } catch(e){ console.warn('Deva fetch failed', e); toast('Hindi font download failed.', true); }
+    }
+
+    function pickFont(ch, bold, italic, lineFam){
+      if(/[\u0900-\u097F]/.test(ch)){
+        if(bold && deva.bold) return deva.bold;
+        return deva.regular || helv.regular;
+      }
+      const fam = lineFam || fontChoice;
+      if(fam === 'helvetica' || fam === 'times' || fam === 'courier'){
+        const set = { helvetica: helv, times, courier }[fam];
+        if(bold && italic) return set.boldItalic;
+        if(bold) return set.bold;
+        if(italic) return set.italic;
+        return set.regular;
+      }
+      if(noto.regular){
+        if(bold && noto.bold) return noto.bold;
+        return noto.regular;
+      }
+      if(bold && italic) return helv.boldItalic;
+      if(bold) return helv.bold;
+      if(italic) return helv.italic;
+      return helv.regular;
+    }
+    function measure(text, font, size){
+      try { return font.widthOfTextAtSize(text, size); }
+      catch(e){ return text.length * size * 0.5; }
+    }
+    function splitRunsByFont(runs, lineFam){
+      const out = [];
+      for(const r of runs){
+        if(!r.text) continue;
+        let cur = null;
+        for(const ch of r.text){
+          const f = pickFont(ch, r.bold, r.italic, lineFam);
+          if(!cur || cur.font !== f){
+            cur = { text: ch, font: f, bold:r.bold, italic:r.italic, underline:r.underline, size:r.size, color:r.color, bg:r.bg };
+            out.push(cur);
+          } else cur.text += ch;
+        }
+      }
+      return out;
+    }
+    function wrapLine(runsWithFont){
+      const out = [];
+      let cur = { runs: [], width: 0 };
+      for(const run of runsWithFont){
+        const tokens = run.text.split(/(\s+)/);
+        for(const tok of tokens){
+          if(tok === '') continue;
+          const isSpace = /^\s+$/.test(tok);
+          const w = measure(tok, run.font, run.size);
+          if(!isSpace && cur.width + w > usableW && cur.runs.length > 0){
+            out.push(cur);
+            cur = { runs: [], width: 0 };
+          }
+          const last = cur.runs[cur.runs.length - 1];
+          if(last && last.font === run.font && last.bold === run.bold &&
+             last.italic === run.italic && last.underline === run.underline &&
+             last.size === run.size && last.color === run.color && last.bg === run.bg){
+            last.text += tok;
+          } else cur.runs.push({ ...run, text: tok });
+          cur.width += w;
+        }
+      }
+      if(cur.runs.length) out.push(cur);
+      return out;
+    }
+
+    let page = doc.addPage([pw, ph]);
+    let y = ph - margin;
+    function newPageIfNeeded(lh){ if(y < margin + lh){ page = doc.addPage([pw, ph]); y = ph - margin; } }
+
+    const totalLines = lines.length;
+    for(let li=0; li<totalLines; li++){
+      setProgress(0.3 + (li/totalLines)*0.6, `Line ${li+1}/${totalLines}…`);
+      const line = lines[li];
+      const baseSize = Math.max(...line.runs.map(r => r.size || 16), 16);
+      const lineHeight = baseSize * lineHeightMul;
+
+      if(!line.runs.some(r => r.text && r.text.trim())){
+        newPageIfNeeded(lineHeight);
+        y -= lineHeight;
+        continue;
+      }
+
+      const runsWithFont = splitRunsByFont(line.runs, line.fontFamily);
+      const subLines = wrapLine(runsWithFont);
+
+      for(let si=0; si<subLines.length; si++){
+        const sub = subLines[si];
+        newPageIfNeeded(lineHeight);
+        const isLastSub = si === subLines.length - 1;
+        let totalW = 0;
+        for(const r of sub.runs) totalW += measure(r.text, r.font, r.size);
+
+        if(line.align === 'justify' && !isLastSub){
+          const spaceCount = sub.runs.reduce((s, r) => s + (r.text.match(/ /g)||[]).length, 0);
+          const extra = spaceCount > 0 ? (usableW - totalW) / spaceCount : 0;
+          let cx = margin;
+          for(const r of sub.runs){
+            if(r.bg){ const bgc = hexToRgb01(r.bg); page.drawRectangle({ x: cx-1, y: y - r.size*0.25, width: measure(r.text, r.font, r.size)+2, height: r.size*1.25, color: rgb(bgc.r, bgc.g, bgc.b) }); }
+            const col = hexToRgb01(r.color || '#111');
+            try { page.drawText(r.text, { x: cx, y: y - r.size, size: r.size, font: r.font, color: rgb(col.r, col.g, col.b) }); }
+            catch(e){ try { page.drawText(r.text, { x: cx, y: y - r.size, size: r.size, font: helv.regular, color: rgb(col.r, col.g, col.b) }); } catch(_){} }
+            if(r.underline){
+              const w = measure(r.text, r.font, r.size);
+              // UNDERLINE FIX: draw BELOW baseline (baseline is at y - r.size)
+              page.drawLine({ start: { x: cx, y: y - r.size - 2 }, end: { x: cx + w, y: y - r.size - 2 }, thickness: 0.8, color: rgb(col.r, col.g, col.b) });
+            }
+            const spaces = (r.text.match(/ /g)||[]).length;
+            cx += measure(r.text, r.font, r.size) + spaces * extra;
+          }
+        } else {
+          let startX = margin;
+          if(line.align === 'center') startX = margin + Math.max(0, (usableW - totalW) / 2);
+          else if(line.align === 'right') startX = margin + Math.max(0, usableW - totalW);
+          let cx = startX;
+          for(const r of sub.runs){
+            if(!r.text) continue;
+            if(r.bg){ const bgc = hexToRgb01(r.bg); page.drawRectangle({ x: cx-1, y: y - r.size*0.25, width: measure(r.text, r.font, r.size)+2, height: r.size*1.25, color: rgb(bgc.r, bgc.g, bgc.b) }); }
+            const col = hexToRgb01(r.color || '#111');
+            try { page.drawText(r.text, { x: cx, y: y - r.size, size: r.size, font: r.font, color: rgb(col.r, col.g, col.b) }); }
+            catch(e){ try { page.drawText(r.text, { x: cx, y: y - r.size, size: r.size, font: helv.regular, color: rgb(col.r, col.g, col.b) }); } catch(_){} }
+            if(r.underline){
+              const w = measure(r.text, r.font, r.size);
+              // UNDERLINE FIX
+              page.drawLine({ start: { x: cx, y: y - r.size - 2 }, end: { x: cx + w, y: y - r.size - 2 }, thickness: 0.8, color: rgb(col.r, col.g, col.b) });
+            }
+            cx += measure(r.text, r.font, r.size);
+          }
+        }
+        y -= lineHeight;
+      }
+    }
+
+    setProgress(0.95, 'Writing…');
+    const bytes = await doc.save();
+    const name = 'created-' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.pdf';
+    state.results.push({ name, blob: new Blob([bytes], { type:'application/pdf' }) });
+  }
+
+  /* --- Parser: walks ORIGINAL attached DOM (no detached clones) --- */
+  function parseRichText(root){
+    const lines = [];
+    const BLOCK_TAGS = new Set(['div','p','h1','h2','h3','h4','h5','h6','li','blockquote','pre','section','article','ul','ol','table','tr','td','th']);
+
+    function computeStyle(parentStyle, el){
+      const s = { ...parentStyle };
+      if(!el || el.nodeType !== 1) return s;
+      const tag = el.tagName.toLowerCase();
+      let cs = null;
+      try { cs = window.getComputedStyle(el); } catch(e){}
+
+      if(tag === 'b' || tag === 'strong') s.bold = true;
+      if(tag === 'i' || tag === 'em') s.italic = true;
+      if(tag === 'u') s.underline = true;
+
+      if(tag === 'font'){
+        const sizeAttr = el.getAttribute('size');
+        if(sizeAttr){
+          const map = { 1:10, 2:13, 3:16, 4:18, 5:24, 6:32, 7:48 };
+          const v = map[parseInt(sizeAttr,10)];
+          if(v) s.size = v;
+        }
+        const colorAttr = el.getAttribute('color');
+        if(colorAttr){
+          // Convert any CSS color to hex (handles named colors)
+          const tmp = document.createElement('div');
+          tmp.style.color = colorAttr;
+          tmp.style.position = 'fixed';
+          tmp.style.left = '-9999px';
+          document.body.appendChild(tmp);
+          const comp = window.getComputedStyle(tmp).color;
+          document.body.removeChild(tmp);
+          const h = rgbToHex(comp);
+          if(h) s.color = h;
+        }
+      }
+
+      if(cs){
+        if(cs.fontWeight === 'bold' || parseInt(cs.fontWeight,10) >= 600) s.bold = true;
+        if(cs.fontStyle === 'italic') s.italic = true;
+        if(cs.textDecorationLine && cs.textDecorationLine.includes('underline')) s.underline = true;
+        if(!(tag === 'font' && el.getAttribute('size'))){
+          const px = parseFloat(cs.fontSize);
+          if(px > 0 && !isNaN(px)) s.size = px;
+        }
+        if(cs.color && cs.color !== 'rgba(0, 0, 0, 0)'){
+          const h = rgbToHex(cs.color);
+          if(h) s.color = h;
+        }
+        const bg = cs.backgroundColor;
+        if(bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent'){
+          const h = rgbToHex(bg);
+          if(h) s.bg = h;
+        }
+      }
+      return s;
+    }
+
+    function getAlign(el){
+      if(!el || el.nodeType !== 1) return null;
+      try {
+        const a = window.getComputedStyle(el).textAlign;
+        if(a === 'center' || a === 'right' || a === 'justify') return a;
+      } catch(e){}
+      return null;
+    }
+
+    // Walk LIST of attached nodes, gathering runs. No cloning.
+    function extractRunsFromNodes(nodes, parentStyle){
+      const runs = [];
+      function walk(node, st){
+        if(node.nodeType === 3){
+          const t = node.textContent;
+          if(t) runs.push({ ...st, text: t });
+          return;
+        }
+        if(node.nodeType !== 1) return;
+        const tag = node.tagName.toLowerCase();
+        if(tag === 'br') return;
+        const ns = computeStyle(st, node);
+        for(const c of node.childNodes) walk(c, ns);
+      }
+      for(const n of nodes) walk(n, parentStyle);
+      return runs;
+    }
+
+    function processLeafBlock(node, parentStyle, parentAlign){
+      const nodeAlign = getAlign(node) || parentAlign || 'left';
+      const nodeStyle = computeStyle(parentStyle, node);
+
+      // Check for <br> children
+      let hasBr = false;
+      for(const c of node.childNodes){
+        if(c.nodeType === 1 && c.tagName.toLowerCase() === 'br'){ hasBr = true; break; }
+      }
+
+      if(!hasBr){
+        const runs = extractRunsFromNodes(node.childNodes, nodeStyle);
+        lines.push({ align: nodeAlign, fontFamily: 'auto', runs });
+        return;
+      }
+
+      // Split by <br>
+      let buffer = [];
+      for(const c of node.childNodes){
+        if(c.nodeType === 1 && c.tagName.toLowerCase() === 'br'){
+          const runs = extractRunsFromNodes(buffer, nodeStyle);
+          lines.push({ align: nodeAlign, fontFamily: 'auto', runs });
+          buffer = [];
+        } else buffer.push(c);
+      }
+      if(buffer.length){
+        const runs = extractRunsFromNodes(buffer, nodeStyle);
+        lines.push({ align: nodeAlign, fontFamily: 'auto', runs });
+      }
+    }
+
+    function walk(node, parentStyle, parentAlign){
+      if(node.nodeType === 3){
+        const t = node.textContent;
+        if(t){
+          lines.push({ align: parentAlign || 'left', fontFamily: 'auto', runs: [{ ...parentStyle, text: t }] });
+        }
+        return;
+      }
+      if(node.nodeType !== 1) return;
+
+      const tag = node.tagName.toLowerCase();
+      if(tag === 'br') return;
+
+      let hasBlockChild = false;
+      for(const c of node.childNodes){
+        if(c.nodeType === 1 && BLOCK_TAGS.has(c.tagName.toLowerCase())){ hasBlockChild = true; break; }
+      }
+
+      if(hasBlockChild){
+        const nodeStyle = computeStyle(parentStyle, node);
+        let inlineBuffer = [];
+        const flushInline = () => {
+          if(!inlineBuffer.length) return;
+          const runs = extractRunsFromNodes(inlineBuffer, nodeStyle);
+          if(runs.some(r => r.text && r.text.trim())){
+            lines.push({ align: parentAlign || 'left', fontFamily: 'auto', runs });
+          }
+          inlineBuffer = [];
+        };
+        for(const c of node.childNodes){
+          if(c.nodeType === 1 && BLOCK_TAGS.has(c.tagName.toLowerCase())){
+            flushInline();
+            walk(c, nodeStyle, getAlign(c) || parentAlign);
+          } else inlineBuffer.push(c);
+        }
+        flushInline();
+        return;
+      }
+
+      processLeafBlock(node, parentStyle, parentAlign);
+    }
+
+    const rootStyle = { bold:false, italic:false, underline:false, size:16, color:'#111111', bg:null };
+    walk(root, rootStyle, 'left');
+
+    // Filter out lines with no actual text
+    return lines.filter(l => l.runs.some(r => r.text && r.text.length > 0));
+  }
+
+  /* ============================================================
+     EDIT TEXT IN PDF
+     ============================================================ */
+  async function loadForEditing(it){
+    try {
+      setProgress(0.1, 'Loading PDF…');
+      state.editBytes = new Uint8Array(await it.file.arrayBuffer());
+      state.editDoc = await loadPdfJs(state.editBytes);
+      state.editTotalPages = state.editDoc.numPages;
+      state.editPage = 1;
+      state.editItems = [];
+      state.editModified = {};
+      state.editSelectedId = null;
+      hideProgress();
+      renderOptions();
+      await extractTextItems();
+      renderOptions();
+      await renderEditPage();
+      setBusy(false);
+    } catch(e){
+      hideProgress();
+      console.error(e);
+      toast('Could not load PDF for editing.', true);
+    }
+  }
+
+  async function extractTextItems(){
+    if(!state.editDoc) return;
+    const total = state.editDoc.numPages;
+    for(let p=1; p<=total; p++){
+      setProgress(p/(total*2), `Reading text on page ${p}/${total}…`);
+      const page = await state.editDoc.getPage(p);
+
+      const sampleScale = 1.5;
+      const vp1 = page.getViewport({ scale: sampleScale });
+      const sampleCanvas = document.createElement('canvas');
+      sampleCanvas.width = Math.floor(vp1.width);
+      sampleCanvas.height = Math.floor(vp1.height);
+      const sctx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+      sctx.fillStyle = '#fff'; sctx.fillRect(0, 0, sampleCanvas.width, sampleCanvas.height);
+      await page.render({ canvasContext: sctx, viewport: vp1 }).promise;
+
+      const textContent = await page.getTextContent();
+      const pageH = page.getViewport({ scale: 1 }).height;
+
+      for(const item of textContent.items){
+        if(!item.str || !item.str.trim()) continue;
+        const tx = item.transform;
+        const fontSize = Math.abs(tx[3]) || Math.abs(tx[0]) || 12;
+        const x = tx[4];
+        const yFromBottom = tx[5];
+        const w = item.width || (item.str.length * fontSize * 0.5);
+        const h = item.height || fontSize * 1.15;
+        const yTop = pageH - yFromBottom - h;
+
+        let bold = false, italic = false;
+        try {
+          const fontObj = page.commonObjs && page.commonObjs.get && page.commonObjs.get(item.fontName);
+          if(fontObj && fontObj.name){
+            const n = String(fontObj.name).toLowerCase();
+            bold = /bold|black|heavy|semibold/.test(n);
+            italic = /italic|oblique/.test(n);
+          }
+        } catch(e){}
+
+        const sampleBox = { x: x * sampleScale, y: yTop * sampleScale, w: w * sampleScale, h: h * sampleScale };
+        const colors = sampleColorsFromCanvas(sampleCanvas, sampleBox);
+
+        state.editItems.push({
+          id: uid(), page: p, text: item.str, x, yTop, w, h, fontSize, bold, italic,
+          fgColor: colors?.fg || '#111111',
+          bgColor: colors?.bg || '#ffffff'
+        });
+      }
+    }
+    setProgress(0.5, 'Text extracted.');
+  }
+
+  function sampleColorsFromCanvas(canvas, box){
+    const x0 = Math.max(0, Math.floor(box.x));
+    const y0 = Math.max(0, Math.floor(box.y));
+    const x1 = Math.min(canvas.width, Math.ceil(box.x + box.w));
+    const y1 = Math.min(canvas.height, Math.ceil(box.y + box.h));
+    const iw = x1 - x0, ih = y1 - y0;
+    if(iw <= 0 || ih <= 0) return null;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let img;
+    try { img = ctx.getImageData(x0, y0, iw, ih); }
+    catch(e){ return null; }
+    const data = img.data;
+    const hist = new Map();
+    for(let i=0; i<data.length; i+=4){
+      const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+      if(a < 128) continue;
+      const key = ((r>>4)<<8) | ((g>>4)<<4) | (b>>4);
+      if(!hist.has(key)) hist.set(key, { count:0, r:0, g:0, b:0 });
+      const e = hist.get(key);
+      e.count++; e.r+=r; e.g+=g; e.b+=b;
+    }
+    if(!hist.size) return null;
+    const sorted = [...hist.values()].sort((a,b) => b.count - a.count);
+    const bg = sorted[0];
+    const bgR = bg.r/bg.count, bgG = bg.g/bg.count, bgB = bg.b/bg.count;
+    let fg = null, maxDist = 0;
+    for(const e of sorted.slice(0, 30)){
+      const er = e.r/e.count, eg = e.g/e.count, eb = e.b/e.count;
+      const dist = Math.sqrt((er-bgR)**2 + (eg-bgG)**2 + (eb-bgB)**2);
+      if(dist > maxDist && e.count >= 3){ maxDist = dist; fg = { r: er, g: eg, b: eb }; }
+    }
+    if(!fg || maxDist < 30) fg = { r: bgR, g: bgG, b: bgB };
+    const toHex = (r,g,b) => '#' + [r,g,b].map(v => Math.round(v).toString(16).padStart(2,'0')).join('');
+    return { bg: toHex(bgR,bgG,bgB), fg: toHex(fg.r,fg.g,fg.b) };
+  }
+
+  async function renderEditPage(){
+    if(!state.editDoc) return;
+    const doc = state.editDoc;
+    const page = await doc.getPage(state.editPage);
+
+    const viewer = $('#editViewer');
+    const containerW = viewer ? Math.max(240, viewer.clientWidth - 28) : 600;
+    const vp1 = page.getViewport({ scale: 1 });
+    let scale = containerW / vp1.width;
+    scale = Math.max(0.4, Math.min(2, scale));
+    state.editScale = scale;
+
+    const vp = page.getViewport({ scale });
+    const canvas = $('#editCanvas');
+    if(!canvas) return;
+
+    canvas.width = Math.floor(vp.width);
+    canvas.height = Math.floor(vp.height);
+    canvas.style.width = Math.floor(vp.width) + 'px';
+    canvas.style.height = Math.floor(vp.height) + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+    // Draw edits — CENTERED in original box
+    const items = state.editItems.filter(it => it.page === state.editPage);
+    for(const it of items){
+      const newText = state.editModified[it.id];
+      if(newText === undefined) continue;
+      const s = state.editScale;
+      const cx = it.x * s, cy = it.yTop * s;
+      const cw = it.w * s, ch = it.h * s;
+      ctx.fillStyle = it.bgColor || '#ffffff';
+      ctx.fillRect(cx - 1, cy - 1, cw + 2, ch + 2);
+      ctx.fillStyle = it.fgColor || '#111111';
+      const weight = it.bold ? '700' : '400';
+      const style = it.italic ? 'italic' : 'normal';
+      const fontPx = Math.max(8, Math.round(it.fontSize * s * 0.95));
+      ctx.font = `${style} ${weight} ${fontPx}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      ctx.textBaseline = 'alphabetic';
+      const textW = ctx.measureText(newText).width;
+      // *** CENTERED ***
+      const drawX = cx + (cw - textW) / 2;
+      ctx.fillText(newText, drawX, cy + it.fontSize * s * 0.9);
+    }
+
+    const wrap = $('#editCanvasWrap');
+    if(wrap){ wrap.style.width = canvas.width + 'px'; wrap.style.height = canvas.height + 'px'; }
+
+    drawTextOverlays();
+    updateEditStats();
+  }
+
+  function drawTextOverlays(){
+    const wrap = $('#editCanvasWrap');
+    const canvas = $('#editCanvas');
+    if(!wrap || !canvas) return;
+    let overlay = $('#editOverlay');
+    if(!overlay){
+      overlay = document.createElement('div');
+      overlay.className = 'edit-overlay'; overlay.id = 'editOverlay';
+      wrap.appendChild(overlay);
+    }
+    overlay.style.width = canvas.width + 'px';
+    overlay.style.height = canvas.height + 'px';
+
+    const items = state.editItems.filter(it => it.page === state.editPage);
+    const s = state.editScale;
+    overlay.innerHTML = items.map(it => {
+      const left = it.x * s, top = it.yTop * s;
+      const width = Math.max(8, it.w * s), height = Math.max(8, it.h * s);
+      const sel = state.editSelectedId === it.id;
+      const edited = state.editModified[it.id] !== undefined;
+      return `<div class="txt-hit ${sel?'selected':''} ${edited?'edited':''}"
+        data-edit-id="${it.id}"
+        style="left:${left}px;top:${top}px;width:${width}px;height:${height}px"></div>`;
+    }).join('');
+    overlay.querySelectorAll('.txt-hit').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        selectEditItem(el.dataset.editId);
+      });
+    });
+  }
+
+  function selectEditItem(id){
+    state.editSelectedId = id;
+    const item = state.editItems.find(x => x.id === id);
+    if(!item) return;
+    const bottom = $('#editBottom');
+    bottom?.classList.add('open');
+    const orig = $('#editOrigText');
+    const inp = $('#editNewText');
+    if(orig) orig.textContent = item.text;
+    if(inp){
+      inp.value = state.editModified[item.id] !== undefined ? state.editModified[item.id] : item.text;
+      inp.focus(); inp.select();
+    }
+    const info = $('#editInfo');
+    if(info){
+      info.innerHTML = `
+        <span class="chip2">Size: ${item.fontSize.toFixed(1)} pt</span>
+        ${item.bold ? '<span class="chip2">Bold</span>' : ''}
+        ${item.italic ? '<span class="chip2">Italic</span>' : ''}
+        <span class="chip2" style="background:${item.fgColor};color:${isLight(item.fgColor)?'#000':'#fff'}">Text ${item.fgColor}</span>
+        <span class="chip2" style="background:${item.bgColor};color:${isLight(item.bgColor)?'#000':'#fff'}">BG ${item.bgColor}</span>`;
+    }
+    drawTextOverlays();
+  }
+
+  function wireEditStage(){
+    $('#editPrevPage')?.addEventListener('click', async () => {
+      if(state.editPage > 1){
+        state.editPage--; state.editSelectedId = null;
+        $('#editBottom')?.classList.remove('open');
+        $('#editPageLabel').textContent = state.editPage;
+        $('#editCountLabel').textContent = state.editItems.filter(x=>x.page===state.editPage).length;
+        await renderEditPage();
+      }
+    });
+    $('#editNextPage')?.addEventListener('click', async () => {
+      if(state.editPage < state.editTotalPages){
+        state.editPage++; state.editSelectedId = null;
+        $('#editBottom')?.classList.remove('open');
+        $('#editPageLabel').textContent = state.editPage;
+        $('#editCountLabel').textContent = state.editItems.filter(x=>x.page===state.editPage).length;
+        await renderEditPage();
+      }
+    });
+    $('#editApplyBtn')?.addEventListener('click', () => {
+      const inp = $('#editNewText');
+      if(!inp || !state.editSelectedId) return;
+      const item = state.editItems.find(x => x.id === state.editSelectedId);
+      if(!item) return;
+      const val = inp.value;
+      if(val === item.text) delete state.editModified[item.id];
+      else state.editModified[item.id] = val;
+      renderEditPage();
+    });
+    $('#editCancelBtn')?.addEventListener('click', () => {
+      $('#editBottom')?.classList.remove('open');
+      state.editSelectedId = null;
+      drawTextOverlays();
+    });
+    updateEditStats();
+  }
+
+  function updateEditStats(){
+    const stats = $('#editStats');
+    if(!stats) return;
+    const count = Object.keys(state.editModified).length;
+    stats.innerHTML = count
+      ? `<b>${count}</b> edit${count>1?'s':''} ready — click <b>PDF save karo</b>.`
+      : `Abhi tak koi edit nahi kiya.`;
+    updateRunBtn();
+  }
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    if(state.tool !== 'editText' || !state.editDoc) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { renderEditPage(); }, 200);
+  });
+
+  async function runEditText(){
+    if(!state.editBytes) throw new Error('Upload a PDF first.');
+    const edits = Object.entries(state.editModified);
+    if(!edits.length) throw new Error('Make at least one edit first.');
+
+    setProgress(0.1, 'Loading PDF…');
+    const doc = await PDFDocument.load(state.editBytes, { ignoreEncryption:true, updateMetadata:false });
+    const fonts = {
+      regular:    await doc.embedFont(StandardFonts.Helvetica),
+      bold:       await doc.embedFont(StandardFonts.HelveticaBold),
+      italic:     await doc.embedFont(StandardFonts.HelveticaOblique),
+      boldItalic: await doc.embedFont(StandardFonts.HelveticaBoldOblique)
+    };
+
+    const pages = doc.getPages();
+    for(let i=0; i<edits.length; i++){
+      const [id, newText] = edits[i];
+      const item = state.editItems.find(x => x.id === id);
+      if(!item) continue;
+      const page = pages[item.page - 1];
+      if(!page) continue;
+      setProgress(0.2 + (i/edits.length)*0.7, `Applying edit ${i+1}/${edits.length}…`);
+
+      const { height } = page.getSize();
+      const pdfYTop = height - item.yTop;
+      const pdfYBaseline = pdfYTop - item.fontSize * 0.95;
+
+      // Bg rect covering original text
+      const bg = hexToRgb01(item.bgColor || '#ffffff');
+      page.drawRectangle({
+        x: item.x - 1, y: pdfYTop - item.h - 2,
+        width: item.w + 3, height: item.h + 4,
+        color: rgb(bg.r, bg.g, bg.b), borderWidth: 0
+      });
+
+      const fg = hexToRgb01(item.fgColor || '#111111');
+      let font = fonts.regular;
+      if(item.bold && item.italic) font = fonts.boldItalic;
+      else if(item.bold) font = fonts.bold;
+      else if(item.italic) font = fonts.italic;
+
+      let size = item.fontSize;
+      let textWidth = 0;
+      try { textWidth = font.widthOfTextAtSize(newText, size); }
+      catch(e){ textWidth = newText.length * size * 0.5; }
+
+      // Shrink if too wide
+      const maxW = item.w * 1.4;
+      if(textWidth > maxW && maxW > 0){
+        size = Math.max(6, size * maxW / textWidth);
+        try { textWidth = font.widthOfTextAtSize(newText, size); }
+        catch(e){ textWidth = newText.length * size * 0.5; }
+      }
+
+      // *** CENTER new text within original box ***
+      const centerX = item.x + item.w / 2;
+      const drawX = centerX - textWidth / 2;
+
+      try {
+        page.drawText(newText, { x: drawX, y: pdfYBaseline, size, font, color: rgb(fg.r, fg.g, fg.b) });
+      } catch(e){
+        try { page.drawText(newText, { x: drawX, y: pdfYBaseline, size, font: fonts.regular, color: rgb(fg.r, fg.g, fg.b) }); } catch(_){}
+      }
+    }
+
+    setProgress(0.95, 'Saving…');
+    const bytes = await doc.save();
+    const srcName = state.files[0]?.name || 'document.pdf';
+    state.results.push({ name: `${baseName(srcName)}_edited.pdf`, blob: new Blob([bytes], { type:'application/pdf' }) });
+    state.editModified = {};
+    updateEditStats();
+    renderEditPage();
+  }
+
+  /* PROTECT / UNLOCK (unchanged) */
+  let encryptLibPromise = null;
+  function tryLoadEncryptLib(){
+    if(encryptLibPromise) return encryptLibPromise;
+    encryptLibPromise = (async () => {
+      const candidates = [
+        'https://cdn.jsdelivr.net/npm/@cantoo/pdf-lib@1.19.0/+esm',
+        'https://esm.sh/@cantoo/pdf-lib@1.19.0',
+        'https://cdn.jsdelivr.net/npm/@pdfsmaller/pdf-encrypt-lite/+esm'
+      ];
+      for(const url of candidates){
+        try { const mod = await import(url);
+          const D = mod.PDFDocument || mod.default?.PDFDocument; if(D) return D; } catch(e){}
+      }
+      return null;
+    })();
+    return encryptLibPromise;
+  }
+  async function runProtect(){
+    const it = state.files[0];
+    const userPw = $('#protectUser').value;
+    const ownerPw = $('#protectOwner').value || userPw;
+    const allowPrint = $('#protectPrint').value === '1';
+    const allowCopy = $('#protectCopy').value === '1';
+    const allowMod = $('#protectMod').value === '1';
+    if(!userPw) throw new Error('Enter a user password.');
+    const bytes = new Uint8Array(await it.file.arrayBuffer());
+    const EncryptDoc = await tryLoadEncryptLib();
+    if(EncryptDoc){
+      try {
+        const doc = await EncryptDoc.load(bytes, { ignoreEncryption:true });
+        const outBytes = await doc.save({
+          userPassword: userPw, ownerPassword: ownerPw,
+          permissions: { printing: allowPrint ? 'highResolution' : undefined, copying: allowCopy, modifying: allowMod, annotating: allowMod, fillingForms: allowMod, contentAccessibility: true, documentAssembly: allowMod },
+          useObjectStreams: false
+        });
+        state.results.push({ name: `${baseName(it.name)}_protected.pdf`, blob: new Blob([outBytes], { type:'application/pdf' }) });
+        toast('PDF encrypted.');
+        return;
+      } catch(e){ console.warn(e); }
+    }
+    const hash = await sha256Hex(userPw);
+    const header = { _spt_protected:true, ver:1, userHash:hash, ownerHash:await sha256Hex(ownerPw), perms:{allowPrint,allowCopy,allowMod}, createdAt: new Date().toISOString() };
+    const jsonBytes = new TextEncoder().encode('\n%SPT-PROTECT ' + JSON.stringify(header) + '\n');
+    const payload = new Uint8Array(bytes.length + jsonBytes.length);
+    payload.set(bytes, 0); payload.set(jsonBytes, bytes.length);
+    state.results.push({ name: `${baseName(it.name)}_protected.pdf`, blob: new Blob([payload], { type:'application/pdf' }) });
+    toast('Offline password gate applied.', true);
+  }
+  async function sha256Hex(str){
+    const buf = new TextEncoder().encode(str);
+    const h = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+  function extractProtectionHeader(bytes){
+    const marker = new TextEncoder().encode('%SPT-PROTECT ');
+    const tailStart = Math.max(0, bytes.length - 2000);
+    for(let i=bytes.length-1; i>=tailStart; i--){
+      if(bytes[i] === marker[marker.length-1]){
+        let ok = true;
+        for(let j=0;j<marker.length;j++){ if(bytes[i-marker.length+1+j] !== marker[j]){ ok=false; break; } }
+        if(ok){
+          let end = i+1;
+          while(end < bytes.length && bytes[end] !== 10 && bytes[end] !== 13) end++;
+          try { return JSON.parse(new TextDecoder().decode(bytes.slice(i+1, end))); } catch(e){ return null; }
+        }
+      }
+    }
+    return null;
+  }
+  function findHeaderStart(bytes){
+    const marker = new TextEncoder().encode('\n%SPT-PROTECT ');
+    for(let i=bytes.length-1; i>=Math.max(0, bytes.length-3000); i--){
+      let ok = true;
+      for(let j=0;j<marker.length;j++){ if(bytes[i-marker.length+1+j] !== marker[j]){ ok=false; break; } }
+      if(ok) return i - marker.length + 1;
+    }
+    return bytes.length;
+  }
+  async function runUnlock(){
+    const it = state.files[0];
+    const pw = $('#unlockPw').value;
+    const bytes = new Uint8Array(await it.file.arrayBuffer());
+    const header = extractProtectionHeader(bytes);
+    if(header && header._spt_protected){
+      if(!pw) throw new Error('Enter the password.');
+      const hash = await sha256Hex(pw);
+      if(hash !== header.userHash && hash !== header.ownerHash) throw new Error('Incorrect password.');
+      const idx = findHeaderStart(bytes);
+      state.results.push({ name: `${baseName(it.name)}_unlocked.pdf`, blob: new Blob([bytes.slice(0, idx)], { type:'application/pdf' }) });
+      toast('Unlocked.');
+      return;
+    }
+    let doc;
+    try { doc = await PDFDocument.load(bytes, { ignoreEncryption:true, updateMetadata:false }); }
+    catch(e){ throw new Error('Cannot open — may need a user password.'); }
+    if(pw){
+      try { await pdfjsLib.getDocument({ data: bytes.slice(0), password: pw }).promise; }
+      catch(e){ throw new Error('Incorrect password.'); }
+    }
+    const outBytes = await doc.save({ useObjectStreams:false });
+    state.results.push({ name: `${baseName(it.name)}_unlocked.pdf`, blob: new Blob([outBytes], { type:'application/pdf' }) });
+  }
+
+  /* PREVIEW */
+  let previewDocs = new Map(), previewDocsRef = null;
+  function resetPreviewCacheIfNeeded(){ if(previewDocsRef !== state.results){ previewDocs.clear(); previewDocsRef = state.results; } }
+  async function getPreviewDoc(index){
+    if(previewDocs.has(index)) return previewDocs.get(index);
+    const r = state.results[index];
+    const bytes = new Uint8Array(await r.blob.arrayBuffer());
+    const doc = await loadPdfJs(bytes);
+    previewDocs.set(index, doc);
+    return doc;
+  }
+  async function renderPreviews(){
+    const panel = $('#previewPanel'), grid = $('#previewGrid');
+    resetPreviewCacheIfNeeded(); grid.innerHTML = '';
+    if(!state.results.length){ panel.classList.add('hidden'); return; }
+    panel.classList.remove('hidden');
+    for(let i=0;i<state.results.length;i++){
+      const r = state.results[i];
+      const card = document.createElement('div');
+      card.className = 'preview-card';
+      card.innerHTML = `<div class="preview-canvas-wrap"><div class="preview-loading">Rendering…</div><div class="preview-zoom">🔍 Click to enlarge</div></div>
+        <div class="preview-name" title="${escapeHtml(r.name)}">${escapeHtml(r.name)}</div>
+        <div class="preview-meta">${fmtSize(r.blob.size)}</div>`;
+      grid.appendChild(card);
+      const wrap = card.querySelector('.preview-canvas-wrap');
+      const meta = card.querySelector('.preview-meta');
+      try {
+        const doc = await getPreviewDoc(i);
+        const page = await doc.getPage(1);
+        const vp1 = page.getViewport({ scale:1 });
+        const cardW = card.clientWidth - 20;
+        const targetW = Math.max(240, Math.min(400, cardW));
+        const scale = Math.min(1.6, targetW / vp1.width);
+        const vp = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.floor(vp.width));
+        canvas.height = Math.max(1, Math.floor(vp.height));
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        wrap.querySelector('.preview-loading')?.remove();
+        wrap.insertBefore(canvas, wrap.firstChild);
+        meta.textContent = `${doc.numPages} page${doc.numPages>1?'s':''} · ${fmtSize(r.blob.size)}`;
+        card.addEventListener('click', () => openModal(i, 1));
+      } catch(err){
+        const l = wrap.querySelector('.preview-loading'); if(l) l.textContent = 'Preview unavailable';
+      }
+    }
+  }
+  const modalState = { index:0, page:1, doc:null, zoom: 1, baseScale: 1 };
+  let modalRenderChain = Promise.resolve(), modalRenderToken = 0;
+  function openModal(index, page){
+    modalState.index = index; modalState.page = page;
+    const r = state.results[index]; if(!r) return;
+    $('#modalTitle').textContent = r.name;
+    $('#previewModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    getPreviewDoc(index).then(doc => {
+      modalState.doc = doc;
+      modalState.page = Math.min(Math.max(1, page), doc.numPages);
+      const modalBody = document.querySelector('.modal-body');
+      const modalW = modalBody ? modalBody.clientWidth - 24 : window.innerWidth - 30;
+      doc.getPage(1).then(pg => {
+        const vp1 = pg.getViewport({ scale: 1 });
+        modalState.baseScale = Math.min(2.5, Math.max(0.4, modalW / vp1.width));
+        modalState.zoom = 1;
+        updateZoomLabel();
+        queueModalRender();
+      });
+    }).catch(() => { toast('Preview failed.', true); closeModal(); });
+  }
+  function closeModal(){ $('#previewModal').classList.add('hidden'); document.body.style.overflow = ''; modalRenderToken++; modalState.doc = null; }
+  function queueModalRender(){ modalRenderChain = modalRenderChain.then(renderModalPage).catch(e => console.warn(e)); return modalRenderChain; }
+  async function renderModalPage(){
+    const doc = modalState.doc; if(!doc) return;
+    const token = ++modalRenderToken;
+    const page = await doc.getPage(modalState.page);
+    if(token !== modalRenderToken) return;
+    const effScale = modalState.baseScale * modalState.zoom;
+    const vp = page.getViewport({ scale: effScale });
+    const canvas = $('#modalCanvas');
+    canvas.width = Math.max(1, Math.floor(vp.width));
+    canvas.height = Math.max(1, Math.floor(vp.height));
+    canvas.style.width = Math.floor(vp.width) + 'px';
+    canvas.style.height = Math.floor(vp.height) + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    if(token !== modalRenderToken) return;
+    $('#modalPageInfo').textContent = `${modalState.page} / ${doc.numPages}`;
+    $('#modalPrev').disabled = modalState.page <= 1;
+    $('#modalNext').disabled = modalState.page >= doc.numPages;
+    updateZoomLabel();
+  }
+  function updateZoomLabel(){ $('#zoomVal').textContent = Math.round(modalState.zoom * 100) + '%'; }
+  function modalGo(d){ if(!modalState.doc) return; const n = modalState.page + d;
+    if(n<1 || n>modalState.doc.numPages) return; modalState.page = n; queueModalRender(); }
+  $('#modalPrev').addEventListener('click', () => modalGo(-1));
+  $('#modalNext').addEventListener('click', () => modalGo(1));
+  $('#modalClose').addEventListener('click', closeModal);
+  $('#modalDownload').addEventListener('click', () => { const r = state.results[modalState.index]; if(r) triggerDownload(r.blob, r.name); });
+  $('#previewModal').addEventListener('click', e => { if(e.target === $('#previewModal')) closeModal(); });
+  document.addEventListener('keydown', e => {
+    if($('#previewModal').classList.contains('hidden')) return;
+    if(e.key === 'Escape') closeModal();
+    else if(e.key === 'ArrowLeft') modalGo(-1);
+    else if(e.key === 'ArrowRight') modalGo(1);
+  });
+  $('#zoomIn').addEventListener('click', () => { modalState.zoom = Math.min(4, modalState.zoom * 1.25); updateZoomLabel(); queueModalRender(); });
+  $('#zoomOut').addEventListener('click', () => { modalState.zoom = Math.max(0.25, modalState.zoom / 1.25); updateZoomLabel(); queueModalRender(); });
+  $('#zoomFit').addEventListener('click', () => { modalState.zoom = 1; updateZoomLabel(); queueModalRender(); });
+
+  function renderResults(){
+    const wrap = $('#results');
+    if(!state.results.length){ wrap.classList.add('hidden'); wrap.innerHTML = ''; return; }
+    wrap.classList.remove('hidden');
+    const totalBytes = state.results.reduce((s,r) => s + r.blob.size, 0);
+    wrap.innerHTML = `
+      <div class="res-head">
+        <h3>✓ ${state.results.length} file${state.results.length>1?'s':''} ready
+          <span style="color:var(--muted);font-weight:500;font-size:12.5px"> · ${fmtSize(totalBytes)}</span></h3>
+        <div style="display:flex;gap:8px">
+          ${state.results.length > 1 ? '<button class="btn small" id="zipBtn">⬇ Download all (ZIP)</button>' : ''}
+        </div>
+      </div>
+      <ul class="res-list">
+        ${state.results.map((r,i) => `
+          <li>
+            <span class="badge-ok">●</span>
+            <span class="fname" title="${escapeHtml(r.name)}">${escapeHtml(r.name)}</span>
+            <span class="meta">${fmtSize(r.blob.size)}</span>
+            <button class="btn small" data-prev="${i}">Preview</button>
+            <button class="btn small" data-dl="${i}">Download</button>
+          </li>`).join('')}
+      </ul>`;
+    wrap.querySelectorAll('[data-dl]').forEach(btn => {
+      btn.addEventListener('click', () => { const r = state.results[+btn.dataset.dl]; if(r) triggerDownload(r.blob, r.name); });
+    });
+    wrap.querySelectorAll('[data-prev]').forEach(btn => {
+      btn.addEventListener('click', () => openModal(+btn.dataset.prev, 1));
+    });
+    const zipBtn = $('#zipBtn');
+    if(zipBtn){
+      zipBtn.addEventListener('click', async () => {
+        zipBtn.disabled = true; zipBtn.textContent = 'Zipping…';
+        try {
+          const zip = new JSZip();
+          state.results.forEach(r => zip.file(r.name, r.blob));
+          const blob = await zip.generateAsync({ type:'blob' });
+          triggerDownload(blob, 'smart-pdf-tools-output.zip');
+          toast('ZIP downloaded.');
+        } catch(e){ toast('ZIP failed.', true); }
+        finally { zipBtn.disabled = false; zipBtn.textContent = '⬇ Download all (ZIP)'; }
+      });
+    }
+  }
+
+  renderStart();
+})();
+</script>
+</body>
+</html>
