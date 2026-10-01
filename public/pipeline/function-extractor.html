@@ -192,38 +192,25 @@
 (function() {
   'use strict';
 
-  // ============================================================
-  // 🔗 PIPE HELPER (FIRST — before anything else)
-  // ============================================================
+  // 🔗 PIPE HELPER
   window.Pipe = {
     save: function(id, data) {
-      try {
-        localStorage.setItem('pipe_' + id, JSON.stringify(data));
-      } catch (e) {
-        console.error('Pipe.save fail:', e);
-      }
+      try { localStorage.setItem('pipe_' + id, JSON.stringify(data)); }
+      catch (e) { console.error('Pipe.save fail:', e); }
     },
     load: function(id) {
       var raw = localStorage.getItem('pipe_' + id);
       if (raw === null) return null;
-      try {
-        return JSON.parse(raw);
-      } catch (e) {
-        return raw;
-      }
+      try { return JSON.parse(raw); } catch (e) { return raw; }
     },
-    clear: function(id) {
-      localStorage.removeItem('pipe_' + id);
-    }
+    clear: function(id) { localStorage.removeItem('pipe_' + id); }
   };
 
   console.log('✅ [05] Pipe helper ready');
 
-  // ============================================================
   // LIBRARY SIGNATURES
-  // ============================================================
   var LIB_SIGNATURES = [
-    { name: 'pdf.js',      patterns: ['pdfjs', 'getDocument', 'pdf.worker', 'PDFDocument.load'] },
+    { name: 'pdf.js',      patterns: ['pdfjs', 'getDocument', 'pdf.worker', 'PDFDocument.load', 'PDFDocument.create'] },
     { name: 'pdf-lib',     patterns: ['pdfLib', 'PDFLib', 'pdf-lib'] },
     { name: 'JSZip',       patterns: ['new JSZip', 'JSZip.loadAsync', 'zip.generateAsync'] },
     { name: 'ExcelJS',     patterns: ['ExcelJS', 'new Workbook'] },
@@ -246,9 +233,7 @@
     'Promise.all', 'Promise.resolve'
   ];
 
-  // ============================================================
   // CATEGORIZATION
-  // ============================================================
   function categorizeFunction(name, code) {
     if (typeof name !== 'string') name = '';
     if (typeof code !== 'string') code = '';
@@ -270,14 +255,7 @@
 
   function guessSub(name, cat) {
     if (typeof name !== 'string') name = '';
-    var cleaned = name
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/\s+/g, ' ')
-      .toLowerCase()
-      .trim()
-      .split(' ')
-      .filter(Boolean);
-
+    var cleaned = name.replace(/([A-Z])/g, ' $1').replace(/\s+/g, ' ').toLowerCase().trim().split(' ').filter(Boolean);
     if (!cleaned.length) return 'default';
 
     var verbs = ['merge','split','open','close','generate','create','load','save',
@@ -295,9 +273,6 @@
     return noun || 'default';
   }
 
-  // ============================================================
-  // EXTRACT CODE FROM SOURCE BY LINES (with guards)
-  // ============================================================
   function extractCodeByLines(source, startLine, endLine) {
     if (typeof source !== 'string') return '';
     if (typeof startLine !== 'number') return '';
@@ -308,9 +283,6 @@
     return lines.slice(s, e).join('\n').trim();
   }
 
-  // ============================================================
-  // DETECT DEPENDENCIES (with guards)
-  // ============================================================
   function detectDepsInCode(code) {
     if (typeof code !== 'string') return [];
     var found = [];
@@ -326,9 +298,6 @@
     return found;
   }
 
-  // ============================================================
-  // DETECT HELPER CALLS (with guards)
-  // ============================================================
   function detectHelpers(code) {
     if (typeof code !== 'string') return [];
     var found = [];
@@ -347,9 +316,6 @@
     return found.slice(0, 12);
   }
 
-  // ============================================================
-  // GUESS INPUT/OUTPUT (with guards)
-  // ============================================================
   function guessInputOutput(code) {
     if (typeof code !== 'string') code = '';
     var input = 'unknown';
@@ -372,9 +338,6 @@
     return { input: input, output: output };
   }
 
-  // ============================================================
-  // BUILD FILES
-  // ============================================================
   function buildFiles(fn, deps, helpers, cat) {
     var safeId = cat.cat + '.' + cat.sub;
     var io = guessInputOutput(fn.code);
@@ -410,14 +373,8 @@
     return { indexJs: indexJs, functionJson: functionJson, safeId: safeId };
   }
 
-  // ============================================================
-  // STATE
-  // ============================================================
   var extractedData = null;
 
-  // ============================================================
-  // MAIN EXTRACT
-  // ============================================================
   function extractAll() {
     console.log('🚀 [05] extractAll called');
 
@@ -528,9 +485,6 @@
     updateDebug(extracted, shared);
   }
 
-  // ============================================================
-  // BUILD SHARED LIBRARY
-  // ============================================================
   function buildSharedLibrary(extracted) {
     var lib = {
       version: '1.0.0',
@@ -543,9 +497,7 @@
       var baseId = fn.category + '.' + fn.subCategory;
       var key = baseId;
       var i = 2;
-      while (lib.functions[key]) {
-        key = baseId + '-' + i++;
-      }
+      while (lib.functions[key]) { key = baseId + '-' + i++; }
 
       lib.functions[key] = {
         name: fn.name,
@@ -569,17 +521,12 @@
     return lib;
   }
 
-  // ============================================================
-  // RENDER
-  // ============================================================
   function renderResults(functions) {
     var container = document.getElementById('results');
-
     if (!functions.length) {
       container.innerHTML = '<div class="empty-state"><h2>Koi function nahi mila</h2></div>';
       return;
     }
-
     container.innerHTML = '<div class="fn-list">' +
       functions.map(function(fn) { return renderFnCard(fn); }).join('') +
       '</div>';
@@ -665,9 +612,6 @@
     }, null, 2);
   }
 
-  // ============================================================
-  // SAVE TO SHARED
-  // ============================================================
   function saveToShared() {
     if (!extractedData) return;
     window.Pipe.save('shared', extractedData.shared);
@@ -675,9 +619,6 @@
     console.log('✅ [05] Saved to pipe_shared');
   }
 
-  // ============================================================
-  // DOWNLOAD ZIP
-  // ============================================================
   async function downloadZip() {
     if (!extractedData) return;
     if (!window.JSZip) { toast('JSZip not loaded', true); return; }
@@ -704,9 +645,6 @@
     toast('⬇ ZIP downloaded');
   }
 
-  // ============================================================
-  // STATUS BAR
-  // ============================================================
   function updateStatus() {
     var p01 = window.Pipe.load('01');
     var p02 = window.Pipe.load('02');
@@ -714,10 +652,8 @@
 
     setStatus('stat01', 'stat01v', !!p01,
       p01 ? (typeof p01 === 'string' ? p01.length + ' chars' : 'loaded') : 'missing');
-
     setStatus('stat02', 'stat02v', !!(p02 && p02.functions),
       (p02 && p02.functions) ? p02.functions.length + ' functions' : 'missing');
-
     setStatus('stat03', 'stat03v', !!(p03 && p03.dependencies),
       (p03 && p03.dependencies) ? p03.dependencies.length + ' deps' : 'missing');
   }
@@ -728,9 +664,6 @@
     document.getElementById(valId).textContent = text;
   }
 
-  // ============================================================
-  // HELPERS
-  // ============================================================
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, function(c) {
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
@@ -746,9 +679,6 @@
     toastTimer = setTimeout(function() { t.className = 'toast'; }, 2600);
   }
 
-  // ============================================================
-  // INIT
-  // ============================================================
   var _initDone = false;
   function init() {
     if (_initDone) return;
@@ -773,7 +703,6 @@
     }
   }
 
-  // Buttons
   document.getElementById('extractBtn').addEventListener('click', extractAll);
   document.getElementById('saveSharedBtn').addEventListener('click', saveToShared);
   document.getElementById('downloadZipBtn').addEventListener('click', downloadZip);
@@ -787,7 +716,6 @@
     toast('Cleared');
   });
 
-  // Fire init ONCE — via whatever comes first
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
