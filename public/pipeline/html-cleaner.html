@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Remover + Function Preserver v5</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0d14; --panel:#11151f; --panel2:#0a0d14;
+    --border:#1e2532; --border2:#2a3344;
+    --text:#e8eaf0; --muted:#8b93a7;
+    --accent:#7c9aff; --accent2:#22c55e; --danger:#ef4444; --warn:#f59e0b;
+  }
+  html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.55}
+  body{padding-bottom:60px}
+  header{padding:26px 20px 18px;text-align:center;border-bottom:1px solid var(--border)}
+  header h1{margin:0 0 6px;font-size:21px;letter-spacing:-.01em}
+  header p{margin:0;color:var(--muted);font-size:13px}
+  main{max-width:1650px;margin:0 auto;padding:18px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px}
+  .card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 17px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .card-head h2{margin:0;font-size:13.5px;font-weight:600;color:#cdd4e4}
+  .card-head .right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .card-body{padding:15px 17px}
+  .btn{background:#1a2130;color:var(--text);border:1px solid var(--border2);padding:8px 13px;border-radius:9px;font-size:12.5px;font-family:inherit;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{background:#222b3d;border-color:#3a4459}
+  .btn:active{transform:scale(.97)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:#6a89f5}
+  .btn.ghost{background:transparent}
+  .btn.big{width:100%;padding:13px;font-size:14px;border-radius:11px;justify-content:center;margin-top:13px}
+  .file-btn{position:relative;overflow:hidden}
+  .file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+  textarea{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6;resize:vertical;outline:none;min-height:170px}
+  textarea:focus{border-color:var(--accent)}
+  .options{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;color:var(--muted);font-size:12.5px}
+  .options label{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+  .options input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+  .options label b{color:var(--text);font-weight:600}
+  .hidden{display:none!important}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px;height:calc(100vh - 160px);min-height:540px;margin-bottom:16px}
+  .split .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  .split .panel-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .split .panel-head h3{margin:0;font-size:12.5px;font-weight:600;color:#cdd4e4}
+  .tabs{display:flex;gap:3px;background:var(--panel2);border-radius:8px;padding:3px}
+  .tab{background:transparent;border:0;color:var(--muted);font-family:inherit;font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:6px;cursor:pointer;transition:.15s}
+  .tab.active{background:var(--border2);color:var(--text)}
+  .view{flex:1;min-height:0;display:flex;flex-direction:column}
+  .view.hidden{display:none}
+  .view iframe{flex:1;width:100%;border:0;background:#fff}
+  .view pre{flex:1;margin:0;padding:12px;overflow:auto;background:var(--panel2);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;line-height:1.65;color:#c9d0e0;white-space:pre-wrap;word-break:break-word;min-height:0}
+  .report{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px}
+  .report h3{margin:0 0 14px;font-size:13.5px;color:#cdd4e4;font-weight:600}
+  .report-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .report-col{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px}
+  .report-col h4{margin:0 0 10px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;font-weight:700}
+  .report-col.removed h4{color:var(--danger)}
+  .report-col.preserved h4{color:var(--accent2)}
+  .report-col ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+  .report-col li{font-size:12.5px;color:var(--muted);padding-left:15px;position:relative;line-height:1.5}
+  .report-col li:before{content:'•';position:absolute;left:0;color:var(--border2)}
+  .report-col li b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+  .report-col .empty{color:#4a5468;font-style:italic}
+  .report-col .sel-list{margin-top:8px;padding:8px 10px;background:#0a0d14;border:1px solid var(--border);border-radius:8px;max-height:160px;overflow:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:#9fb4d8;line-height:1.7}
+  .report-col .sel-list .sel{display:block}
+  .report-col .sel-list .sel .badge{display:inline-block;font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:6px;letter-spacing:.03em;vertical-align:middle}
+  .badge.js{background:#7c9aff22;color:#9fb4ff;border:1px solid #7c9aff44}
+  .badge.state{background:#f59e0b22;color:#fbbf24;border:1px solid #f59e0b44}
+  .badge.hide{background:#22c55e22;color:#4ade80;border:1px solid #22c55e44}
+
+  .stats-strip{
+    display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+    padding:14px 18px; border-radius:14px; margin-bottom:16px;
+    background:linear-gradient(90deg, #141b28 0%, #0f1520 100%);
+    border:1px solid var(--border2);
+  }
+  .stats-strip .stat{display:flex; flex-direction:column; gap:2px}
+  .stats-strip .stat .num{font-size:20px; font-weight:700; letter-spacing:-.02em; line-height:1.1; font-variant-numeric:tabular-nums}
+  .stats-strip .stat .lbl{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600}
+  .stats-strip .stat.removed .num{color:#f87171}
+  .stats-strip .stat.kept .num{color:#4ade80}
+  .stats-strip .stat.size .num{color:#9fb4ff}
+  .stats-strip .divider{width:1px; height:34px; background:var(--border2)}
+  .stats-strip .arrow{color:var(--muted); font-size:16px; font-weight:700}
+
+  .xss-banner{
+    display:flex; align-items:flex-start; gap:12px;
+    padding:14px 16px; border-radius:12px; margin-bottom:16px;
+    background:linear-gradient(90deg, #2a1a10 0%, #1f140c 100%);
+    border:1px solid #7a3e0e;
+    border-left:4px solid #f59e0b;
+  }
+  .xss-banner.safe{
+    background:linear-gradient(90deg, #102a18 0%, #0c1f13 100%);
+    border-color:#166534;
+    border-left-color:#22c55e;
+  }
+  .xss-banner .icon{font-size:22px; line-height:1; flex:0 0 auto; margin-top:1px}
+  .xss-banner .body{flex:1; min-width:0}
+  .xss-banner .title{font-size:13.5px; font-weight:700; color:#fbbf24; margin-bottom:4px}
+  .xss-banner.safe .title{color:#4ade80}
+  .xss-banner .sub{font-size:12.5px; color:#c9a880; line-height:1.6}
+  .xss-banner.safe .sub{color:#86c79a}
+  .xss-banner .patterns{
+    margin-top:10px; display:flex; flex-direction:column; gap:6px;
+  }
+  .xss-banner .pattern{
+    display:flex; align-items:flex-start; gap:8px;
+    padding:8px 11px; border-radius:8px;
+    background:#0a0806; border:1px solid #3a2410;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:11.5px; color:#f0c990; line-height:1.55;
+  }
+  .xss-banner .pattern .tag{
+    flex:0 0 auto; font-size:9.5px; font-weight:700;
+    padding:2px 6px; border-radius:4px; letter-spacing:.03em;
+    background:#7a3e0e; color:#fef3c7; font-family:system-ui,sans-serif;
+  }
+  .xss-banner .pattern .tag.high{background:#b91c1c; color:#fff}
+  .xss-banner .pattern .tag.med{background:#b45309; color:#fff}
+  .xss-banner .pattern .tag.low{background:#4d4d1a; color:#fde68a}
+  .xss-banner .pattern code{word-break:break-all; color:#fcd9a0}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--accent2);color:#042;padding:11px 20px;border-radius:11px;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:99;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.err{background:var(--danger);color:#fff}
+  .zip-info{padding:11px 14px;background:#141a26;border:1px solid var(--border2);border-radius:10px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px}
+  .zip-info .label{color:var(--muted);font-weight:600}
+  .zip-info select{background:var(--panel2);color:var(--text);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;font-family:inherit;font-size:12.5px;outline:none;cursor:pointer;max-width:100%}
+  .status{font-size:12.5px;color:var(--muted);padding:9px 13px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;margin-top:12px}
+  @media (max-width:900px){
+    .split{grid-template-columns:1fr;height:auto}
+    .split .panel{height:520px}
+    .report-grid{grid-template-columns:1fr}
+    .stats-strip{gap:12px}
+    .stats-strip .divider{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎨 Design Remover + Function Preserver <span style="color:#7c9aff">v5</span></h1>
+  <p>CSS ko <b>JS + HTML dependencies</b> ke saath analyze karta hai — state selectors bhi preserve hote hain</p>
+</header>
+
+<main>
+  <section class="card">
+    <div class="card-head">
+      <h2>1️⃣ Input</h2>
+      <div class="right">
+        <label class="btn file-btn">📄 Upload .html<input type="file" id="htmlFile" accept=".html,.htm,text/html"></label>
+        <label class="btn file-btn">📦 Upload .zip<input type="file" id="zipFile" accept=".zip,application/zip"></label>
+        <button class="btn ghost" id="sampleBtn">Sample</button>
+        <button class="btn ghost" id="clearBtn">Clear</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="zipInfo" class="zip-info hidden">
+        <span class="label">📦 ZIP:</span>
+        <span id="zipName" style="color:#c9d0e0;font-weight:600"></span>
+        <span class="label" style="margin-left:6px">HTML:</span>
+        <select id="zipSelect"></select>
+      </div>
+      <textarea id="htmlInput" spellcheck="false" placeholder="HTML paste karo ya upload karo…"></textarea>
+      <div class="options">
+        <label title="JS-referenced classes/IDs/attrs ke saath CSS rules bhi preserve honge"><input type="checkbox" id="optDepAnalysis" checked><b>JS dependency analysis karo</b> (recommended)</label>
+        <label><input type="checkbox" id="optFunctional" checked><b>Functional CSS preserve karo</b></label>
+        <label><input type="checkbox" id="optEvents" checked><b>Event handlers preserve karo</b></label>
+        <label><input type="checkbox" id="optFormat">Text formatting tags hatao (b, i, u, font…)</label>
+        <label><input type="checkbox" id="optComments">HTML comments hatao</label>
+      </div>
+      <button class="btn primary big" id="generateBtn">⚡ Generate — Design Remove Karo</button>
+      <div id="inputStatus" class="status hidden"></div>
+    </div>
+  </section>
+
+  <section id="output" class="hidden">
+
+    <!-- ═══ Split (Original | Cleaned) — ab sabse upar ═══ -->
+    <div class="split">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>◀ Original</h3>
+          <div class="tabs" data-tabs="orig">
+            <button class="tab" data-view="code">Code</button>
+            <button class="tab active" data-view="preview">UI</button>
+          </div>
+        </div>
+        <div class="view hidden" data-view-panel="orig-code"><pre id="origCode"></pre></div>
+        <div class="view" data-view-panel="orig-preview"><iframe id="origPreview" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads"></iframe></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h3>▶ Cleaned</h3>
+          <div class="tabs" data-tabs="clean">
+            <button class="tab" data-view="code">Code</button>
+            <button class="tab active" data-view="preview">Preview</button>
+          </div>
+        </div>
+        <div class="view hidden" data-view-panel="clean-code"><pre id="cleanCode"></pre></div>
+        <div class="view" data-view-panel="clean-preview"><iframe id="cleanPreview" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads"></iframe></div>
+      </div>
+    </div>
+
+    <!-- ═══ NEW POSITION: Stats strip — report ke just upar ═══ -->
+    <div class="stats-strip" id="statsStrip">
+      <div class="stat removed">
+        <span class="num" id="statRemovedRules">0</span>
+        <span class="lbl">Design rules hataye</span>
+      </div>
+      <div class="divider"></div>
+      <div class="stat kept">
+        <span class="num" id="statKeptRules">0</span>
+        <span class="lbl">Functional rules bachaye</span>
+      </div>
+      <div class="divider"></div>
+      <div class="stat removed">
+        <span class="num" id="statRemovedAttrs">0</span>
+        <span class="lbl">Attributes hataye</span>
+      </div>
+      <div class="divider"></div>
+      <div class="stat size">
+        <span class="num" id="statSizeBefore">0 KB</span>
+        <span class="lbl">Original</span>
+      </div>
+      <span class="arrow">→</span>
+      <div class="stat size">
+        <span class="num" id="statSizeAfter">0 KB</span>
+        <span class="lbl">Cleaned</span>
+      </div>
+      <span class="arrow" id="statSizeDelta" style="color:#4ade80;font-size:12.5px;font-weight:700">0%</span>
+    </div>
+
+    <!-- ═══ NEW POSITION: XSS warning — report ke just upar ═══ -->
+    <div class="xss-banner hidden" id="xssBanner">
+      <div class="icon" id="xssIcon">⚠️</div>
+      <div class="body">
+        <div class="title" id="xssTitle">Suspicious patterns detected</div>
+        <div class="sub" id="xssSub"></div>
+        <div class="patterns" id="xssPatterns"></div>
+      </div>
+    </div>
+
+    <div class="report">
+      <h3>📊 Report</h3>
+      <div class="report-grid">
+        <div class="report-col removed">
+          <h4>🗑️ Removed (Design)</h4>
+          <ul id="removedList"></ul>
+        </div>
+        <div class="report-col preserved">
+          <h4>✅ Preserved (Functionality)</h4>
+          <ul id="preservedList"></ul>
+          <div id="stateSelectorsBox" style="display:none;margin-top:12px">
+            <div style="font-size:11px;color:#8b93a7;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px">Preserved state selectors</div>
+            <div class="sel-list" id="stateSelectorsList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="downloadBtn">⬇ Download Cleaned HTML</button>
+      <button class="btn" id="copyBtn">📋 Copy</button>
+      <button class="btn" id="openNewTab">↗ New Tab</button>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  var urls = [
+    'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+    'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+    'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js'
+  ];
+  var i = 0;
+  function next(){
+    if(i >= urls.length) return;
+    var s = document.createElement('script');
+    s.src = urls[i++];
+    s.onload = function(){ window.__jszipReady = true; };
+    s.onerror = function(){ s.remove(); next(); };
+    document.head.appendChild(s);
+  }
+  next();
+})();
+</script>
+
+<script>
+(function(){
+  'use strict';
+
+  // 🔗 PIPE HELPER — tools ko connect karta hai (localStorage based)
+  window.Pipe = {
+    save: (id, data) => localStorage.setItem('pipe_' + id, JSON.stringify(data)),
+    load: (id) => { try { return JSON.parse(localStorage.getItem('pipe_' + id) || 'null'); } catch(e){ return null; } },
+    clear: (id) => localStorage.removeItem('pipe_' + id)
+  };
+
+  const $ = id => document.getElementById(id);
+  const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  let toastTimer;
+  function toast(msg, isError){
+    const t = $('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isError ? ' err' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.className = 'toast', 2600);
+  }
+
+  function fmtBytes(n){
+    if(n < 1024) return n + ' B';
+    if(n < 1048576) return (n/1024).toFixed(1) + ' KB';
+    return (n/1048576).toFixed(2) + ' MB';
+  }
+
+  const STRUCTURAL_PROPS = new Set([
+    'display','visibility','opacity','position',
+    'top','right','bottom','left','inset','inset-block','inset-inline',
+    'z-index','pointer-events','overflow','overflow-x','overflow-y',
+    'float','clear'
+  ]);
+
+  const PRESENTATIONAL = new Set([
+    'style','bgcolor','background','color','align','valign',
+    'text','link','vlink','alink','border','cellpadding','cellspacing',
+    'face','hspace','vspace','nowrap','frameborder','marginwidth',
+    'marginheight','rules','frame','bordercolor','leftmargin','topmargin',
+    'rightmargin','bottommargin','scrollamount','scrolldelay','behavior',
+    'bgproperties','compact'
+  ]);
+
+  const KEEP_SIZE = new Set([
+    'IMG','CANVAS','VIDEO','IFRAME','EMBED','OBJECT','INPUT',
+    'TEXTAREA','SELECT','SVG','SOURCE','AUDIO','TRACK','MAP','AREA'
+  ]);
+
+  const UNWRAP_ALWAYS = ['FONT','CENTER','MARQUEE','BLINK','NOBR','BIG','TT','STRIKE','S'];
+  const UNWRAP_FORMAT = ['B','I','U','STRONG','EM','SMALL','MARK'];
+
+  const STATE_PSEUDO = /:(?:hover|focus|active|focus-within|focus-visible|checked|disabled|enabled|target|visited|any-link|valid|invalid)\b/;
+
+  const XSS_PATTERNS = [
+    { re: /\beval\s*\(/g,                         tag:'HIGH', name:'eval()',                desc:'Arbitrary code execution' },
+    { re: /\bnew\s+Function\s*\(/g,               tag:'HIGH', name:'new Function()',        desc:'Dynamic code constructor' },
+    { re: /\bdocument\s*\.\s*write\s*\(/g,        tag:'HIGH', name:'document.write()',      desc:'Injects HTML at runtime' },
+    { re: /<iframe[^>]+srcdoc\s*=/gi,             tag:'HIGH', name:'iframe srcdoc',         desc:'Inline HTML execution in iframe' },
+    { re: /<iframe[^>]+src\s*=\s*["']?\s*javascript:/gi, tag:'HIGH', name:'iframe javascript:', desc:'JS URI in iframe' },
+    { re: /<a[^>]+href\s*=\s*["']?\s*javascript:/gi,     tag:'HIGH', name:'a href=javascript:', desc:'JS URI in link' },
+    { re: /\bon\w+\s*=\s*["'][^"']*\b(eval|Function|document\.write)\b/gi, tag:'HIGH', name:'inline handler with eval', desc:'Event handler executing dynamic code' },
+    { re: /atob\s*\([^)]*\)\s*;?[\s\S]{0,40}(eval|Function)\s*\(/g, tag:'HIGH', name:'base64 + eval', desc:'Obfuscated code execution' },
+    { re: /\.innerHTML\s*=\s*[^;]+\+/g,           tag:'MED', name:'.innerHTML concatenation', desc:'Possible HTML injection' },
+    { re: /\.outerHTML\s*=/g,                     tag:'MED', name:'.outerHTML assignment',     desc:'Replaces HTML structure' },
+    { re: /\.insertAdjacentHTML\s*\(/g,           tag:'MED', name:'insertAdjacentHTML()',     desc:'Runtime HTML injection' },
+    { re: /document\s*\.\s*cookie\s*=/g,          tag:'MED', name:'document.cookie write',    desc:'Cookie manipulation' },
+    { re: /localStorage\s*\.\s*setItem\s*\(/g,    tag:'MED', name:'localStorage.setItem',     desc:'Persistent client storage' },
+    { re: /sessionStorage\s*\.\s*setItem\s*\(/g,  tag:'MED', name:'sessionStorage.setItem',   desc:'Session storage' },
+    { re: /\bfetch\s*\(\s*['"]http:\/\//gi,       tag:'MED', name:'fetch() over HTTP',        desc:'Insecure network request' },
+    { re: /<meta[^>]+http-equiv\s*=\s*["']?\s*refresh/gi, tag:'MED', name:'meta refresh',    desc:'Auto redirect' },
+    { re: /<form[^>]+action\s*=\s*["']http:\/\//gi, tag:'MED', name:'form action over HTTP', desc:'Insecure form submit' },
+    { re: /<script[^>]+src\s*=\s*["']https?:\/\/(?!cdn\.|unpkg\.|jsdelivr\.|cdnjs\.)[^"']+/gi, tag:'LOW', name:'external script from non-CDN', desc:'Third-party script load' },
+    { re: /<link[^>]+href\s*=\s*["']https?:\/\/(?!cdn\.|unpkg\.|jsdelivr\.|cdnjs\.)[^"']+\.css/gi, tag:'LOW', name:'external stylesheet from non-CDN', desc:'Third-party CSS' },
+    { re: /window\s*\.\s*location\s*=/g,          tag:'LOW', name:'window.location assignment', desc:'Redirect' },
+    { re: /window\s*\.\s*open\s*\(/g,             tag:'LOW', name:'window.open()',             desc:'Popup window' },
+  ];
+
+  function detectSuspiciousPatterns(src){
+    const found = [];
+    const seen = new Set();
+    for(const p of XSS_PATTERNS){
+      p.re.lastIndex = 0;
+      let m;
+      let count = 0;
+      let sample = '';
+      while((m = p.re.exec(src)) !== null){
+        count++;
+        if(!sample) sample = m[0].slice(0, 120);
+        if(count > 20) break;
+      }
+      if(count > 0){
+        if(seen.has(p.name)) continue;
+        seen.add(p.name);
+        found.push({ tag: p.tag, name: p.name, desc: p.desc, count, sample });
+      }
+    }
+    const order = { HIGH: 0, MED: 1, LOW: 2 };
+    found.sort((a, b) => order[a.tag] - order[b.tag]);
+    return found;
+  }
+
+  function camelToKebab(s){
+    return String(s).replace(/[A-Z]/g, ch => '-' + ch.toLowerCase());
+  }
+  function extractClassTokens(sel){
+    return [...String(sel).matchAll(/\.([a-zA-Z_][\w-]*)/g)].map(m => m[1]);
+  }
+  function extractIdTokens(sel){
+    return [...String(sel).matchAll(/#([a-zA-Z_][\w-]*)/g)].map(m => m[1]);
+  }
+  function extractAttrTokens(sel){
+    return [...String(sel).matchAll(/\[\s*([a-zA-Z_][\w-]*)/g)].map(m => m[1]);
+  }
+
+  function extractJSTokens(jsSources){
+    const classes = new Set();
+    const ids = new Set();
+    const attrs = new Set();
+
+    const addClasses = s => String(s).split(/\s+/).filter(Boolean).forEach(c => classes.add(c));
+
+    for(const raw of jsSources){
+      const src = String(raw || '');
+      if(!src) continue;
+      let m;
+
+      const reCL = /\.classList\.(?:add|remove|toggle|contains|replace|supports)\s*\(([^)]*)\)/g;
+      while((m = reCL.exec(src))){
+        const strRe = /['"`]([^'"`]+)['"`]/g;
+        let sm;
+        while((sm = strRe.exec(m[1]))) addClasses(sm[1]);
+      }
+      const reCN = /\.className\s*=\s*['"`]([^'"`]*)['"`]/g;
+      while((m = reCN.exec(src))) addClasses(m[1]);
+
+      const reJQ = /\.(?:add|remove|toggle|has)Class\s*\(\s*['"`]([^'"`]+)['"`]/g;
+      while((m = reJQ.exec(src))) addClasses(m[1]);
+
+      const reGID = /getElementById\s*\(\s*['"`]([^'"`]+)['"`]/g;
+      while((m = reGID.exec(src))) ids.add(m[1]);
+
+      const reGEC = /getElementsByClassName\s*\(\s*['"`]([^'"`]+)['"`]/g;
+      while((m = reGEC.exec(src))) addClasses(m[1]);
+
+      const reQS = /querySelector(?:All)?\s*\(\s*['"`]([^'"`]+)['"`]/g;
+      while((m = reQS.exec(src))){
+        extractClassTokens(m[1]).forEach(c => classes.add(c));
+        extractIdTokens(m[1]).forEach(c => ids.add(c));
+        extractAttrTokens(m[1]).forEach(a => attrs.add(a));
+      }
+
+      const reM = /\.(?:matches|closest)\s*\(\s*['"`]([^'"`]+)['"`]/g;
+      while((m = reM.exec(src))){
+        extractClassTokens(m[1]).forEach(c => classes.add(c));
+        extractIdTokens(m[1]).forEach(c => ids.add(c));
+        extractAttrTokens(m[1]).forEach(a => attrs.add(a));
+      }
+
+      const reJQSel = /\$\s*\(\s*['"`]([^'"`]+)['"`]/g;
+      while((m = reJQSel.exec(src))){
+        extractClassTokens(m[1]).forEach(c => classes.add(c));
+        extractIdTokens(m[1]).forEach(c => ids.add(c));
+        extractAttrTokens(m[1]).forEach(a => attrs.add(a));
+      }
+
+      const reAttr = /\.(?:set|remove|has|toggle)Attribute\s*\(\s*['"`]([^'"`]+)['"`]/g;
+      while((m = reAttr.exec(src))) attrs.add(m[1]);
+
+      const reGA = /\.getAttribute\s*\(\s*['"`]([^'"`]+)['"`]/g;
+      while((m = reGA.exec(src))) attrs.add(m[1]);
+
+      const reDS1 = /\.dataset\.([a-zA-Z_$][\w$]*)/g;
+      while((m = reDS1.exec(src))) attrs.add('data-' + camelToKebab(m[1]));
+      const reDS2 = /\.dataset\s*\[\s*['"`]([^'"`]+)['"`]\s*\]/g;
+      while((m = reDS2.exec(src))) attrs.add('data-' + camelToKebab(m[1]));
+    }
+
+    return { classes, ids, attrs };
+  }
+
+  function walkCSSRules(rules, cb, media){
+    for(const rule of rules){
+      const t = rule.type;
+      if(t === 1){
+        cb(rule, media || null);
+      } else if(rule.cssRules && (t === 4 || t === 12 || t === 18)){
+        const mq = (t === 4 && (rule.conditionText || (rule.media && rule.media.mediaText))) || media || null;
+        walkCSSRules(rule.cssRules, cb, mq);
+      }
+    }
+  }
+
+  function classifyRule(rule, jsTokens, opts){
+    const selector = rule.selectorText || '';
+    const style = rule.style;
+    if(!selector || !style) return null;
+
+    const classes = extractClassTokens(selector);
+    const ids     = extractIdTokens(selector);
+    const attrs   = extractAttrTokens(selector);
+
+    const jsRefClass = classes.some(c => jsTokens.classes.has(c));
+    const jsRefId    = ids.some(i => jsTokens.ids.has(i));
+    const jsRefAttr  = attrs.some(a => jsTokens.attrs.has(a));
+    const jsReferenced = opts.depAnalysis && (jsRefClass || jsRefId || jsRefAttr);
+
+    const hasStatePseudo = STATE_PSEUDO.test(selector);
+    const tokenCount = classes.length + ids.length + attrs.length;
+    const isCompoundState = tokenCount >= 2;
+
+    const structuralProps = [];
+    const designProps = [];
+    let hasHideProp = false;
+    let hasPositionFixed = false;
+    let hasZIndex = false;
+
+    for(let i = 0; i < style.length; i++){
+      const prop = style[i];
+      const val  = style.getPropertyValue(prop);
+      if(!val) continue;
+      const priority = style.getPropertyPriority(prop);
+      const decl = prop + ':' + val + (priority ? ' !important' : '');
+
+      const v = String(val).trim().toLowerCase();
+      if(prop === 'display' && v === 'none') hasHideProp = true;
+      if(prop === 'visibility' && v === 'hidden') hasHideProp = true;
+      if(prop === 'pointer-events' && v === 'none') hasHideProp = true;
+      if(prop === 'position' && /fixed|absolute|sticky/.test(v)) hasPositionFixed = true;
+      if(prop === 'z-index') hasZIndex = true;
+
+      if(STRUCTURAL_PROPS.has(prop)){
+        if(prop === 'opacity'){
+          const n = parseFloat(v);
+          if(isNaN(n) || n !== 0){ designProps.push(decl); continue; }
+        }
+        structuralProps.push(decl);
+      } else {
+        designProps.push(decl);
+      }
+    }
+
+    const isFunctional =
+      hasHideProp ||
+      hasPositionFixed ||
+      (hasZIndex && structuralProps.some(p => p.startsWith('position'))) ||
+      jsReferenced ||
+      hasStatePseudo ||
+      isCompoundState;
+
+    if(!isFunctional){
+      return { kind: 'design', selector, reason: 'no JS ref / no state / no structural' };
+    }
+
+    if(structuralProps.length === 0){
+      return { kind: 'design', selector, reason: 'state-only but props all design' };
+    }
+
+    return {
+      kind: 'functional',
+      selector,
+      structuralProps,
+      designRemoved: designProps.length,
+      jsReferenced,
+      hasState: hasStatePseudo || isCompoundState,
+      hasHideProp
+    };
+  }
+
+  function buildFunctionalCSS(kept, mediaMap){
+    let out = '/* ── Auto-injected: Functional CSS ── */\n';
+
+    for(const k of kept){
+      out += k.selector + '{' + k.structuralProps.join(';') + '}\n';
+    }
+    for(const [media, lines] of mediaMap){
+      out += '@media ' + media + '{\n';
+      for(const l of lines) out += l + '\n';
+      out += '}\n';
+    }
+
+    out += '\n/* Base hidden rules — always win */\n';
+    out += '[hidden], .hidden, .hide, .d-none, .is-hidden { display: none !important; }\n';
+    out += '.invisible, .is-invisible { visibility: hidden !important; }\n';
+
+    return out;
+  }
+
+  function filterInlineStyle(styleText){
+    const div = document.createElement('div');
+    div.setAttribute('style', styleText || '');
+    const parts = [];
+    for(let i = 0; i < div.style.length; i++){
+      const prop = div.style[i];
+      const val  = div.style.getPropertyValue(prop);
+      if(!val) continue;
+      if(!STRUCTURAL_PROPS.has(prop)) continue;
+      if(prop === 'opacity'){
+        const n = parseFloat(val);
+        if(isNaN(n) || n !== 0) continue;
+      }
+      const pr = div.style.getPropertyPriority(prop);
+      parts.push(prop + ':' + val + (pr ? ' ' + pr : ''));
+    }
+    return parts.join(';');
+  }
+
+  function cleanHTML(src, opts){
+    const report = {
+      removed: {
+        styleTags:0, cssChars:0, cssLinks:0,
+        designRules:0, designPropsRemoved:0,
+        inlineStyles:0, presentationalAttrs:0,
+        designTags:0, comments:0
+      },
+      preserved: {
+        functionalRules:0, jsReferencedRules:0, stateRules:0,
+        scripts:0, eventHandlers:0, hiddenElements:0,
+        formInputs:0, forms:0, buttons:0, anchors:0,
+        dataAttrs:0, ariaAttrs:0, ids:0, classes:0
+      },
+      stateSelectors: []
+    };
+
+    const doc = new DOMParser().parseFromString(src, 'text/html');
+
+    let jsTokens = { classes: new Set(), ids: new Set(), attrs: new Set() };
+    if(opts.depAnalysis){
+      const jsSources = [];
+      doc.querySelectorAll('script').forEach(s => {
+        if(!s.src) jsSources.push(s.textContent || '');
+      });
+      doc.querySelectorAll('*').forEach(el => {
+        for(const attr of el.attributes){
+          if(attr.name.toLowerCase().startsWith('on')){
+            jsSources.push(attr.value || '');
+          }
+        }
+      });
+      jsTokens = extractJSTokens(jsSources);
+    }
+
+    let keptRules = [];
+    const mediaKept = new Map();
+
+    if(opts.preserveFunctional){
+      doc.querySelectorAll('style').forEach(styleEl => {
+        const text = styleEl.textContent || '';
+        report.removed.cssChars += text.length;
+        if(!text.trim()) return;
+
+        const probe = document.createElement('style');
+        probe.textContent = text;
+        probe.setAttribute('media', 'not all');
+        document.head.appendChild(probe);
+
+        try {
+          const sheet = probe.sheet;
+          if(!sheet) return;
+          walkCSSRules(sheet.cssRules, (rule, media) => {
+            const cls = classifyRule(rule, jsTokens, opts);
+            if(!cls) return;
+
+            if(cls.kind === 'design'){
+              report.removed.designRules++;
+              report.removed.designPropsRemoved += (rule.style.length || 0);
+              return;
+            }
+
+            report.preserved.functionalRules++;
+            if(cls.jsReferenced) report.preserved.jsReferencedRules++;
+            if(cls.hasState)     report.preserved.stateRules++;
+
+            if(cls.hasState || cls.jsReferenced){
+              if(report.stateSelectors.length < 40){
+                report.stateSelectors.push({
+                  selector: cls.selector,
+                  badges: [
+                    cls.jsReferenced ? 'js' : null,
+                    cls.hasState ? 'state' : null,
+                    cls.hasHideProp ? 'hide' : null
+                  ].filter(Boolean)
+                });
+              }
+            }
+
+            const line = cls.selector + '{' + cls.structuralProps.join(';') + '}';
+            if(media){
+              if(!mediaKept.has(media)) mediaKept.set(media, []);
+              mediaKept.get(media).push(line);
+            } else {
+              keptRules.push(cls);
+            }
+          }, null);
+        } catch(e){
+          console.warn('CSS parse warn:', e);
+        } finally {
+          probe.remove();
+        }
+      });
+    }
+
+    doc.querySelectorAll('style').forEach(el => { report.removed.styleTags++; el.remove(); });
+
+    doc.querySelectorAll('link').forEach(el => {
+      const relList = (el.getAttribute('rel') || '').toLowerCase().split(/\s+/);
+      const href = (el.getAttribute('href') || '').toLowerCase();
+      const asAttr = (el.getAttribute('as') || '').toLowerCase();
+      if(relList.includes('stylesheet') || /\.css(\?|#|$)/i.test(href) || asAttr === 'style'){
+        report.removed.cssLinks++;
+        el.remove();
+      }
+    });
+
+    doc.querySelectorAll('*').forEach(el => {
+      const tag = el.tagName;
+      if(tag === 'SCRIPT') report.preserved.scripts++;
+      if(tag === 'FORM')   report.preserved.forms++;
+      if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') report.preserved.formInputs++;
+      if(tag === 'BUTTON') report.preserved.buttons++;
+      if(tag === 'A' && el.hasAttribute('href')) report.preserved.anchors++;
+
+      [...el.attributes].forEach(attr => {
+        const name = attr.name.toLowerCase();
+
+        if(name.startsWith('on')){
+          if(opts.preserveEvents){ report.preserved.eventHandlers++; return; }
+          el.removeAttribute(attr.name); return;
+        }
+        if(name.startsWith('data-')){ report.preserved.dataAttrs++; return; }
+        if(name.startsWith('aria-')){ report.preserved.ariaAttrs++; return; }
+        if(name === 'role') return;
+        if(name === 'id'){ report.preserved.ids++; return; }
+        if(name === 'class'){ report.preserved.classes++; return; }
+        if(name === 'hidden'){ report.preserved.hiddenElements++; return; }
+
+        if(name === 'style'){
+          const filtered = filterInlineStyle(attr.value || '');
+          if(filtered){
+            if(/display\s*:\s*none/i.test(filtered) || /visibility\s*:\s*hidden/i.test(filtered)){
+              el.setAttribute('hidden', '');
+              el.removeAttribute('style');
+              report.preserved.hiddenElements++;
+            } else {
+              el.setAttribute('style', filtered);
+            }
+          } else {
+            el.removeAttribute('style');
+          }
+          report.removed.inlineStyles++;
+          return;
+        }
+        if(PRESENTATIONAL.has(name)){
+          el.removeAttribute(attr.name);
+          report.removed.presentationalAttrs++;
+          return;
+        }
+        if((name === 'width' || name === 'height') && !KEEP_SIZE.has(tag)){
+          el.removeAttribute(attr.name);
+          report.removed.presentationalAttrs++;
+          return;
+        }
+      });
+    });
+
+    let unwrapList = [...UNWRAP_ALWAYS];
+    if(opts.removeFormatting) unwrapList = unwrapList.concat(UNWRAP_FORMAT);
+    const sel = unwrapList.join(',');
+    if(sel){
+      [...doc.querySelectorAll(sel)].forEach(el => {
+        if(!el.isConnected) return;
+        const parent = el.parentNode;
+        if(!parent) return;
+        while(el.firstChild) parent.insertBefore(el.firstChild, el);
+        parent.removeChild(el);
+        report.removed.designTags++;
+      });
+    }
+
+    if(opts.removeComments){
+      const walker = doc.createTreeWalker(doc, NodeFilter.SHOW_COMMENT);
+      const list = [];
+      while(walker.nextNode()) list.push(walker.currentNode);
+      list.forEach(n => { report.removed.comments++; n.remove(); });
+    }
+
+    if(opts.preserveFunctional){
+      const css = buildFunctionalCSS(keptRules, mediaKept);
+      const styleEl = doc.createElement('style');
+      styleEl.id = '__design_remover_functional__';
+      styleEl.textContent = css;
+      let head = doc.querySelector('head');
+      if(!head){
+        head = doc.createElement('head');
+        doc.documentElement.insertBefore(head, doc.documentElement.firstChild);
+      }
+      head.insertBefore(styleEl, head.firstChild);
+    }
+
+    const hasDoctype = /^\s*<!doctype/i.test(src);
+    const code = (hasDoctype ? '<!DOCTYPE html>\n' : '') + doc.documentElement.outerHTML;
+    return { code, report };
+  }
+
+  function renderReport(report){
+    const r = report.removed, p = report.preserved;
+
+    const removedItems = [];
+    if(r.styleTags)           removedItems.push(`<b>${r.styleTags}</b> &lt;style&gt; tags — <b>${r.cssChars.toLocaleString()}</b> chars`);
+    if(r.designRules)         removedItems.push(`<b>${r.designRules}</b> design-only CSS rules hataye`);
+    if(r.designPropsRemoved)  removedItems.push(`<b>${r.designPropsRemoved}</b> design properties (color, background, font…)`);
+    if(r.cssLinks)            removedItems.push(`<b>${r.cssLinks}</b> external CSS links`);
+    if(r.inlineStyles)        removedItems.push(`<b>${r.inlineStyles}</b> inline style attributes`);
+    if(r.presentationalAttrs) removedItems.push(`<b>${r.presentationalAttrs}</b> presentational attributes`);
+    if(r.designTags)          removedItems.push(`<b>${r.designTags}</b> design-only tags unwrap kiye`);
+    if(r.comments)            removedItems.push(`<b>${r.comments}</b> HTML comments`);
+
+    const preservedItems = [];
+    if(p.functionalRules)     preservedItems.push(`<b>${p.functionalRules}</b> functional CSS rules`);
+    if(p.jsReferencedRules)   preservedItems.push(`<b>${p.jsReferencedRules}</b> JS-referenced rules (classList/querySelector)`);
+    if(p.stateRules)          preservedItems.push(`<b>${p.stateRules}</b> state selectors (.modal.active, :hover…)`);
+    if(p.hiddenElements)      preservedItems.push(`<b>${p.hiddenElements}</b> hidden elements`);
+    if(p.scripts)             preservedItems.push(`<b>${p.scripts}</b> &lt;script&gt; tags`);
+    if(p.eventHandlers)       preservedItems.push(`<b>${p.eventHandlers}</b> event handlers`);
+    if(p.formInputs)          preservedItems.push(`<b>${p.formInputs}</b> form inputs`);
+    if(p.forms)               preservedItems.push(`<b>${p.forms}</b> &lt;form&gt; tags`);
+    if(p.buttons)             preservedItems.push(`<b>${p.buttons}</b> buttons`);
+    if(p.anchors)             preservedItems.push(`<b>${p.anchors}</b> links`);
+    if(p.dataAttrs)           preservedItems.push(`<b>${p.dataAttrs}</b> data-* attributes`);
+    if(p.ariaAttrs)           preservedItems.push(`<b>${p.ariaAttrs}</b> ARIA attributes`);
+    if(p.ids)                 preservedItems.push(`<b>${p.ids}</b> id attributes`);
+    if(p.classes)             preservedItems.push(`<b>${p.classes}</b> class attributes`);
+
+    $('removedList').innerHTML = removedItems.length
+      ? removedItems.map(t => `<li>${t}</li>`).join('')
+      : '<li class="empty">Kuch bhi remove nahi hua</li>';
+    $('preservedList').innerHTML = preservedItems.length
+      ? preservedItems.map(t => `<li>${t}</li>`).join('')
+      : '<li class="empty">Kuch bhi preserve nahi hua</li>';
+
+    const box = $('stateSelectorsBox');
+    const list = $('stateSelectorsList');
+    if(report.stateSelectors.length){
+      box.style.display = 'block';
+      list.innerHTML = report.stateSelectors.map(s => {
+        const badges = s.badges.map(b => {
+          const label = b === 'js' ? 'JS' : b === 'state' ? 'STATE' : 'HIDE';
+          return `<span class="badge ${b}">${label}</span>`;
+        }).join('');
+        return `<span class="sel">${escapeHtml(s.selector)}${badges}</span>`;
+      }).join('');
+    } else {
+      box.style.display = 'none';
+    }
+  }
+
+  function renderStats(report, originalSize, cleanedSize){
+    const r = report.removed, p = report.preserved;
+
+    $('statRemovedRules').textContent = r.designRules.toLocaleString();
+    $('statKeptRules').textContent    = p.functionalRules.toLocaleString();
+    $('statRemovedAttrs').textContent = (r.presentationalAttrs + r.inlineStyles).toLocaleString();
+    $('statSizeBefore').textContent   = fmtBytes(originalSize);
+    $('statSizeAfter').textContent    = fmtBytes(cleanedSize);
+
+    const deltaEl = $('statSizeDelta');
+    if(originalSize > 0){
+      const pct = ((cleanedSize - originalSize) / originalSize) * 100;
+      const sign = pct > 0 ? '+' : '';
+      deltaEl.textContent = sign + pct.toFixed(1) + '%';
+      if(pct < -1){
+        deltaEl.style.color = '#4ade80';
+      } else if(pct > 1){
+        deltaEl.style.color = '#f87171';
+      } else {
+        deltaEl.style.color = '#8b93a7';
+      }
+    } else {
+      deltaEl.textContent = '0%';
+      deltaEl.style.color = '#8b93a7';
+    }
+  }
+
+  function renderXssBanner(patterns){
+    const banner = $('xssBanner');
+    if(!patterns.length){
+      banner.classList.remove('hidden');
+      banner.classList.add('safe');
+      $('xssIcon').textContent = '✅';
+      $('xssTitle').textContent = 'No suspicious patterns detected';
+      $('xssSub').textContent = 'Cleaned HTML me koi eval, document.write, ya unsafe JS URI nahi mila.';
+      $('xssPatterns').innerHTML = '';
+      return;
+    }
+
+    banner.classList.remove('hidden');
+    banner.classList.remove('safe');
+
+    const highCount = patterns.filter(p => p.tag === 'HIGH').length;
+    const medCount  = patterns.filter(p => p.tag === 'MED').length;
+
+    if(highCount > 0){
+      $('xssIcon').textContent = '🚨';
+      $('xssTitle').textContent = `${patterns.length} suspicious pattern${patterns.length > 1 ? 's' : ''} detected — ${highCount} high risk`;
+      $('xssSub').textContent = 'Cleaned HTML ko share karne se pehle in patterns ko review karo. Ye functionality ko preserve karta hai, lekin safety ka dhyan rakho.';
+    } else if(medCount > 0){
+      $('xssIcon').textContent = '⚠️';
+      $('xssTitle').textContent = `${patterns.length} pattern${patterns.length > 1 ? 's' : ''} detected — medium risk`;
+      $('xssSub').textContent = 'Kuch dynamic patterns mile hain. Ye mostly normal hote hain, par review karna acha hai.';
+    } else {
+      $('xssIcon').textContent = 'ℹ️';
+      $('xssTitle').textContent = `${patterns.length} minor pattern${patterns.length > 1 ? 's' : ''} detected`;
+      $('xssSub').textContent = 'Ye low-risk patterns hain — external resources ya redirects ke baare me info.';
+    }
+
+    $('xssPatterns').innerHTML = patterns.slice(0, 15).map(p => {
+      const tagClass = p.tag === 'HIGH' ? 'high' : p.tag === 'MED' ? 'med' : 'low';
+      return `<div class="pattern">
+        <span class="tag ${tagClass}">${p.tag}</span>
+        <div>
+          <code>${escapeHtml(p.name)}</code>
+          ${p.count > 1 ? ` <span style="opacity:.7">×${p.count}</span>` : ''}
+          <div style="margin-top:3px;color:#8b93a7;font-size:11px">${escapeHtml(p.desc)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function showStatus(msg){ const el = $('inputStatus'); el.innerHTML = msg; el.classList.remove('hidden'); }
+  function hideStatus(){ $('inputStatus').classList.add('hidden'); }
+
+  let lastCleanedCode = '';
+
+  function generate(){
+    const src = $('htmlInput').value;
+    if(!src.trim()){ toast('Pehle HTML paste ya upload karo!', true); return; }
+    hideStatus();
+    showStatus('⏳ Analyzing JS + CSS dependencies…');
+
+    setTimeout(() => {
+      try {
+        const opts = {
+          depAnalysis:       $('optDepAnalysis').checked,
+          preserveFunctional: $('optFunctional').checked,
+          preserveEvents:    $('optEvents').checked,
+          removeFormatting:  $('optFormat').checked,
+          removeComments:    $('optComments').checked
+        };
+        const { code, report } = cleanHTML(src, opts);
+        lastCleanedCode = code;
+
+        const xssPatterns = detectSuspiciousPatterns(src);
+
+        $('output').classList.remove('hidden');
+        $('origCode').textContent = src;
+        $('cleanCode').textContent = code;
+        $('origPreview').srcdoc = src;
+        $('cleanPreview').srcdoc = code;
+
+        renderStats(report, src.length, code.length);
+        renderXssBanner(xssPatterns);
+        renderReport(report);
+
+        // 🔗 PIPE: Save cleaned HTML for next tools
+        if (window.Pipe) {
+          window.Pipe.save('01', code);
+          console.log('✅ [01] Cleaned HTML saved →', code.length, 'chars');
+        }
+
+        showStatus(`✅ Done — <b>${report.preserved.jsReferencedRules}</b> JS-referenced + <b>${report.preserved.stateRules}</b> state rules preserved, <b>${report.removed.designRules}</b> design rules removed`);
+        $('output').scrollIntoView({ behavior:'smooth', block:'start' });
+      } catch(e){
+        console.error(e);
+        showStatus('❌ Error: ' + (e && e.message ? e.message : 'unknown'));
+        toast('Failed.', true);
+      }
+    }, 20);
+  }
+
+  document.querySelectorAll('.tabs').forEach(tabsEl => {
+    const wrapper = tabsEl.closest('.panel');
+    tabsEl.addEventListener('click', e => {
+      const btn = e.target.closest('.tab');
+      if(!btn) return;
+      const view = btn.dataset.view;
+      tabsEl.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === btn));
+      wrapper.querySelectorAll('.view').forEach(v => {
+        const name = v.dataset.viewPanel;
+        v.classList.toggle('hidden', !name.endsWith('-' + view));
+      });
+    });
+  });
+
+  $('htmlFile').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      $('htmlInput').value = ev.target.result;
+      $('zipInfo').classList.add('hidden');
+      toast('Loaded: ' + file.name);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  let currentZip = null;
+  $('zipFile').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    e.target.value = '';
+    if(!window.JSZip){ toast('JSZip load nahi hua.', true); return; }
+    try {
+      const buf = await file.arrayBuffer();
+      const zip = await JSZip.loadAsync(buf);
+      currentZip = zip;
+      const htmlFiles = [];
+      zip.forEach((path, entry) => { if(!entry.dir && /\.html?$/i.test(path)) htmlFiles.push(path); });
+      if(!htmlFiles.length){ toast('ZIP me HTML nahi mili.', true); return; }
+      htmlFiles.sort((a, b) => {
+        const ai = /(^|\/)index\.html?$/i.test(a);
+        const bi = /(^|\/)index\.html?$/i.test(b);
+        if(ai && !bi) return -1;
+        if(bi && !ai) return 1;
+        return a.localeCompare(b);
+      });
+      $('zipName').textContent = file.name + ' (' + htmlFiles.length + ')';
+      const sel = $('zipSelect');
+      sel.innerHTML = htmlFiles.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+      $('zipInfo').classList.remove('hidden');
+      sel.onchange = () => loadFromZip(sel.value);
+      await loadFromZip(htmlFiles[0]);
+      toast('ZIP loaded');
+    } catch(err){ console.error(err); toast('ZIP error.', true); }
+  });
+
+  async function loadFromZip(path){
+    if(!currentZip) return;
+    const entry = currentZip.file(path);
+    if(!entry) return;
+    $('htmlInput').value = await entry.async('string');
+    toast('Loaded: ' + path);
+  }
+
+  $('generateBtn').addEventListener('click', generate);
+  $('clearBtn').addEventListener('click', () => {
+    $('htmlInput').value = '';
+    $('output').classList.add('hidden');
+    $('zipInfo').classList.add('hidden');
+    currentZip = null; lastCleanedCode = '';
+    hideStatus();
+    $('htmlInput').focus();
+  });
+
+  $('copyBtn').addEventListener('click', async () => {
+    if(!lastCleanedCode) return;
+    try { await navigator.clipboard.writeText(lastCleanedCode); toast('Copied ✅'); }
+    catch {
+      const ta = document.createElement('textarea');
+      ta.value = lastCleanedCode; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove(); toast('Copied ✅');
+    }
+  });
+
+  $('downloadBtn').addEventListener('click', () => {
+    if(!lastCleanedCode) return;
+    const blob = new Blob([lastCleanedCode], { type:'text/html;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'cleaned-design-free.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    toast('Download shuru ⬇');
+  });
+
+  $('openNewTab').addEventListener('click', () => {
+    if(!lastCleanedCode) return;
+    const blob = new Blob([lastCleanedCode], { type:'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 8000);
+  });
+
+  document.addEventListener('keydown', e => {
+    if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); generate(); }
+  });
+
+  $('sampleBtn').addEventListener('click', () => {
+    $('htmlInput').value = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Modal State Test</title>
+<style>
+  body { background:#111; color:#fff; font-family:Arial; padding:40px; text-align:center; }
+  h1 { color:cyan; font-size:42px; }
+  .modal { position: fixed; inset: 0; display: none; background: rgba(0,0,0,.85); z-index: 100; }
+  .modal.active { display: flex; align-items: center; justify-content: center; }
+  .modal-content { background: white; color: black; padding: 30px; border-radius: 12px; }
+  .btn { background: red; color: white; padding: 12px 24px; border: 0; border-radius: 20px; cursor: pointer; }
+  .title { font-size: 30px; color: gold; letter-spacing: 2px; }
+</style>
+</head>
+<body>
+  <h1 class="title">Modal Test</h1>
+  <p>Open button dabao — modal flex se dikhna chahiye.</p>
+  <button class="btn" onclick="openModal()">Open Modal</button>
+  <button class="btn" onclick="closeModal()">Close Modal</button>
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <h2>✅ Modal open!</h2>
+      <p>Agar tum ye dekh rahe ho, to state selector preserve hua.</p>
+      <button onclick="closeModal()">Close</button>
+    </div>
+  </div>
+  <script>
+    function openModal(){ document.getElementById('modal').classList.add('active'); }
+    function closeModal(){ document.getElementById('modal').classList.remove('active'); }
+    document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
+  <\/script>
+</body>
+</html>`;
+    toast('Sample loaded — Generate dabao');
+  });
+
+})();
+</script>
+</body>
+</html>

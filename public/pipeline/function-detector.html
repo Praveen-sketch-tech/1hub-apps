@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🔍 Function / Capability Detector</title>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#e8eefc;font-family:Inter,Segoe UI,system-ui,sans-serif;padding:24px}
+.container{max-width:1500px;margin:auto}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px}
+h1{margin:0;font-size:27px}.sub{color:#8fa1c4;margin-top:5px}.grid{display:grid;grid-template-columns:420px 1fr;gap:18px}
+.panel{background:#121a2b;border:1px solid #263653;border-radius:18px;padding:18px;box-shadow:0 12px 35px #0005}
+h2{font-size:17px;margin:0 0 14px}.row{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid #34496d;background:#1b2840;color:#edf4ff;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}.btn:hover{background:#263856}.primary{background:#315bd6;border-color:#4b75ee}.danger{background:#5a2530;border-color:#873847}
+input[type=file]{display:none}.drop{border:1px dashed #45618f;border-radius:14px;padding:22px;text-align:center;color:#91a4c8;margin:12px 0;cursor:pointer}.drop.drag{border-color:#6d94ff;background:#17233d}
+textarea{width:100%;height:260px;background:#090e19;color:#dce7ff;border:1px solid #293b5e;border-radius:12px;padding:12px;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical}
+.files{margin:12px 0;max-height:180px;overflow:auto}.file{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;background:#0e1626;border:1px solid #233452;border-radius:8px;margin:5px 0;font-size:12px}.muted{color:#8194b8}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}.stat{background:#0d1525;border:1px solid #263957;border-radius:12px;padding:10px}.stat b{display:block;font-size:20px}.stat span{font-size:11px;color:#8498bb}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.tab{padding:8px 11px;border:1px solid #2c3d5d;background:#10192b;border-radius:9px;cursor:pointer;font-size:12px}.tab.active{background:#294b9d}
+.section{border:1px solid #263957;border-radius:12px;margin:9px 0;overflow:hidden}.section>summary{padding:11px 13px;background:#10192a;cursor:pointer;font-weight:700}.body{padding:11px 13px}.item{padding:9px 0;border-bottom:1px solid #1d2a42}.item:last-child{border:0}.pill{display:inline-block;padding:3px 7px;border-radius:99px;background:#203153;color:#bcd0ff;font-size:10px;margin-left:6px}.green{color:#70d6a1}.yellow{color:#f0ca67}.red{color:#ff7f8c}
+pre{white-space:pre-wrap;word-break:break-word;margin:6px 0;background:#09101c;padding:8px;border-radius:8px;color:#aebfe0;font-size:11px}.empty{text-align:center;color:#7589ad;padding:50px 15px}.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.flow span{background:#172746;border:1px solid #34517d;padding:7px 9px;border-radius:8px;font-size:11px}.flow i{color:#6e91e8}
+.notice{padding:9px 11px;border-radius:9px;background:#17233a;color:#a9bcdf;font-size:12px;margin:8px 0}.footer{margin-top:14px;color:#65799e;font-size:11px;text-align:center}
+@media(max-width:950px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}} 
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="top">
+    <div><h1>🔍 Function / Capability Detector</h1><div class="sub">Standalone Module #2 — source → functions → events → capabilities → flow → downloadable analysis</div></div>
+    <div class="pill">v2.0</div>
+  </div>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>📥 Source Input</h2>
+      <div class="row">
+        <label class="btn primary" for="fileInput">📁 Upload HTML / ZIP</label>
+        <input id="fileInput" type="file" accept=".html,.htm,.zip,text/html,application/zip" multiple>
+        <button class="btn" id="pasteMode">📝 Paste Code</button>
+        <button class="btn" id="sampleBtn">📋 Sample</button>
+        <button class="btn danger" id="clearBtn">🧹 Clear All</button>
+      </div>
+      <div class="drop" id="dropZone">Drop HTML or ZIP here<br><small>ZIP may contain nested HTML / JS / CSS / assets</small></div>
+      <div id="fileList" class="files"><div class="muted">No source loaded.</div></div>
+      <textarea id="codeInput" placeholder="Paste HTML / JavaScript here..."></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="analyzeBtn">🔎 Analyze Source</button>
+        <button class="btn" id="copyJson">📋 Copy JSON</button>
+        <button class="btn" id="downloadJson">⬇ JSON</button>
+        <button class="btn" id="downloadReport">⬇ HTML Report</button>
+        <button class="btn" id="downloadCsv">⬇ CSV</button>
+        <button class="btn" id="downloadZip">📦 Analysis ZIP</button>
+      </div>
+      <div class="notice">Module boundary: this tool detects functions/capabilities only. It does not download external dependencies, create shared functions, generate apps, build or deploy.</div>
+    </section>
+
+    <section class="panel">
+      <div class="stats" id="stats"></div>
+      <div class="tabs">
+        <button class="tab active" data-tab="overview">Overview</button>
+        <button class="tab" data-tab="capabilities">Capabilities</button>
+        <button class="tab" data-tab="functions">Functions</button>
+        <button class="tab" data-tab="events">Events</button>
+        <button class="tab" data-tab="flows">Flows</button>
+        <button class="tab" data-tab="files">Files</button>
+        <button class="tab" data-tab="unknown">Unclassified</button>
+        <button class="tab" data-tab="json">JSON</button>
+      </div>
+      <div id="results"><div class="empty">Load HTML/ZIP or paste source, then click <b>Analyze Source</b>.</div></div>
+    </section>
+  </div>
+  <div class="footer">No guessed file paths or fake line ranges. Evidence is taken from the supplied source.</div>
+</div>
+
+<script>
+(()=> {
+"use strict";
+
+// 🔗 PIPE HELPER — connects tools via localStorage
+window.Pipe = {
+  save: (id, data) => localStorage.setItem('pipe_' + id, JSON.stringify(data)),
+  load: (id) => { try { return JSON.parse(localStorage.getItem('pipe_' + id) || 'null'); } catch(e){ return null; } },
+  clear: (id) => localStorage.removeItem('pipe_' + id)
+};
+
+const CAP = [
+ {id:"file.upload",cat:"INPUT",icon:"📥",patterns:[/<input[^>]*type\s*=\s*["']file["']/i,/FileReader\b/i,/\.files\b/i,/addEventListener\s*\(\s*["']change["']/i]},
+ {id:"file.multiple",cat:"INPUT",icon:"📥",patterns:[/<input[^>]*\bmultiple\b/i,/\bmultiple\s*=\s*["']?true/i,/files\.length/i]},
+ {id:"text.input",cat:"INPUT",icon:"📝",patterns:[/<textarea\b/i,/<input[^>]*type\s*=\s*["']text["']/i,/\.value\b/i,/prompt\s*\(/i]},
+ {id:"url.input",cat:"INPUT",icon:"🔗",patterns:[/<input[^>]*type\s*=\s*["']url["']/i,/new\s+URL\s*\(/i,/location\.href/i]},
+ {id:"merge",cat:"ACTION",icon:"🔀",patterns:[/\bmerge(?:PDF|Files|Documents)?\b/i,/\bcombine(?:PDF|Files|Documents)?\b/i,/\bjoin(?:Files|PDF)?\b/i]},
+ {id:"split",cat:"ACTION",icon:"✂️",patterns:[/\bsplit(?:PDF|File|Document)?\b/i,/\bdivide\b/i,/\bseparate(?:Pages|Files)?\b/i]},
+ {id:"compress",cat:"ACTION",icon:"🗜️",patterns:[/\bcompress(?:Image|File|PDF)?\b/i,/\bcompression\b/i,/\bquality\s*=\s*0?\.[0-9]+/i,/JSZip\b/i,/\.zip\b/i]},
+ {id:"convert",cat:"ACTION",icon:"🔄",patterns:[/\bconvert(?:To[A-Za-z]+)?\b/i,/toDataURL\s*\(/i,/toBlob\s*\(/i,/\btransform\b/i]},
+ {id:"generate",cat:"ACTION",icon:"⚙️",patterns:[/\bgenerate(?:PDF|File|Report|Document)?\b/i,/new\s+Blob\s*\(/i,/new\s+File\s*\(/i,/createDocument\s*\(/i]},
+ {id:"pdf.processing",cat:"PROCESS",icon:"📚",patterns:[/PDFDocument\b/i,/pdf-lib/i,/pdfjs/i,/jsPDF\b/i,/\.pdf\b/i,/\bPDF\b/i]},
+ {id:"image.processing",cat:"PROCESS",icon:"🖼️",patterns:[/drawImage\s*\(/i,/getImageData\s*\(/i,/new\s+Image\s*\(/i,/\bimage(?:Data|Bitmap)?\b/i]},
+ {id:"canvas",cat:"PROCESS",icon:"🎨",patterns:[/<canvas\b/i,/getContext\s*\(\s*["']2d["']/i,/OffscreenCanvas\b/i,/createElement\s*\(\s*["']canvas["']/i]},
+ {id:"webworker",cat:"PROCESS",icon:"⚡",patterns:[/new\s+Worker\s*\(/i,/Worker\s*\(/i,/postMessage\s*\(/i,/onmessage\b/i]},
+ {id:"wasm",cat:"PROCESS",icon:"🧩",patterns:[/WebAssembly\b/i,/\.wasm\b/i,/instantiateStreaming\b/i]},
+ {id:"browser.api",cat:"PROCESS",icon:"🌐",patterns:[/\bfetch\s*\(/i,/localStorage\b/i,/sessionStorage\b/i,/navigator\./i,/Notification\b/i,/geolocation/i]},
+ {id:"file.download",cat:"OUTPUT",icon:"📤",patterns:[/\.download\s*=/i,/saveAs\s*\(/i,/URL\.createObjectURL\s*\(/i,/a\.click\s*\(\s*\)/i]},
+ {id:"file.preview",cat:"OUTPUT",icon:"👁️",patterns:[/\bpreview\b/i,/showPreview\s*\(/i,/<iframe\b/i,/<img\b/i,/FileReader.*readAsDataURL/is]},
+ {id:"file.generate",cat:"OUTPUT",icon:"📎",patterns:[/new\s+Blob\s*\(/i,/new\s+File\s*\(/i,/generateFile\s*\(/i,/toBlob\s*\(/i]}
+];
+
+const state={sources:new Map(),analysis:null,activeTab:"overview"};
+
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const lines=s=>String(s||"").split(/\r?\n/);
+const lineOf=(text,pos)=>text.slice(0,pos).split(/\r?\n/).length;
+
+/* ---- FIXED: robust brace matching (respects strings/comments) ---- */
+function findMatchingBrace(text, openPos){
+  let depth = 0;
+  let inString = false, stringChar = '', inLineComment = false, inBlockComment = false;
+  for(let i = openPos; i < text.length; i++){
+    const ch = text[i];
+    const next = text[i+1];
+    if(inLineComment){
+      if(ch === '\n') inLineComment = false;
+      continue;
+    }
+    if(inBlockComment){
+      if(ch === '*' && next === '/'){ inBlockComment = false; i++; }
+      continue;
+    }
+    if(inString){
+      if(ch === '\\'){ i++; continue; }
+      if(ch === stringChar) inString = false;
+      continue;
+    }
+    if(ch === '/' && next === '/'){ inLineComment = true; i++; continue; }
+    if(ch === '/' && next === '*'){ inBlockComment = true; i++; continue; }
+    if(ch === '"' || ch === "'" || ch === '`'){ inString = true; stringChar = ch; continue; }
+    if(ch === '{') depth++;
+    else if(ch === '}'){
+      depth--;
+      if(depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+function detectFunctions(text,file){
+  const out=[];
+  const seen=new Set();
+  const patterns=[
+    /(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)\s*\{/g,
+    /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(([^)]*)\)\s*=>\s*\{/g,
+    /(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?([A-Za-z_$][\w$]*)\s*=>/g,
+    /([A-Za-z_$][\w$]*)\s*:\s*(?:async\s+)?function\s*\(([^)]*)\)\s*\{/g,
+    /([A-Za-z_$][\w$]*)\s*\(([^)]*)\)\s*\{/g
+  ];
+  for(const re of patterns){
+    let m;
+    while((m=re.exec(text))){
+      const name=m[1], start=m.index, ln=lineOf(text,start);
+      if(["if","for","while","switch","catch","with","function"].includes(name)) continue;
+      const key=name+"@"+ln;
+      if(seen.has(key)) continue;
+      seen.add(key);
+      let end=start;
+      const braceIdx = text.indexOf('{', start);
+      if(braceIdx !== -1){
+        const closeIdx = findMatchingBrace(text, braceIdx);
+        if(closeIdx !== -1) end = closeIdx;
+      }
+      const endLine=lineOf(text,end||start);
+      const body=text.slice(start,(end||start)+1);
+      const caps=capabilitiesForText(body).map(x=>x.id);
+      out.push({name,file,startLine:ln,endLine,params:(m[2]||"").trim(),capabilities:caps,evidence:body.slice(0,240)});
+    }
+  }
+  return out.sort((a,b)=>a.startLine-b.startLine);
+}
+
+function capabilitiesForText(text){
+  const found=[];
+  for(const d of CAP){
+    if(d.patterns.some(p=>p.test(text))) found.push(d);
+  }
+  return found;
+}
+
+function detectEvents(text,file){
+  const out=[];
+  const re=/addEventListener\s*\(\s*["']([^"']+)["']\s*,\s*(?:async\s*)?(?:function\s*\([^)]*\)|\([^)]*\)\s*=>|[A-Za-z_$][\w$]*)/g;
+  let m;
+  while((m=re.exec(text))){
+    const ln=lineOf(text,m.index);
+    const context=text.slice(m.index,Math.min(text.length,m.index+700));
+    const fn=context.match(/=>\s*\{?\s*([A-Za-z_$][\w$]*)\s*\(|function\s*\([^)]*\)\s*\{\s*([A-Za-z_$][\w$]*)\s*\(/);
+    out.push({event:m[1],file,line:ln,target:extractTarget(text,m.index),handler:fn?(fn[1]||fn[2]||"anonymous"):"anonymous",evidence:lines(text)[ln-1]?.trim()||""});
+  }
+  const attrRe=/\bon(click|change|input|submit|drop|dragover|load)\s*=\s*["']([^"']+)["']/gi;
+  while((m=attrRe.exec(text))) out.push({event:m[1].toLowerCase(),file,line:lineOf(text,m.index),target:"inline attribute",handler:m[2],evidence:m[0]});
+  return out;
+}
+
+function extractTarget(text,pos){
+  const before=text.slice(Math.max(0,pos-250),pos);
+  const id=before.match(/getElementById\s*\(\s*["']([^"']+)["']\s*\)/);
+  if(id)return "#"+id[1];
+  const q=before.match(/querySelector\s*\(\s*["']([^"']+)["']\s*\)/);
+  if(q)return q[1];
+  return "unknown";
+}
+
+function detectCapabilities(text,file){
+  const arr=[];
+  const ls=lines(text);
+  CAP.forEach(d=>{
+    const matches=[];
+    ls.forEach((line,i)=>{
+      if(d.patterns.some(p=>p.test(line))){
+        matches.push({line:i+1,text:line.trim()});
+      }
+    });
+    if(matches.length) arr.push({id:d.id,category:d.cat,icon:d.icon,file,locations:matches,evidence:matches.slice(0,5)});
+  });
+  return arr;
+}
+
+function buildFlow(functions,events,capabilities){
+  const nodes=[], edges=[];
+  const add=n=>{if(n&&!nodes.includes(n))nodes.push(n)};
+  functions.forEach(f=>add(f.name));
+  capabilities.forEach(c=>add(c.id));
+  events.forEach(e=>{add(e.event);if(e.handler&&e.handler!=="anonymous"){add(e.handler);edges.push([e.event,e.handler])}});
+  functions.forEach(f=>f.capabilities.forEach(c=>edges.push([f.name,c])));
+  return {nodes,edges};
+}
+
+function confidence(item){
+  const n=item.locations?.length||0;
+  if(n>=3)return "high";
+  if(n>=1)return "medium";
+  return "low";
+}
+
+function analyze(){
+  const files=[...state.sources.entries()];
+  if(!files.length && document.getElementById("codeInput").value.trim()){
+    state.sources.set("pasted-input.html",document.getElementById("codeInput").value);
+  }
+  const sourceFiles=[...state.sources.entries()];
+  if(!sourceFiles.length){render();return}
+  const all={files:[],functions:[],capabilities:[],inputs:[],events:[],flows:[],outputs:[],unclassified:[],analysisVersion:"2.0.0",generatedAt:new Date().toISOString()};
+  for(const [file,text] of sourceFiles){
+    const ext=file.split(".").pop().toLowerCase();
+    if(!["html","htm","js","mjs","jsx"].includes(ext) && !text.includes("<html") && !text.includes("function") && !text.includes("=>")) continue;
+    const fns=detectFunctions(text,file);
+    const ev=detectEvents(text,file);
+    const caps=detectCapabilities(text,file);
+    all.files.push({path:file,type:ext||"source",lines:lines(text).length,size:text.length});
+    fns.forEach(f=>all.functions.push(f));
+    ev.forEach(e=>all.events.push(e));
+    caps.forEach(c=>{
+      c.confidence=confidence(c);
+      all.capabilities.push(c);
+      if(c.category==="INPUT")all.inputs.push(c);
+      if(c.category==="OUTPUT")all.outputs.push(c);
+    });
+    const declared=[...fns.map(f=>f.name),...ev.map(e=>e.handler).filter(x=>x!=="anonymous")];
+    const genericCalls=[];
+    const callRe=/\b([A-Za-z_$][\w$]*)\s*\(/g;let m;
+    while((m=callRe.exec(text))) if(!["if","for","while","switch","catch","function","log","push","map","filter","forEach"].includes(m[1])) genericCalls.push(m[1]);
+    genericCalls.filter(x=>!declared.includes(x)).slice(0,80).forEach(x=>all.unclassified.push({file,line:lineOf(text,text.indexOf(x+"(")),name:x}));
+  }
+  const uniqueUn=all.unclassified.filter((x,i,a)=>a.findIndex(y=>y.file===x.file&&y.name===x.name&&y.line===x.line)===i);
+  all.unclassified=uniqueUn.slice(0,100);
+  const flow=buildFlow(all.functions,all.events,all.capabilities);
+  all.flows=[flow];
+  state.analysis=all;
+
+  // 🔗 PIPE: Save analysis JSON for next tools (Tool 04)
+  window.Pipe.save('02', all);
+  console.log('✅ [02] Analysis saved to pipe →', all.functions.length, 'functions,', all.capabilities.length, 'capabilities');
+
+  render();
+}
+
+function stat(n,l){return `<div class="stat"><b>${n}</b><span>${l}</span></div>`}
+function renderStats(){
+  const a=state.analysis;
+  document.getElementById("stats").innerHTML=a?[
+    stat(a.files.length,"Files"),stat(a.functions.length,"Functions"),stat(a.capabilities.length,"Capabilities"),stat(a.events.length,"Events"),
+    stat(a.inputs.length,"Inputs"),stat(a.outputs.length,"Outputs"),stat(a.flows[0]?.edges.length||0,"Flow links"),stat(a.unclassified.length,"Unclassified")
+  ].join(""):"";
+}
+
+function render(){
+  renderStats();
+  const box=document.getElementById("results"),a=state.analysis;
+  if(!a){box.innerHTML='<div class="empty">No analysis yet.</div>';return}
+  const t=state.activeTab;
+  if(t==="overview")box.innerHTML=overview(a);
+  else if(t==="capabilities")box.innerHTML=listCaps(a.capabilities);
+  else if(t==="functions")box.innerHTML=listFns(a.functions);
+  else if(t==="events")box.innerHTML=listEvents(a.events);
+  else if(t==="flows")box.innerHTML=flowHtml(a.flows[0]);
+  else if(t==="files")box.innerHTML=listFiles(a.files);
+  else if(t==="unknown")box.innerHTML=listUnknown(a.unclassified);
+  else if(t==="json")box.innerHTML="<pre>"+esc(JSON.stringify(a,null,2))+"</pre>";
+}
+
+function overview(a){
+  const cats={};a.capabilities.forEach(c=>(cats[c.category]??=[]).push(c));
+  return `<div class="notice"><b>Analysis completed.</b> Only supplied source files were analyzed. File paths and line numbers come from actual source content.</div>`+
+    Object.entries(cats).map(([cat,arr])=>`<details class="section" open><summary>${cat} — ${arr.length}</summary><div class="body">${arr.map(c=>capHtml(c)).join("")}</div></details>`).join("")+
+    `<details class="section"><summary>Function execution links — ${a.flows[0]?.edges.length||0}</summary><div class="body">${flowHtml(a.flows[0])}</div></details>`;
+}
+function capHtml(c){
+  const loc=c.locations.map(x=>`L${x.line}: ${esc(x.text)}`).join("\n");
+  return `<div class="item"><b>${c.icon} ${esc(c.id)}</b><span class="pill">${esc(c.category)}</span><span class="pill ${c.confidence==="high"?"green":c.confidence==="medium"?"yellow":"red"}">${c.confidence}</span><div class="muted">${esc(c.file)} · ${c.locations[0]?.line?"line "+c.locations[0].line:""}</div><pre>${loc}</pre></div>`;
+}
+function listCaps(a){return a.length?a.map(capHtml).join(""):'<div class="empty">No capabilities detected.</div>'}
+function listFns(a){return a.length?a.map(f=>`<details class="section"><summary>ƒ ${esc(f.name)} <span class="pill">${esc(f.file)}:${f.startLine}-${f.endLine}</span></summary><div class="body"><div>Parameters: <b>${esc(f.params||"none")}</b></div><div>Capabilities: ${f.capabilities.length?f.capabilities.map(x=>`<span class="pill">${esc(x)}</span>`).join(""):"none detected"}</div><pre>${esc(f.evidence)}</pre></div></details>`).join(""):'<div class="empty">No functions detected.</div>'}
+function listEvents(a){return a.length?a.map(e=>`<div class="item"><b>⚡ ${esc(e.event)}</b><span class="pill">${esc(e.file)}:${e.line}</span><div>Target: ${esc(e.target)} → Handler: <b>${esc(e.handler)}</b></div><pre>${esc(e.evidence)}</pre></div>`).join(""):'<div class="empty">No events detected.</div>'}
+function listFiles(a){return a.map(f=>`<div class="item">📄 <b>${esc(f.path)}</b><div class="muted">${f.lines} lines · ${f.size} chars · ${esc(f.type)}</div></div>`).join("")}
+function listUnknown(a){return a.length?a.map(x=>`<div class="item">❔ <b>${esc(x.name)}</b><span class="pill">${esc(x.file)}:${x.line}</span></div>`).join(""):'<div class="empty">No unclassified calls found.</div>'}
+function flowHtml(f){
+  if(!f||!f.edges.length)return '<div class="empty">No function/capability flow links detected.</div>';
+  return `<div class="flow">${f.edges.map(e=>`<span>${esc(e[0])}</span><i>→</i><span>${esc(e[1])}</span>`).join("")}</div>`;
+}
+
+function csv(){
+  const a=state.analysis;if(!a)return "";
+  const rows=[["Capability","Category","Confidence","File","Function","Start Line","End Line","Evidence"]];
+  a.capabilities.forEach(c=>{
+    const fn=a.functions.find(f=>f.file===c.file&&f.capabilities.includes(c.id));
+    c.locations.forEach(l=>rows.push([c.id,c.category,c.confidence,c.file,fn?.name||"",fn?.startLine||l.line,fn?.endLine||l.line,l.text]));
+  });
+  return rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
+}
+function download(name,data,type){
+  const blob=new Blob([data],{type});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function reportHtml(){
+  const a=state.analysis;return `<!doctype html><html><head><meta charset="utf-8"><title>Function Capability Report</title><style>body{font:14px Arial;padding:30px;color:#222}h1{color:#173b76}pre{background:#f3f5f8;padding:12px;white-space:pre-wrap}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:7px;text-align:left}</style></head><body><h1>Function / Capability Analysis Report</h1><p>Generated: ${esc(a.generatedAt)}</p><h2>Summary</h2><pre>${esc(JSON.stringify({files:a.files.length,functions:a.functions.length,capabilities:a.capabilities.length,inputs:a.inputs.length,events:a.events.length,outputs:a.outputs.length,unclassified:a.unclassified.length},null,2))}</pre><h2>Capabilities</h2><table><tr><th>Capability</th><th>Category</th><th>Confidence</th><th>File</th><th>Lines</th><th>Evidence</th></tr>${a.capabilities.map(c=>`<tr><td>${esc(c.id)}</td><td>${esc(c.category)}</td><td>${esc(c.confidence)}</td><td>${esc(c.file)}</td><td>${c.locations.map(x=>x.line).join(", ")}</td><td><pre>${esc(c.locations.map(x=>x.text).join("\\n"))}</pre></td></tr>`).join("")}</table><h2>Functions</h2><pre>${esc(JSON.stringify(a.functions,null,2))}</pre><h2>Events</h2><pre>${esc(JSON.stringify(a.events,null,2))}</pre><h2>Flows</h2><pre>${esc(JSON.stringify(a.flows,null,2))}</pre></body></html>`;
+}
+
+async function loadFile(file){
+  if(file.name.toLowerCase().endsWith(".zip")){
+    if(!window.JSZip){alert("JSZip library could not load. Internet access is required for ZIP support.");return}
+    const zip=await JSZip.loadAsync(file);
+    for(const name of Object.keys(zip.files)){
+      const z=zip.files[name];if(z.dir)continue;
+      const ext=name.split(".").pop().toLowerCase();
+      if(["html","htm","js","mjs","jsx","css"].includes(ext)){
+        state.sources.set(name,await z.async("string"));
+      }
+    }
+  }else{
+    state.sources.set(file.name,await file.text());
+  }
+  refreshFiles();
+}
+function refreshFiles(){
+  const el=document.getElementById("fileList");
+  if(!state.sources.size){el.innerHTML='<div class="muted">No source loaded.</div>';return}
+  el.innerHTML=[...state.sources.entries()].map(([n,t])=>`<div class="file"><span>📄 ${esc(n)}</span><span>${t.length} chars</span></div>`).join("");
+}
+function sample(){
+  document.getElementById("codeInput").value=`<!doctype html>
+<html>
+<input id="pdfInput" type="file" multiple accept=".pdf">
+<button id="mergeBtn">Merge PDF</button>
+<script>
+async function handleFiles(e){
+  const files=e.target.files;
+  const reader=new FileReader();
+}
+async function mergePDF(files){
+  const mergedPdf=await PDFDocument.create();
+  return mergedPdf;
+}
+function generateReport(){
+  const blob=new Blob(["report"],{type:"application/pdf"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.download="report.pdf";
+  a.href=url;
+  a.click();
+}
+document.getElementById("pdfInput").addEventListener("change", handleFiles);
+document.getElementById("mergeBtn").addEventListener("click", mergePDF);
+const worker=new Worker("pdf-worker.js");
+fetch("/api/data");
+<\/script>
+</html>`;
+  state.sources.clear();refreshFiles();analyze();
+}
+
+document.getElementById("fileInput").addEventListener("change",e=>[...e.target.files].forEach(loadFile));
+document.getElementById("analyzeBtn").addEventListener("click",analyze);
+document.getElementById("sampleBtn").addEventListener("click",sample);
+document.getElementById("clearBtn").addEventListener("click",()=>{state.sources.clear();state.analysis=null;document.getElementById("codeInput").value="";refreshFiles();render()});
+document.getElementById("pasteMode").addEventListener("click",()=>document.getElementById("codeInput").focus());
+document.getElementById("copyJson").addEventListener("click",async()=>{if(!state.analysis)return alert("Analyze first.");await navigator.clipboard.writeText(JSON.stringify(state.analysis,null,2));alert("Analysis JSON copied.")});
+document.getElementById("downloadJson").addEventListener("click",()=>{if(state.analysis)download("function-capability-analysis.json",JSON.stringify(state.analysis,null,2),"application/json")});
+document.getElementById("downloadCsv").addEventListener("click",()=>{if(state.analysis)download("capabilities.csv",csv(),"text/csv")});
+document.getElementById("downloadReport").addEventListener("click",()=>{if(state.analysis)download("Function-Capability-Report.html",reportHtml(),"text/html")});
+document.getElementById("downloadZip").addEventListener("click",async()=>{
+  if(!state.analysis)return alert("Analyze first.");
+  if(!window.JSZip)return alert("JSZip library unavailable.");
+  const z=new JSZip();z.file("analysis.json",JSON.stringify(state.analysis,null,2));z.file("capabilities.csv",csv());z.file("report.html",reportHtml());z.file("source-map.json",JSON.stringify(state.analysis.files,null,2));
+  for(const [name,text] of state.sources)z.file("original/"+name,text);
+  const blob=await z.generateAsync({type:"blob"});download("function-capability-analysis.zip",blob,"application/zip");
+});
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");state.activeTab=b.dataset.tab;render()}));
+
+const dz=document.getElementById("dropZone");
+["dragenter","dragover"].forEach(x=>dz.addEventListener(x,e=>{e.preventDefault();dz.classList.add("drag")}));
+["dragleave","drop"].forEach(x=>dz.addEventListener(x,e=>{e.preventDefault();dz.classList.remove("drag")}));
+dz.addEventListener("drop",e=>[...e.dataTransfer.files].forEach(loadFile));
+dz.addEventListener("click",()=>document.getElementById("fileInput").click());
+
+document.getElementById("codeInput").addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();analyze()}});
+
+// 🔗 AUTO-LOAD: Cleaned HTML from Tool 01
+window.addEventListener('load', () => {
+  const prev = window.Pipe.load('01');
+  if (prev && typeof prev === 'string' && prev.trim()) {
+    state.sources.set('from-cleaner.html', prev);
+    refreshFiles();
+    console.log('✅ [02] Auto-loaded cleaned HTML from Tool 01 (', prev.length, 'chars)');
+    setTimeout(() => analyze(), 400);
+  } else {
+    console.log('ℹ️ [02] No input from Tool 01. Manual mode.');
+  }
+});
+})();
+</script>
+</body>
+</html>
