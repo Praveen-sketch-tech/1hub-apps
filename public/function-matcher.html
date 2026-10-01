@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧩 Shared Function Matcher</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: linear-gradient(145deg, #f6f9fc 0%, #e9f2f9 100%);
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .card {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 2.5rem;
+      padding: 2.5rem 2rem;
+      max-width: 1000px;
+      width: 100%;
+      box-shadow: 0 30px 50px -20px rgba(0, 40, 80, 0.25), 0 0 0 1px rgba(156, 188, 222, 0.3);
+    }
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #0b2b4b;
+      margin-bottom: 0.2rem;
+    }
+    h1 span {
+      background: #1e5a8b;
+      color: white;
+      font-size: 1.2rem;
+      padding: 0.15rem 1rem;
+      border-radius: 40px;
+      font-weight: 500;
+      margin-left: 0.5rem;
+      letter-spacing: 0.3px;
+    }
+    .subhead {
+      color: #3b5e7e;
+      margin-bottom: 2rem;
+      font-weight: 400;
+      font-size: 1.1rem;
+      border-left: 4px solid #8ab3d4;
+      padding-left: 1rem;
+      margin-top: 0.5rem;
+    }
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      align-items: flex-start;
+    }
+    .panel {
+      flex: 1 1 260px;
+      background: #ffffffd9;
+      border-radius: 1.8rem;
+      padding: 1.5rem;
+      box-shadow: 0 6px 18px rgba(0, 30, 60, 0.06);
+      border: 1px solid #c9ddeb;
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      font-weight: 600;
+      color: #0f3b5c;
+      font-size: 1rem;
+    }
+    .panel-header i {
+      font-style: normal;
+      font-size: 0.8rem;
+      background: #dfeaf3;
+      padding: 0.2rem 0.7rem;
+      border-radius: 40px;
+      font-weight: 500;
+      color: #1a4b6e;
+    }
+    .function-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 0.8rem;
+      max-height: 200px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .function-list::-webkit-scrollbar {
+      width: 5px;
+    }
+    .function-list::-webkit-scrollbar-thumb {
+      background: #b8d0e5;
+      border-radius: 20px;
+    }
+    .function-item {
+      background: #f4f9ff;
+      border-radius: 1rem;
+      padding: 0.6rem 0.9rem;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-left: 4px solid #3b7eb0;
+      color: #113752;
+      transition: all 0.1s;
+      word-break: break-word;
+    }
+    .function-item.detected-item {
+      border-left-color: #4a9fd8;
+      background: #ecf5fe;
+      font-weight: 500;
+    }
+    .function-item.shared-item {
+      border-left-color: #2b8c5e;
+      background: #edfaf3;
+      color: #0b412b;
+      justify-content: space-between;
+    }
+    .badge {
+      font-size: 0.7rem;
+      background: #c8e0f0;
+      padding: 0.15rem 0.65rem;
+      border-radius: 30px;
+      color: #14456b;
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-left: 0.5rem;
+    }
+    .badge.success {
+      background: #b8e6cf;
+      color: #0a4a2c;
+    }
+    .badge.warning {
+      background: #ffe1b3;
+      color: #7a4a0b;
+    }
+    .match-area {
+      flex: 1 1 340px;
+      background: #ffffff;
+      border-radius: 1.8rem;
+      padding: 1.5rem;
+      box-shadow: 0 12px 30px -8px rgba(20, 60, 100, 0.2);
+      border: 1px solid #bed6e9;
+    }
+    .match-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 600;
+      color: #1b4b6e;
+      margin-bottom: 1.2rem;
+      font-size: 1.1rem;
+    }
+    .arrow-indicator {
+      font-size: 1.6rem;
+      color: #4e7fa3;
+    }
+    .match-result {
+      background: #f2f8ff;
+      border-radius: 1.4rem;
+      padding: 1.2rem;
+      min-height: 140px;
+      max-height: 260px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      border: 1px solid #cfdef0;
+    }
+    .match-result::-webkit-scrollbar {
+      width: 5px;
+    }
+    .match-result::-webkit-scrollbar-thumb {
+      background: #b8d0e5;
+      border-radius: 20px;
+    }
+    .result-line {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem 0.8rem;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.85rem;
+      padding: 0.3rem 0;
+      border-bottom: 1px dashed #d7e5f2;
+      padding-bottom: 0.6rem;
+    }
+    .result-line:last-child {
+      border-bottom: none;
+    }
+    .verdict {
+      font-weight: 700;
+      padding: 0.2rem 0.8rem;
+      border-radius: 30px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .verdict.reuse {
+      background: #c3edd6;
+      color: #0b4a2a;
+    }
+    .verdict.new {
+      background: #ffd9b3;
+      color: #8a4a0a;
+    }
+    .btn {
+      background: white;
+      border: 1.5px solid #b3cee5;
+      border-radius: 3rem;
+      padding: 0.6rem 1rem;
+      font-weight: 500;
+      font-size: 0.85rem;
+      color: #1b4b6e;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      font-family: 'Inter', sans-serif;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .btn-primary {
+      background: #1e5a8b;
+      border: 1.5px solid #1e5a8b;
+      color: white;
+      box-shadow: 0 6px 12px -4px #1e5a8b70;
+    }
+    .btn-primary:hover {
+      background: #134b75;
+      border-color: #134b75;
+      transform: scale(1.02);
+    }
+    .btn-secondary {
+      background: white;
+      border: 1.5px solid #bbd3e9;
+      color: #1e5a8b;
+    }
+    .btn-secondary:hover {
+      background: #e9f2fc;
+      border-color: #8db3d3;
+    }
+    .btn-sm {
+      padding: 0.35rem 0.8rem;
+      font-size: 0.75rem;
+      border-radius: 30px;
+    }
+    .btn:active {
+      transform: scale(0.97);
+    }
+    .input-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      align-items: center;
+    }
+    .input-row input {
+      flex: 1;
+      background: #f3f9ff;
+      border: 1px solid #bed6e9;
+      border-radius: 3rem;
+      padding: 0.6rem 1rem;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.85rem;
+      outline: none;
+      transition: all 0.15s;
+      min-width: 0;
+    }
+    .input-row input:focus {
+      border-color: #1e5a8b;
+      box-shadow: 0 0 0 3px #1e5a8b20;
+    }
+    .empty-state {
+      color: #7e9bb3;
+      font-style: italic;
+      font-size: 0.85rem;
+      padding: 0.5rem 0;
+      text-align: center;
+    }
+    .footer-note {
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      text-align: center;
+      color: #6b8aa8;
+      border-top: 1px solid #cfdef0;
+      padding-top: 1.2rem;
+    }
+    .action-hint {
+      font-size: 0.75rem;
+      color: #9e5e1a;
+      background: #fbe9d2;
+      padding: 0.15rem 0.6rem;
+      border-radius: 30px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      white-space: nowrap;
+    }
+    .remove-btn {
+      background: transparent;
+      border: none;
+      color: #b14a4a;
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 0 0.2rem;
+      margin-left: 0.3rem;
+      opacity: 0.6;
+      transition: opacity 0.15s;
+      line-height: 1;
+    }
+    .remove-btn:hover {
+      opacity: 1;
+    }
+    .divider {
+      border-top: 1px dashed #b8d0e5;
+      margin: 1rem 0 0.8rem 0;
+    }
+    .flex-between {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .section-title {
+      font-weight: 600;
+      color: #1b4b6e;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .tag {
+      background: #d9e8f5;
+      border-radius: 30px;
+      padding: 0.15rem 0.7rem;
+      font-size: 0.7rem;
+      color: #14456b;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>
+      🧩 Shared Function Matcher
+      <span>v2.0</span>
+    </h1>
+    <div class="subhead">
+      Detected functions ko existing shared functions se compare kare — sab kuch dynamic, koi hardcoding nahi.
+    </div>
+
+    <div class="grid">
+      <!-- LEFT PANEL: Detected & Shared library (both editable) -->
+      <div class="panel">
+        <div class="panel-header">
+          📋 Detected functions
+          <i id="detectedCount">0</i>
+        </div>
+        <div class="function-list" id="detectedList">
+          <!-- dynamic -->
+        </div>
+        <div class="input-row">
+          <input type="text" id="detectedInput" placeholder="e.g. pdf.merge" />
+          <button class="btn btn-primary btn-sm" id="addDetectedBtn" title="Add detected function">➕</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="panel-header" style="margin-top: 0.8rem;">
+          📚 Shared library
+          <i id="sharedCount">0</i>
+        </div>
+        <div class="function-list" id="sharedList">
+          <!-- dynamic -->
+        </div>
+        <div class="input-row">
+          <input type="text" id="sharedInput" placeholder="e.g. pdf.merge@1.0" />
+          <button class="btn btn-primary btn-sm" id="addSharedBtn" title="Add shared function">➕</button>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: Match results & bulk actions -->
+      <div class="match-area">
+        <div class="match-header">
+          <span>⚡ Match results</span>
+          <span class="arrow-indicator">→</span>
+        </div>
+
+        <div class="match-result" id="matchResultContainer">
+          <!-- dynamic -->
+        </div>
+
+        <!-- Bulk actions -->
+        <div class="flex-between" style="margin-top: 1rem;">
+          <div class="section-title">
+            <span>🛠️ Actions</span>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-sm" id="autoCreateAllBtn" title="Create all missing functions as shared (auto version @1.0)">
+              ⚡ Auto-create missing
+            </button>
+            <button class="btn btn-secondary btn-sm" id="clearAllBtn" title="Clear everything">
+              🗑️ Clear all
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      ⚡ Sab kuch aapke control mein — detected aur shared functions add/remove karein. Match automatically update hoga.
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ---------- DOM refs ----------
+      const detectedListEl = document.getElementById('detectedList');
+      const sharedListEl = document.getElementById('sharedList');
+      const matchResultContainer = document.getElementById('matchResultContainer');
+      const detectedInput = document.getElementById('detectedInput');
+      const sharedInput = document.getElementById('sharedInput');
+      const addDetectedBtn = document.getElementById('addDetectedBtn');
+      const addSharedBtn = document.getElementById('addSharedBtn');
+      const detectedCountEl = document.getElementById('detectedCount');
+      const sharedCountEl = document.getElementById('sharedCount');
+      const autoCreateAllBtn = document.getElementById('autoCreateAllBtn');
+      const clearAllBtn = document.getElementById('clearAllBtn');
+
+      // ---------- STATE (no hardcoded functions) ----------
+      // Detected: array of strings (e.g. "pdf.merge")
+      let detectedFunctions = [];
+
+      // Shared: array of objects { name, version, full }
+      let sharedFunctions = [];
+
+      // ---------- Helpers ----------
+      function getBaseName(fnStr) {
+        if (!fnStr) return '';
+        const atIndex = fnStr.indexOf('@');
+        return atIndex === -1 ? fnStr.trim() : fnStr.substring(0, atIndex).trim();
+      }
+
+      function findSharedMatch(detectedBase) {
+        return sharedFunctions.find(sf => sf.name === detectedBase);
+      }
+
+      // Generate unique ID for DOM manipulation (not needed but fine)
+      // We'll just re-render fully.
+
+      // ---------- Rendering ----------
+      function renderAll() {
+        renderDetectedList();
+        renderSharedList();
+        renderMatchResults();
+        updateCounts();
+      }
+
+      function updateCounts() {
+        detectedCountEl.textContent = detectedFunctions.length;
+        sharedCountEl.textContent = sharedFunctions.length;
+      }
+
+      function renderDetectedList() {
+        if (!detectedListEl) return;
+        if (detectedFunctions.length === 0) {
+          detectedListEl.innerHTML = `<div class="empty-state">No detected functions. Add one below.</div>`;
+          return;
+        }
+        detectedListEl.innerHTML = detectedFunctions.map((fn, idx) => `
+          <div class="function-item detected-item">
+            <span>${escapeHtml(fn)}</span>
+            <span style="display:flex; align-items:center; gap:0.3rem;">
+              <span class="badge">detected</span>
+              <button class="remove-btn" data-type="detected" data-index="${idx}" title="Remove">✕</button>
+            </span>
+          </div>
+        `).join('');
+      }
+
+      function renderSharedList() {
+        if (!sharedListEl) return;
+        if (sharedFunctions.length === 0) {
+          sharedListEl.innerHTML = `<div class="empty-state">No shared functions. Add one below.</div>`;
+          return;
+        }
+        sharedListEl.innerHTML = sharedFunctions.map((sf, idx) => `
+          <div class="function-item shared-item">
+            <span>${escapeHtml(sf.full)}</span>
+            <span style="display:flex; align-items:center; gap:0.3rem;">
+              <span class="badge success">✓ available</span>
+              <button class="remove-btn" data-type="shared" data-index="${idx}" title="Remove">✕</button>
+            </span>
+          </div>
+        `).join('');
+      }
+
+      function renderMatchResults() {
+        if (!matchResultContainer) return;
+
+        if (detectedFunctions.length === 0) {
+          matchResultContainer.innerHTML = `<div class="empty-state">Add detected functions to see match results.</div>`;
+          return;
+        }
+
+        const lines = detectedFunctions.map(detectedFn => {
+          const baseName = getBaseName(detectedFn);
+          const match = findSharedMatch(baseName);
+
+          if (match) {
+            return `
+              <div class="result-line">
+                <span style="font-weight:600;">Detected:</span>
+                <span style="background:#e4effa; padding:0.15rem 0.7rem; border-radius:20px;">${escapeHtml(detectedFn)}</span>
+                <span>→</span>
+                <span class="verdict reuse">REUSE</span>
+                <span style="font-size:0.8rem; color:#136b3f;">✓ ${escapeHtml(match.full)}</span>
+              </div>
+            `;
+          } else {
+            return `
+              <div class="result-line">
+                <span style="font-weight:600;">Detected:</span>
+                <span style="background:#e4effa; padding:0.15rem 0.7rem; border-radius:20px;">${escapeHtml(detectedFn)}</span>
+                <span>→</span>
+                <span class="verdict new">⚠ New Function Required</span>
+                <span class="action-hint">➕ create shared</span>
+              </div>
+            `;
+          }
+        });
+
+        matchResultContainer.innerHTML = lines.join('');
+      }
+
+      // Basic escape to prevent HTML injection (safe enough for demo)
+      function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>"]/g, function(m) {
+          if (m === '&') return '&amp;';
+          if (m === '<') return '&lt;';
+          if (m === '>') return '&gt;';
+          if (m === '"') return '&quot;';
+          return m;
+        });
+      }
+
+      // ---------- Core operations ----------
+      function addDetectedFunction(raw) {
+        const trimmed = raw.trim();
+        if (!trimmed) {
+          alert('Please enter a function name (e.g., pdf.merge)');
+          return false;
+        }
+
+        // Allow duplicates? Usually we don't want duplicate detected entries.
+        if (detectedFunctions.includes(trimmed)) {
+          alert(`"${trimmed}" already exists in detected functions.`);
+          return false;
+        }
+
+        detectedFunctions.push(trimmed);
+        renderAll();
+        return true;
+      }
+
+      function addSharedFunction(raw) {
+        const trimmed = raw.trim();
+        if (!trimmed) {
+          alert('Please enter a shared function (e.g., pdf.merge@1.0)');
+          return false;
+        }
+
+        let baseName, version, fullName;
+        if (trimmed.includes('@')) {
+          const parts = trimmed.split('@');
+          baseName = parts[0].trim();
+          version = parts[1] ? parts[1].trim() : '1.0';
+          fullName = `${baseName}@${version}`;
+        } else {
+          baseName = trimmed;
+          version = '1.0';
+          fullName = `${baseName}@${version}`;
+        }
+
+        if (!baseName) {
+          alert('Function name cannot be empty.');
+          return false;
+        }
+
+        // Check duplicate full name
+        if (sharedFunctions.some(sf => sf.full.toLowerCase() === fullName.toLowerCase())) {
+          alert(`"${fullName}" already exists in shared library.`);
+          return false;
+        }
+
+        // Warn on same base name (different version)
+        const baseExists = sharedFunctions.some(sf => sf.name === baseName);
+        if (baseExists) {
+          const proceed = confirm(`A version of "${baseName}" already exists. Add another version (${version})?`);
+          if (!proceed) return false;
+        }
+
+        sharedFunctions.push({ name: baseName, version, full: fullName });
+        renderAll();
+        return true;
+      }
+
+      function removeDetected(index) {
+        if (index >= 0 && index < detectedFunctions.length) {
+          detectedFunctions.splice(index, 1);
+          renderAll();
+        }
+      }
+
+      function removeShared(index) {
+        if (index >= 0 && index < sharedFunctions.length) {
+          sharedFunctions.splice(index, 1);
+          renderAll();
+        }
+      }
+
+      // Auto-create all missing detected functions as shared (version @1.0)
+      function autoCreateMissing() {
+        if (detectedFunctions.length === 0) {
+          alert('No detected functions to process.');
+          return;
+        }
+
+        const missing = detectedFunctions.filter(fn => {
+          const base = getBaseName(fn);
+          return !sharedFunctions.some(sf => sf.name === base);
+        });
+
+        if (missing.length === 0) {
+          alert('All detected functions already have a shared match. Nothing to create.');
+          return;
+        }
+
+        const confirmMsg = `Create ${missing.length} shared function(s) for:\n\n${missing.map(f => `• ${f} → ${f}@1.0`).join('\n')}\n\nProceed?`;
+        if (!confirm(confirmMsg)) return;
+
+        let added = 0;
+        missing.forEach(fn => {
+          const baseName = getBaseName(fn);
+          const fullName = `${baseName}@1.0`;
+          // Avoid duplicates just in case
+          if (!sharedFunctions.some(sf => sf.full.toLowerCase() === fullName.toLowerCase())) {
+            sharedFunctions.push({ name: baseName, version: '1.0', full: fullName });
+            added++;
+          }
+        });
+
+        if (added > 0) {
+          renderAll();
+          alert(`✅ Created ${added} new shared function(s).`);
+        } else {
+          alert('No new functions were added (possible duplicates).');
+        }
+      }
+
+      function clearAll() {
+        if (detectedFunctions.length === 0 && sharedFunctions.length === 0) return;
+        if (!confirm('Clear all detected and shared functions?')) return;
+        detectedFunctions = [];
+        sharedFunctions = [];
+        renderAll();
+      }
+
+      // ---------- Event listeners ----------
+      addDetectedBtn.addEventListener('click', () => {
+        if (addDetectedFunction(detectedInput.value)) {
+          detectedInput.value = '';
+          detectedInput.focus();
+        }
+      });
+
+      detectedInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addDetectedBtn.click();
+        }
+      });
+
+      addSharedBtn.addEventListener('click', () => {
+        if (addSharedFunction(sharedInput.value)) {
+          sharedInput.value = '';
+          sharedInput.focus();
+        }
+      });
+
+      sharedInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addSharedBtn.click();
+        }
+      });
+
+      // Event delegation for remove buttons
+      document.addEventListener('click', (e) => {
+        const target = e.target.closest('.remove-btn');
+        if (!target) return;
+        const type = target.getAttribute('data-type');
+        const index = parseInt(target.getAttribute('data-index'), 10);
+        if (isNaN(index)) return;
+
+        if (type === 'detected') {
+          removeDetected(index);
+        } else if (type === 'shared') {
+          removeShared(index);
+        }
+      });
+
+      autoCreateAllBtn.addEventListener('click', autoCreateMissing);
+      clearAllBtn.addEventListener('click', clearAll);
+
+      // ---------- Initial render (empty) ----------
+      renderAll();
+
+      // Optional: add a small welcome hint if completely empty (already handled by empty states)
+    })();
+  </script>
+</body>
+</html>
