@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🔗 Dependency + Function Connector — Tool 06</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0d14; --panel:#11151f; --panel2:#0a0d14;
+    --border:#1e2532; --border2:#2a3344;
+    --text:#e8eaf0; --muted:#8b93a7;
+    --accent:#7c9aff; --accent2:#22c55e; --danger:#ef4444; --warn:#f59e0b;
+  }
+  html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.55}
+  body{padding-bottom:60px}
+  header{padding:24px 20px 16px;text-align:center;border-bottom:1px solid var(--border)}
+  header h1{margin:0 0 6px;font-size:21px}
+  header p{margin:0;color:var(--muted);font-size:13px}
+  main{max-width:1400px;margin:0 auto;padding:18px}
+
+  .status-bar{
+    display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;
+    padding:14px 18px;border-radius:14px;
+    background:linear-gradient(90deg,#141b28,#0f1520);
+    border:1px solid var(--border2);
+  }
+  .status-item{
+    display:flex;align-items:center;gap:8px;
+    padding:6px 14px;border-radius:20px;
+    background:#0a0d14;border:1px solid var(--border2);
+    font-size:12.5px;
+  }
+  .status-item.ok{border-color:#166534;background:#0c1f13}
+  .status-item.ok .dot{background:#22c55e}
+  .status-item.bad{border-color:#7a1a1a;background:#1f0c0c}
+  .status-item.bad .dot{background:#ef4444}
+  .status-item .dot{width:8px;height:8px;border-radius:50%;background:#8b93a7}
+  .status-item .lbl{color:var(--muted);font-weight:600}
+
+  .btn{background:#1a2130;color:var(--text);border:1px solid var(--border2);padding:9px 15px;border-radius:9px;font-size:12.5px;font-family:inherit;font-weight:600;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{background:#222b3d;border-color:#3a4459}
+  .btn:active{transform:scale(.97)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:#6a89f5}
+  .btn.success{background:#166534;border-color:#166534;color:#fff}
+  .btn.success:hover{background:#15803d}
+  .btn.warn{background:#7a3e0e;border-color:#7a3e0e;color:#fff}
+  .btn.warn:hover{background:#92400e}
+  .btn.ghost{background:transparent}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.sm{padding:5px 11px;font-size:11.5px}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+
+  .summary-strip{
+    display:flex;gap:18px;flex-wrap:wrap;align-items:center;
+    padding:14px 18px;border-radius:14px;margin-bottom:18px;
+    background:linear-gradient(90deg,#141b28,#0f1520);
+    border:1px solid var(--border2);
+  }
+  .summary-strip .num{font-size:22px;font-weight:700;color:#9fb4ff;line-height:1}
+  .summary-strip .num.warn{color:#fbbf24}
+  .summary-strip .num.ok{color:#4ade80}
+  .summary-strip .lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  .summary-strip .divider{width:1px;height:30px;background:var(--border2)}
+
+  /* Graph View */
+  .graph-area{
+    background:var(--panel);border:1px solid var(--border);
+    border-radius:14px;padding:20px;margin-bottom:18px;
+  }
+  .graph-header{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:16px;flex-wrap:wrap;gap:10px;
+  }
+  .graph-header h2{margin:0;font-size:16px;color:#cdd4e4}
+  .graph-header .sub{font-size:12px;color:var(--muted)}
+
+  .graph-grid{display:flex;flex-direction:column;gap:14px}
+
+  .connection-card{
+    background:#0f1520;border:1px solid var(--border2);
+    border-radius:12px;padding:14px 18px;
+    transition:.15s;
+  }
+  .connection-card.missing{border-color:#7a3e0e;background:#1a1208}
+  .connection-card.connected{border-color:#166534;background:#0c1f13}
+
+  .conn-head{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;margin-bottom:10px;
+  }
+  .conn-title{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    font-size:14px;
+  }
+  .conn-fn-name{
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    color:#9fb4ff;font-weight:700;font-size:14px;
+  }
+  .conn-arrow{color:#8b93a7;font-size:16px;font-weight:700}
+
+  .conn-deps{
+    display:flex;flex-direction:column;gap:8px;margin-top:8px;
+  }
+  .dep-row{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:10px;padding:8px 12px;border-radius:8px;
+    background:#0a0d14;border:1px solid var(--border2);
+    flex-wrap:wrap;
+  }
+  .dep-row.missing{border-color:#7a3e0e;background:#150e05}
+  .dep-row.connected{border-color:#166534;background:#0a150c}
+  .dep-info{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dep-icon{font-size:14px}
+  .dep-name{
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-weight:700;font-size:12.5px;
+  }
+  .dep-name.missing{color:#fbbf24}
+  .dep-name.connected{color:#4ade80}
+  .dep-path{
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-size:11px;color:#8b93a7;
+  }
+  .dep-status{
+    font-size:11px;font-weight:700;letter-spacing:.03em;
+    text-transform:uppercase;
+  }
+  .dep-status.missing{color:#fbbf24}
+  .dep-status.connected{color:#4ade80}
+
+  .badge{
+    font-size:10.5px;font-weight:700;padding:3px 9px;
+    border-radius:5px;letter-spacing:.03em;text-transform:uppercase;
+    display:inline-block;
+  }
+  .badge.ok{background:#22c55e22;color:#4ade80;border:1px solid #22c55e44}
+  .badge.warn{background:#f59e0b22;color:#fbbf24;border:1px solid #f59e0b44}
+  .badge.info{background:#7c9aff22;color:#9fb4ff;border:1px solid #7c9aff44}
+  .badge.gray{background:#1a2130;color:#8b93a7;border:1px solid #2a3344}
+
+  .dep-actions{display:flex;gap:6px;flex-wrap:wrap}
+
+  .empty-state{
+    text-align:center;padding:60px 20px;color:var(--muted);
+    background:var(--panel);border:1px dashed var(--border2);
+    border-radius:14px;
+  }
+  .empty-state h2{font-size:16px;margin-bottom:8px;color:#cdd4e4}
+  .empty-state p{font-size:13px;margin-bottom:6px}
+  .empty-state code{background:#0a0d14;padding:2px 8px;border-radius:4px;font-family:monospace;font-size:12px}
+
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:#166534;color:#fff;padding:11px 20px;border-radius:11px;
+    font-weight:600;font-size:13px;opacity:0;pointer-events:none;
+    transition:.25s;z-index:99;box-shadow:0 10px 40px rgba(0,0,0,.4);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.err{background:#b91c1c}
+  .toast.warn{background:#7a3e0e}
+
+  .modal-bg{
+    position:fixed;inset:0;background:rgba(0,0,0,.7);
+    display:none;align-items:center;justify-content:center;
+    z-index:999;padding:16px;
+  }
+  .modal-bg.active{display:flex}
+  .modal-box{
+    background:var(--panel);border:1px solid var(--border2);
+    border-radius:14px;padding:22px;max-width:560px;width:100%;
+    max-height:90vh;overflow:auto;
+  }
+  .modal-box h3{margin:0 0 12px;font-size:16px}
+  .modal-box p{margin:0 0 12px;font-size:13px;color:var(--muted)}
+  .modal-box label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;margin-top:12px;font-weight:600}
+  .modal-box input, .modal-box textarea{
+    width:100%;background:var(--panel2);color:var(--text);
+    border:1px solid var(--border);border-radius:8px;
+    padding:10px 12px;font-family:inherit;font-size:13px;
+    outline:none;
+  }
+  .modal-box input:focus, .modal-box textarea:focus{border-color:var(--accent)}
+  .modal-box textarea{font-family:ui-monospace,Menlo,Consolas,monospace;min-height:120px;resize:vertical}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+
+  details.debug{
+    margin-top:20px;background:#0f1520;border:1px solid var(--border);
+    border-radius:10px;padding:10px 14px;font-size:12px;
+  }
+  details.debug summary{cursor:pointer;color:#9fb4ff;font-weight:600}
+  details.debug pre{margin-top:10px;background:#0a0d14;padding:12px;border-radius:8px;overflow:auto;max-height:400px;font-size:11px;color:#c9d0e0;white-space:pre-wrap;word-break:break-word}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔗 Dependency + Function Connector <span style="color:#7c9aff">Tool 06</span></h1>
+  <p>Har function ke dependencies check karta hai — missing ko link karta hai, connected ko verify karta hai</p>
+</header>
+
+<main>
+
+  <div class="status-bar" id="statusBar">
+    <div class="status-item" id="stat03"><span class="dot"></span><span class="lbl">Tool 03</span><span id="stat03v">checking...</span></div>
+    <div class="status-item" id="stat05"><span class="dot"></span><span class="lbl">Tool 05</span><span id="stat05v">checking...</span></div>
+    <div class="status-item" id="statShared"><span class="dot"></span><span class="lbl">pipe_shared</span><span id="statSharedv">checking...</span></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" id="analyzeBtn" style="flex:1;min-width:220px">🔍 Analyze Connections</button>
+    <button class="btn success" id="saveBtn" disabled>💾 Save to pipe_shared</button>
+    <button class="btn ghost" id="clearBtn">🧹 Clear</button>
+  </div>
+
+  <div class="summary-strip" id="summaryStrip" style="display:none">
+    <div><div class="num" id="sumFunctions">0</div><div class="lbl">Functions</div></div>
+    <div class="divider"></div>
+    <div><div class="num ok" id="sumConnected">0</div><div class="lbl">Connected Deps</div></div>
+    <div class="divider"></div>
+    <div><div class="num warn" id="sumMissing">0</div><div class="lbl">Missing Deps</div></div>
+    <div class="divider"></div>
+    <div><div class="num" id="sumLibraries">0</div><div class="lbl">Libraries</div></div>
+  </div>
+
+  <div class="graph-area" id="graphArea" style="display:none">
+    <div class="graph-header">
+      <div>
+        <h2>🔗 Connection Graph</h2>
+        <div class="sub">Function → Dependency → Library</div>
+      </div>
+      <span class="badge info" id="graphBadge">0 connections</span>
+    </div>
+    <div class="graph-grid" id="graphGrid"></div>
+  </div>
+
+  <div id="results">
+    <div class="empty-state">
+      <h2>⏳ Waiting for input...</h2>
+      <p>Ye tool Tool 03 (dependencies) + Tool 05 (functions) ka output padhta hai.</p>
+      <p style="margin-top:14px">Pehle <code>Tool 01 → 02 → 03 → 05 (Save)</code> chalao, fir yahan aao.</p>
+    </div>
+  </div>
+
+  <details class="debug">
+    <summary>🔍 Debug Info (click to expand)</summary>
+    <pre id="debugPre">Waiting...</pre>
+  </details>
+
+</main>
+
+<!-- Add Dependency Modal -->
+<div class="modal-bg" id="depModal">
+  <div class="modal-box">
+    <h3>➕ Add Dependency</h3>
+    <p id="depModalDesc">Fill details for missing dependency</p>
+
+    <label>Library Name</label>
+    <input type="text" id="depNameInput" placeholder="e.g. pdf.js" />
+
+    <label>Source URL (optional)</label>
+    <input type="text" id="depUrlInput" placeholder="https://cdn..." />
+
+    <label>Used by (auto-filled)</label>
+    <input type="text" id="depUsedByInput" readonly style="opacity:.6" />
+
+    <div class="modal-actions">
+      <button class="btn ghost" id="depModalCancel">Cancel</button>
+      <button class="btn success" id="depModalSave">💾 Add Dependency</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ============================================================
+  // PIPE HELPER
+  // ============================================================
+  window.Pipe = {
+    save: function(id, data) {
+      try { localStorage.setItem('pipe_' + id, JSON.stringify(data)); }
+      catch (e) { console.error('Pipe.save fail:', e); }
+    },
+    load: function(id) {
+      var raw = localStorage.getItem('pipe_' + id);
+      if (raw === null) return null;
+      try { return JSON.parse(raw); } catch (e) { return raw; }
+    },
+    clear: function(id) { localStorage.removeItem('pipe_' + id); }
+  };
+
+  console.log('✅ [06] Pipe helper ready');
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  var state = {
+    libraries: [],          // from pipe_03
+    functions: [],          // from pipe_shared
+    connections: [],        // computed: function → deps
+    analyzed: false,
+    missingQueue: null      // for modal
+  };
+
+  // ============================================================
+  // DOM REFS
+  // ============================================================
+  var $ = function(id) { return document.getElementById(id); };
+  var statusBar = $('statusBar');
+  var graphArea = $('graphArea');
+  var graphGrid = $('graphGrid');
+  var graphBadge = $('graphBadge');
+  var resultsEl = $('results');
+  var summaryStrip = $('summaryStrip');
+  var debugPre = $('debugPre');
+
+  // ============================================================
+  // HELPERS
+  // ============================================================
+  function esc(s) {
+    return String(s || '').replace(/[&<>"']/g, function(c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  var toastTimer;
+  function toast(msg, isError, isWarn) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isError ? ' err' : '') + (isWarn ? ' warn' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { t.className = 'toast'; }, 2600);
+  }
+
+  // Normalize library name for matching
+  function normalizeName(name) {
+    if (!name) return '';
+    return String(name).toLowerCase()
+      .replace(/\.js$/, '')
+      .replace(/^new\s+/, '')
+      .replace(/\s+/g, '')
+      .trim();
+  }
+
+  // Find library matching a dependency name
+  function findLibrary(depName) {
+    var norm = normalizeName(depName);
+    if (!norm) return null;
+
+    for (var i = 0; i < state.libraries.length; i++) {
+      var lib = state.libraries[i];
+      var libNorm = normalizeName(lib.libraryName || lib.name);
+      if (libNorm === norm) return lib;
+      // Partial match
+      if (libNorm.indexOf(norm) !== -1 || norm.indexOf(libNorm) !== -1) return lib;
+    }
+    return null;
+  }
+
+  // ============================================================
+  // LOAD DATA
+  // ============================================================
+  function loadData() {
+    var p03 = window.Pipe.load('03');
+    var shared = window.Pipe.load('shared');
+
+    state.libraries = (p03 && p03.dependencies) ? p03.dependencies : [];
+    state.functions = [];
+
+    if (shared && shared.functions && typeof shared.functions === 'object') {
+      state.functions = Object.keys(shared.functions).map(function(key) {
+        var fn = shared.functions[key];
+        return {
+          id: key,
+          name: fn.name || key,
+          version: fn.version || '1.0.0',
+          category: fn.category || 'misc',
+          subCategory: fn.subCategory || '',
+          dependencies: fn.dependencies || [],
+          folder: fn.folder || '',
+          requires: fn.requires || [],   // our output
+          usedBy: fn.usedBy || []
+        };
+      });
+    }
+
+    console.log('[06] Loaded', state.libraries.length, 'libraries,', state.functions.length, 'functions');
+    updateStatus();
+  }
+
+  function updateStatus() {
+    var p03 = window.Pipe.load('03');
+    var shared = window.Pipe.load('shared');
+
+    setStatus('stat03', 'stat03v',
+      !!(p03 && p03.dependencies),
+      (p03 && p03.dependencies) ? p03.dependencies.length + ' libs' : 'missing');
+
+    setStatus('stat05', 'stat05v',
+      !!(shared && shared.functions),
+      (shared && shared.functions) ? Object.keys(shared.functions).length + ' funcs' : 'missing');
+
+    setStatus('statShared', 'statSharedv',
+      !!(shared && shared.functions),
+      (shared && shared.functions) ? 'loaded' : 'missing');
+  }
+
+  function setStatus(elId, valId, ok, text) {
+    var el = $(elId);
+    el.className = 'status-item ' + (ok ? 'ok' : 'bad');
+    $(valId).textContent = text;
+  }
+
+  // ============================================================
+  // ANALYZE CONNECTIONS
+  // ============================================================
+  function analyzeConnections() {
+    console.log('🚀 [06] analyzeConnections called');
+
+    loadData();
+
+    if (!state.functions.length) {
+      toast('Koi function nahi mila. Pehle Tool 05 chalao + Save.', true);
+      return;
+    }
+
+    // Build connections
+    state.connections = state.functions.map(function(fn) {
+      var deps = (fn.dependencies || []).map(function(depName) {
+        var depNameStr = typeof depName === 'string' ? depName : (depName.name || '');
+        var lib = findLibrary(depNameStr);
+
+        return {
+          name: depNameStr,
+          library: lib ? {
+            libraryName: lib.libraryName || lib.name,
+            url: lib.url || null,
+            type: lib.type || 'unknown'
+          } : null,
+          connected: !!lib,
+          addedManually: false
+        };
+      });
+
+      return {
+        functionId: fn.id,
+        functionName: fn.name,
+        version: fn.version,
+        category: fn.category,
+        subCategory: fn.subCategory,
+        folder: fn.folder,
+        deps: deps,
+        totalDeps: deps.length,
+        connectedDeps: deps.filter(function(d) { return d.connected; }).length,
+        missingDeps: deps.filter(function(d) { return !d.connected; }).length
+      };
+    });
+
+    state.analyzed = true;
+
+    // Hide the old empty state
+    resultsEl.style.display = 'none';
+
+    renderGraph();
+    renderSummary();
+    updateDebug();
+
+
+    $('saveBtn').disabled = false;
+    toast('✅ Analysis complete!');
+
+    console.log('✅ [06] Analyzed', state.connections.length, 'connections');
+  }
+
+  // ============================================================
+  // RENDER GRAPH
+  // ============================================================
+  function renderGraph() {
+    graphArea.style.display = 'block';
+
+    var totalConns = state.connections.reduce(function(s, c) { return s + c.totalDeps; }, 0);
+    graphBadge.textContent = totalConns + ' connections';
+
+    if (!state.connections.length) {
+      graphGrid.innerHTML = '<div class="empty-state"><h2>No functions to analyze</h2></div>';
+      return;
+    }
+
+    graphGrid.innerHTML = state.connections.map(function(conn) {
+      return renderConnectionCard(conn);
+    }).join('');
+
+    // Attach listeners
+    graphGrid.querySelectorAll('[data-act="add-dep"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var fnId = this.getAttribute('data-fn');
+        var depName = this.getAttribute('data-dep');
+        openDepModal(fnId, depName);
+      });
+    });
+  }
+
+  function renderConnectionCard(conn) {
+    var status = conn.missingDeps > 0 ? 'missing' : 'connected';
+    var statusIcon = conn.missingDeps > 0 ? '⚠' : '✓';
+    var statusText = conn.missingDeps > 0 
+      ? conn.missingDeps + ' missing' 
+      : 'all connected';
+
+    var depsHtml = conn.deps.length === 0
+      ? '<div style="padding:10px;color:#4a5468;font-style:italic;font-size:12px">no dependencies</div>'
+      : conn.deps.map(function(dep) {
+          return renderDepRow(conn.functionId, dep);
+        }).join('');
+
+    return [
+      '<div class="connection-card ' + status + '">',
+        '<div class="conn-head">',
+          '<div class="conn-title">',
+            '<span class="conn-fn-name">ƒ ' + esc(conn.functionName) + '</span>',
+            '<span class="badge info">' + esc(conn.category) + '</span>',
+            '<span class="badge gray">' + esc(conn.version) + '</span>',
+          '</div>',
+          '<span class="badge ' + (status === 'connected' ? 'ok' : 'warn') + '">',
+            statusIcon + ' ' + statusText,
+          '</span>',
+        '</div>',
+        '<div class="conn-deps">' + depsHtml + '</div>',
+      '</div>'
+    ].join('');
+  }
+
+  function renderDepRow(fnId, dep) {
+    var cls = dep.connected ? 'connected' : 'missing';
+    var icon = dep.connected ? '✓' : '⚠';
+    var statusText = dep.connected ? 'Dependency connected' : 'Missing dependency';
+    var libName = dep.library ? dep.library.libraryName : dep.name;
+    var libPath = dep.connected 
+      ? 'shared/libraries/' + libName + '/' 
+      : 'shared/libraries/' + dep.name + '/' + ' (to create)';
+
+    var actionHtml = dep.connected
+      ? '<span class="badge ok">✓ connected</span>'
+      : '<button class="btn warn sm" data-act="add-dep" data-fn="' + esc(fnId) + '" data-dep="' + esc(dep.name) + '">➕ Add Dependency</button>';
+
+    return [
+      '<div class="dep-row ' + cls + '">',
+        '<div class="dep-info">',
+          '<span class="dep-icon">' + icon + '</span>',
+          '<div>',
+            '<div class="dep-name ' + cls + '">' + esc(dep.name) + '</div>',
+            '<div class="dep-path">→ ' + esc(libPath) + '</div>',
+          '</div>',
+        '</div>',
+        '<div class="dep-actions">' + actionHtml + '</div>',
+      '</div>'
+    ].join('');
+  }
+
+  // ============================================================
+  // RENDER SUMMARY
+  // ============================================================
+  function renderSummary() {
+    summaryStrip.style.display = 'flex';
+
+    var totalFns = state.connections.length;
+    var totalConnected = 0;
+    var totalMissing = 0;
+
+    state.connections.forEach(function(c) {
+      totalConnected += c.connectedDeps;
+      totalMissing += c.missingDeps;
+    });
+
+    $('sumFunctions').textContent = totalFns;
+    $('sumConnected').textContent = totalConnected;
+    $('sumMissing').textContent = totalMissing;
+    $('sumLibraries').textContent = state.libraries.length;
+  }
+
+  // ============================================================
+  // ADD DEPENDENCY MODAL
+  // ============================================================
+  function openDepModal(fnId, depName) {
+    state.missingQueue = { fnId: fnId, depName: depName };
+
+    $('depModalDesc').textContent = 'Add "' + depName + '" as a shared library?';
+    $('depNameInput').value = depName;
+    $('depUrlInput').value = '';
+    $('depUsedByInput').value = fnId;
+
+    $('depModal').classList.add('active');
+
+    setTimeout(function() { $('depUrlInput').focus(); }, 100);
+  }
+
+  function closeDepModal() {
+    $('depModal').classList.remove('active');
+    state.missingQueue = null;
+  }
+
+  function saveDependency() {
+    if (!state.missingQueue) return;
+
+    var fnId = state.missingQueue.fnId;
+    var depName = state.missingQueue.depName;
+    var newName = $('depNameInput').value.trim();
+    var newUrl = $('depUrlInput').value.trim();
+
+    if (!newName) {
+      toast('Library name required', true);
+      return;
+    }
+
+    // Add to libraries list
+    var exists = state.libraries.some(function(l) {
+      return normalizeName(l.libraryName) === normalizeName(newName);
+    });
+
+    if (!exists) {
+      state.libraries.push({
+        libraryName: newName,
+        url: newUrl || null,
+        type: 'manual',
+        addedAt: new Date().toISOString()
+      });
+    }
+
+    // Re-analyze to update
+    closeDepModal();
+    analyzeConnections();
+    toast('✅ Added: ' + newName);
+    console.log('✅ [06] Added dependency:', newName);
+  }
+
+  // ============================================================
+  // SAVE TO PIPE_SHARED
+  // ============================================================
+  function saveToPipe() {
+    if (!state.analyzed) return;
+
+    // Build updated shared structure
+    var shared = window.Pipe.load('shared') || { functions: {}, categories: {} };
+
+    // Update each function with requires + usedBy
+    state.connections.forEach(function(conn) {
+      var key = conn.functionId;
+      if (!shared.functions[key]) return;
+
+      shared.functions[key].requires = conn.deps.map(function(d) {
+        return {
+          name: d.name,
+          libraryId: d.library ? d.library.libraryName : null,
+          connected: d.connected
+        };
+      });
+
+      shared.functions[key].missingDependencies = conn.deps
+        .filter(function(d) { return !d.connected; })
+        .map(function(d) { return d.name; });
+    });
+
+    // Build library usage map
+    var libraryUsage = {};
+    state.libraries.forEach(function(lib) {
+      var libName = lib.libraryName || lib.name;
+      libraryUsage[libName] = {
+        libraryName: libName,
+        url: lib.url || null,
+        type: lib.type || 'unknown',
+        usedBy: []
+      };
+    });
+
+    state.connections.forEach(function(conn) {
+      conn.deps.forEach(function(dep) {
+        if (dep.library) {
+          var libName = dep.library.libraryName;
+          if (libraryUsage[libName]) {
+            if (libraryUsage[libName].usedBy.indexOf(conn.functionName) === -1) {
+              libraryUsage[libName].usedBy.push(conn.functionName);
+            }
+          }
+        }
+      });
+    });
+
+    shared.libraries = libraryUsage;
+    shared.connectionsAnalyzedAt = new Date().toISOString();
+
+    window.Pipe.save('shared', shared);
+    window.Pipe.save('06', {
+      connections: state.connections,
+      libraries: Object.keys(libraryUsage),
+      analyzedAt: new Date().toISOString(),
+      summary: {
+        totalFunctions: state.connections.length,
+        totalConnected: state.connections.reduce(function(s, c) { return s + c.connectedDeps; }, 0),
+        totalMissing: state.connections.reduce(function(s, c) { return s + c.missingDeps; }, 0)
+      }
+    });
+
+    toast('✅ Saved to pipe_shared + pipe_06');
+    console.log('✅ [06] Saved connections to pipe_shared and pipe_06');
+  }
+
+  // ============================================================
+  // DEBUG
+  // ============================================================
+  function updateDebug() {
+    debugPre.textContent = JSON.stringify({
+      libraries: state.libraries.length,
+      functions: state.functions.length,
+      connections: state.connections.map(function(c) {
+        return {
+          fn: c.functionName,
+          deps: c.deps.map(function(d) {
+            return d.name + (d.connected ? ' ✓' : ' ⚠');
+          })
+        };
+      }),
+      summary: {
+        total: state.connections.length,
+        connected: state.connections.reduce(function(s, c) { return s + c.connectedDeps; }, 0),
+        missing: state.connections.reduce(function(s, c) { return s + c.missingDeps; }, 0)
+      }
+    }, null, 2);
+  }
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  $('analyzeBtn').addEventListener('click', analyzeConnections);
+  $('saveBtn').addEventListener('click', saveToPipe);
+  $('clearBtn').addEventListener('click', function() {
+    state = { libraries: [], functions: [], connections: [], analyzed: false, missingQueue: null };
+    graphArea.style.display = 'none';
+    summaryStrip.style.display = 'none';
+    resultsEl.innerHTML = '<div class="empty-state"><h2>Cleared</h2><p>Analyze dabao dobara.</p></div>';
+    $('saveBtn').disabled = true;
+    debugPre.textContent = 'Waiting...';
+    toast('Cleared');
+  });
+
+  $('depModalCancel').addEventListener('click', closeDepModal);
+  $('depModalSave').addEventListener('click', saveDependency);
+  $('depModal').addEventListener('click', function(e) {
+    if (e.target === $('depModal')) closeDepModal();
+  });
+
+  // Auto-analyze on load if data available
+  window.addEventListener('load', function() {
+    updateStatus();
+    var p03 = window.Pipe.load('03');
+    var shared = window.Pipe.load('shared');
+
+    if (p03 && p03.dependencies && p03.dependencies.length > 0 &&
+        shared && shared.functions && Object.keys(shared.functions).length > 0) {
+      console.log('✅ [06] Data found, auto-analyzing...');
+      setTimeout(analyzeConnections, 300);
+    } else {
+      console.log('ℹ️ [06] Waiting for Tool 03 + Tool 05 (Save)');
+    }
+  });
+
+})();
+</script>
+
+</body>
+</html>

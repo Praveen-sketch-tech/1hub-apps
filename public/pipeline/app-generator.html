@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App Generator - Tool 07</title>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0d14; --panel:#11151f; --panel2:#0a0d14;
+    --border:#1e2532; --border2:#2a3344;
+    --text:#e8eaf0; --muted:#8b93a7;
+    --accent:#7c9aff;
+  }
+  html,body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.55}
+  body{padding-bottom:60px}
+  header{padding:24px 20px 16px;text-align:center;border-bottom:1px solid var(--border)}
+  header h1{margin:0 0 6px;font-size:21px}
+  header p{margin:0;color:var(--muted);font-size:13px}
+  main{max-width:1500px;margin:0 auto;padding:18px}
+  .status-bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px;padding:14px 18px;border-radius:14px;background:linear-gradient(90deg,#141b28,#0f1520);border:1px solid var(--border2)}
+  .status-item{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;background:#0a0d14;border:1px solid var(--border2);font-size:12.5px}
+  .status-item.ok{border-color:#166534;background:#0c1f13}
+  .status-item.ok .dot{background:#22c55e}
+  .status-item.bad{border-color:#7a1a1a;background:#1f0c0c}
+  .status-item.bad .dot{background:#ef4444}
+  .status-item .dot{width:8px;height:8px;border-radius:50%;background:#8b93a7}
+  .status-item .lbl{color:var(--muted);font-weight:600}
+  .btn{background:#1a2130;color:var(--text);border:1px solid var(--border2);padding:9px 15px;border-radius:9px;font-size:12.5px;font-family:inherit;font-weight:600;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{background:#222b3d;border-color:#3a4459}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:#6a89f5}
+  .btn.success{background:#166534;border-color:#166534;color:#fff}
+  .btn.success:hover{background:#15803d}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.big{width:100%;padding:14px;font-size:14px;border-radius:11px;justify-content:center}
+  .grid-2{display:grid;grid-template-columns:420px 1fr;gap:18px;align-items:start}
+  @media(max-width:1000px){.grid-2{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}
+  .panel h2{margin:0 0 14px;font-size:15px;color:#cdd4e4;display:flex;align-items:center;gap:8px}
+  .input-group{margin-bottom:14px}
+  .input-group label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+  .input-group input{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;outline:none}
+  .input-group input:focus{border-color:var(--accent)}
+  .fn-selector{max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--panel2)}
+  .fn-check{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer}
+  .fn-check:hover{background:#141b28}
+  .fn-check input{accent-color:var(--accent);width:16px;height:16px;cursor:pointer}
+  .fn-check .info{flex:1;min-width:0}
+  .fn-check .name{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:12.5px;color:#9fb4ff;word-break:break-word}
+  .fn-check .meta{font-size:10.5px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+  .fn-check .dep-count{color:#fbbf24;font-weight:600}
+  .deps-preview{background:#0f1520;border:1px solid var(--border2);border-radius:10px;padding:12px;margin-top:14px;font-size:12px}
+  .deps-preview .title{font-weight:700;color:#cdd4e4;margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+  .deps-preview .dep{padding:6px 0;border-bottom:1px dashed #1e2532}
+  .deps-preview .dep:last-child{border-bottom:none}
+  .deps-preview .dep .name{font-family:ui-monospace,monospace;color:#4ade80;font-weight:700;font-size:12px}
+  .deps-preview .dep .url{font-size:10.5px;color:#8b93a7;word-break:break-all;margin-top:2px}
+  .actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .preview-tabs{display:flex;gap:4px;margin-bottom:12px;background:var(--panel2);padding:4px;border-radius:9px;border:1px solid var(--border);flex-wrap:wrap}
+  .preview-tab{flex:1;min-width:90px;background:transparent;border:0;color:var(--muted);padding:8px;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit}
+  .preview-tab.active{background:var(--border2);color:var(--text)}
+  .preview-body{background:var(--panel2);border:1px solid var(--border);border-radius:10px;overflow:hidden;height:calc(100vh - 380px);min-height:400px;display:flex;flex-direction:column}
+  .preview-body pre{flex:1;margin:0;padding:14px;overflow:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;line-height:1.6;color:#c9d0e0;white-space:pre-wrap;word-break:break-word}
+  .preview-body.hidden{display:none}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--muted);background:var(--panel);border:1px dashed var(--border2);border-radius:14px}
+  .empty-state h2{font-size:16px;margin-bottom:8px;color:#cdd4e4}
+  .empty-state p{font-size:13px;margin-bottom:6px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#166534;color:#fff;padding:11px 20px;border-radius:11px;font-weight:600;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:99;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.err{background:#b91c1c}
+  .file-tree{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.8;color:#c9d0e0;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;margin:14px;white-space:pre;overflow:auto}
+  .file-tree .folder{color:#9fb4ff;font-weight:700}
+  .file-tree .file{color:#e8eaf0}
+  details.debug{margin-top:20px;background:#0f1520;border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px}
+  details.debug summary{cursor:pointer;color:#9fb4ff;font-weight:600}
+  details.debug pre{margin-top:10px;background:#0a0d14;padding:12px;border-radius:8px;overflow:auto;max-height:400px;font-size:11px;color:#c9d0e0;white-space:pre-wrap;word-break:break-word}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>App Generator <span style="color:#7c9aff">Tool 07</span></h1>
+  <p>Original app ko standardized app me convert karta hai — no duplicated algorithm</p>
+</header>
+
+<main>
+
+  <div class="status-bar">
+    <div class="status-item" id="statShared"><span class="dot"></span><span class="lbl">pipe_shared</span><span id="statSharedv">checking...</span></div>
+    <div class="status-item" id="stat06"><span class="dot"></span><span class="lbl">Tool 06</span><span id="stat06v">checking...</span></div>
+  </div>
+
+  <div class="grid-2">
+
+    <div class="panel">
+      <h2>App Configuration</h2>
+
+      <div class="input-group">
+        <label>App Name</label>
+        <input type="text" id="appNameInput" value="pdf-merger" />
+      </div>
+
+      <div class="input-group">
+        <label>App Title</label>
+        <input type="text" id="appTitleInput" value="PDF Merger" />
+      </div>
+
+      <div class="input-group">
+        <label>Select Functions <span id="selectedCount" style="color:#7c9aff">0</span></label>
+        <div class="fn-selector" id="fnSelector">
+          <div style="padding:20px;text-align:center;color:#4a5468;font-size:12px">Loading functions...</div>
+        </div>
+      </div>
+
+      <div class="deps-preview" id="depsPreview" style="display:none">
+        <div class="title">Required Libraries</div>
+        <div id="depsList"></div>
+      </div>
+
+      <div class="actions-row">
+        <button class="btn primary big" id="generateBtn" style="flex:1">Generate App</button>
+        <button class="btn success" id="downloadZipBtn" disabled>ZIP</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Generated App</h2>
+
+      <div id="previewEmpty" class="empty-state" style="padding:40px 20px">
+        <h2>No app generated yet</h2>
+        <p>Left me app name do, functions select karo, Generate dabao.</p>
+      </div>
+
+      <div id="previewContainer" style="display:none">
+        <div class="preview-tabs">
+          <button class="preview-tab active" data-view="index">index.html</button>
+          <button class="preview-tab" data-view="appjs">js/app.js</button>
+          <button class="preview-tab" data-view="json">app.json</button>
+          <button class="preview-tab" data-view="pkg">package.json</button>
+          <button class="preview-tab" data-view="tree">Tree</button>
+        </div>
+
+        <div class="preview-body" id="viewIndex"><pre id="indexCode"></pre></div>
+        <div class="preview-body hidden" id="viewAppjs"><pre id="appjsCode"></pre></div>
+        <div class="preview-body hidden" id="viewJson"><pre id="jsonCode"></pre></div>
+        <div class="preview-body hidden" id="viewPkg"><pre id="pkgCode"></pre></div>
+        <div class="preview-body hidden" id="viewTree"><div class="file-tree" id="treeView"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <details class="debug">
+    <summary>Debug Info (click to expand)</summary>
+    <pre id="debugPre">Waiting...</pre>
+  </details>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ============================================================
+  // PIPE HELPER
+  // ============================================================
+  window.Pipe = {
+    save: function(id, data) {
+      try { localStorage.setItem('pipe_' + id, JSON.stringify(data)); }
+      catch (e) { console.error('Pipe.save fail:', e); }
+    },
+    load: function(id) {
+      var raw = localStorage.getItem('pipe_' + id);
+      if (raw === null) return null;
+      try { return JSON.parse(raw); } catch (e) { return raw; }
+    },
+    clear: function(id) { localStorage.removeItem('pipe_' + id); }
+  };
+
+  console.log('[07] Pipe helper ready');
+
+  var state = {
+    shared: null,
+    functions: [],
+    libraries: {},
+    selected: {},
+    generated: null
+  };
+
+  function $(id) { return document.getElementById(id); }
+
+  function esc(s) {
+    return String(s || '').replace(/[&<>"']/g, function(c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  var toastTimer;
+  function toast(msg, isError) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isError ? ' err' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { t.className = 'toast'; }, 2600);
+  }
+
+  function slugify(s) {
+    return String(s || 'app').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').replace(/-+/g, '-') || 'app';
+  }
+
+  // ============================================================
+  // LOAD DATA
+  // ============================================================
+  function loadData() {
+    var shared = window.Pipe.load('shared');
+    if (!shared || !shared.functions) {
+      state.shared = null;
+      state.functions = [];
+      state.libraries = {};
+      return false;
+    }
+    state.shared = shared;
+    state.libraries = shared.libraries || {};
+    state.functions = Object.keys(shared.functions).map(function(key) {
+      var fn = shared.functions[key];
+      return {
+        id: key,
+        name: fn.name || key,
+        version: fn.version || '1.0.0',
+        category: fn.category || 'misc',
+        subCategory: fn.subCategory || '',
+        folder: fn.folder || '',
+        dependencies: fn.dependencies || [],
+        code: fn.code || ''
+      };
+    });
+    return true;
+  }
+
+  function updateStatus() {
+    var shared = window.Pipe.load('shared');
+    var p06 = window.Pipe.load('06');
+    var hasShared = !!(shared && shared.functions && Object.keys(shared.functions).length);
+    setStatus('statShared', 'statSharedv', hasShared, hasShared ? Object.keys(shared.functions).length + ' functions' : 'missing');
+    setStatus('stat06', 'stat06v', !!p06, p06 ? 'ready' : 'missing');
+  }
+
+  function setStatus(elId, valId, ok, text) {
+    var el = $(elId);
+    el.className = 'status-item ' + (ok ? 'ok' : 'bad');
+    $(valId).textContent = text;
+  }
+
+  // ============================================================
+  // FUNCTION SELECTOR
+  // ============================================================
+  function renderFnSelector() {
+    var sel = $('fnSelector');
+    if (!state.functions.length) {
+      sel.innerHTML = '<div style="padding:20px;text-align:center;color:#4a5468;font-size:12px">Koi function nahi mila.<br>Pehle Tool 05 chalao + Save to pipe_shared.</div>';
+      return;
+    }
+    var html = state.functions.map(function(fn) {
+      var depCount = fn.dependencies.length;
+      var depText = depCount > 0
+        ? '<span class="dep-count">' + depCount + ' deps</span>'
+        : '<span style="color:#4a5468">no deps</span>';
+      return '<label class="fn-check">' +
+        '<input type="checkbox" data-fn-id="' + esc(fn.id) + '" />' +
+        '<div class="info">' +
+          '<div class="name">' + esc(fn.name) + '</div>' +
+          '<div class="meta"><span>' + esc(fn.category) + '</span><span>.</span>' + depText + '</div>' +
+        '</div>' +
+      '</label>';
+    }).join('');
+    sel.innerHTML = html;
+
+    sel.querySelectorAll('input[type=checkbox]').forEach(function(cb) {
+      cb.addEventListener('change', function() {
+        var id = this.getAttribute('data-fn-id');
+        if (this.checked) state.selected[id] = true;
+        else delete state.selected[id];
+        onSelectionChange();
+      });
+    });
+  }
+
+  function onSelectionChange() {
+    var count = Object.keys(state.selected).length;
+    $('selectedCount').textContent = count;
+
+    var neededLibs = {};
+    state.functions.forEach(function(fn) {
+      if (state.selected[fn.id]) {
+        fn.dependencies.forEach(function(depName) { neededLibs[depName] = true; });
+      }
+    });
+
+    var libKeys = Object.keys(neededLibs);
+    var depsPreview = $('depsPreview');
+
+    if (libKeys.length > 0) {
+      depsPreview.style.display = 'block';
+      $('depsList').innerHTML = libKeys.map(function(libName) {
+        var lib = state.libraries[libName] || {};
+        return '<div class="dep">' +
+          '<div class="name">' + esc(libName) + '</div>' +
+          (lib.url ? '<div class="url">' + esc(lib.url) + '</div>' : '<div class="url" style="color:#7a3e0e">no URL</div>') +
+        '</div>';
+      }).join('');
+    } else if (count > 0) {
+      depsPreview.style.display = 'block';
+      $('depsList').innerHTML = '<div style="color:#4a5468;font-style:italic;font-size:12px">No external libraries needed</div>';
+    } else {
+      depsPreview.style.display = 'none';
+    }
+  }
+
+  // ============================================================
+  // GENERATE
+  // ============================================================
+  function generateApp() {
+    var appName = slugify($('appNameInput').value);
+    var appTitle = $('appTitleInput').value.trim() || 'My App';
+
+    var selectedIds = Object.keys(state.selected);
+    if (selectedIds.length === 0) {
+      toast('Kam se kam 1 function select karo', true);
+      return;
+    }
+
+    var selectedFns = state.functions.filter(function(fn) { return state.selected[fn.id]; });
+
+    var neededLibs = {};
+    selectedFns.forEach(function(fn) {
+      fn.dependencies.forEach(function(depName) {
+        var lib = state.libraries[depName];
+        if (lib) neededLibs[depName] = lib;
+      });
+    });
+
+    var files = {
+      'index.html': buildIndexHtml(appTitle, appName, neededLibs),
+      'js/app.js': buildAppJs(appName, selectedFns, neededLibs),
+      'app.json': buildAppJson(appName, appTitle, selectedFns, neededLibs),
+      'package.json': buildPackageJson(appName, selectedFns, neededLibs),
+      'assets/style.css': buildStyleCss(),
+      'README.md': buildReadme(appName, appTitle, selectedFns, neededLibs)
+    };
+
+    state.generated = {
+      appName: appName,
+      appTitle: appTitle,
+      files: files,
+      functions: selectedFns,
+      libraries: neededLibs
+    };
+
+    renderPreview();
+    $('downloadZipBtn').disabled = false;
+    toast('App generated: ' + appName);
+    console.log('[07] Generated:', appName, '|', selectedFns.length, 'functions');
+
+    // Save to pipe for next tools
+    window.Pipe.save('07', {
+      appName: appName,
+      appTitle: appTitle,
+      functions: selectedFns.map(function(f) { return f.name; }),
+      libraries: Object.keys(neededLibs),
+      files: files,
+      generatedAt: new Date().toISOString()
+    });
+
+    updateDebug();
+  }
+
+  // ============================================================
+  // index.html — sirf HTML boilerplate + scripts
+  // ============================================================
+  function buildIndexHtml(title, appName, libs) {
+    var libScripts = Object.keys(libs).map(function(libName) {
+      var lib = libs[libName];
+      if (lib.url) return '  <script src="' + lib.url + '"></' + 'script>';
+      return '  <!-- ' + libName + ' -->';
+    }).join('\n');
+
+    return [
+      '<!DOCTYPE html>',
+      '<html lang="en">',
+      '<head>',
+      '  <meta charset="UTF-8">',
+      '  <meta name="viewport" content="width=device-width, initial-scale=1">',
+      '  <title>' + esc(title) + '</title>',
+      libScripts,
+      '  <link rel="stylesheet" href="assets/style.css">',
+      '</head>',
+      '<body>',
+      '  <div id="app"></div>',
+      '  <script src="js/app.js"></' + 'script>',
+      '</body>',
+      '</html>'
+    ].join('\n');
+  }
+
+  // ============================================================
+  // js/app.js — sirf functions + reference (no duplicated algorithm)
+  // ============================================================
+  function buildAppJs(appName, fns, libs) {
+    var header = [
+      '// ' + appName + ' - app.js',
+      '// Generated by Tool 07',
+      '//',
+      '// Ye file duplicated algorithm nahi rakhti.',
+      '// Har function shared library se aata hai:',
+      fns.map(function(fn) {
+        return '//   ' + fn.name + '  ->  ' + fn.folder;
+      }).join('\n'),
+      '//'
+    ].join('\n');
+
+    var libComment = Object.keys(libs).length
+      ? [
+          '// Libraries:',
+          Object.keys(libs).map(function(l) { return '//   - ' + l; }).join('\n')
+        ].join('\n')
+      : '// Libraries: (none)';
+
+    var fnCodes = fns.map(function(fn) {
+      return [
+        '',
+        '// ── ' + fn.name + ' ─────────────────',
+        '// shared: ' + fn.folder,
+        fn.code,
+        ''
+      ].join('\n');
+    }).join('\n');
+
+    // Simple export — logic only
+    var exports = [
+      '',
+      '// ── exports ─────────────────',
+      'var app = {',
+      fns.map(function(fn) {
+        return '  ' + fn.name + ': ' + fn.name;
+      }).join(',\n'),
+      '};',
+      '',
+      'if (typeof module !== "undefined" && module.exports) {',
+      '  module.exports = app;',
+      '}',
+      'if (typeof window !== "undefined") {',
+      '  window.app = app;',
+      fns.map(function(fn) {
+        return '  window.' + fn.name + ' = ' + fn.name + ';';
+      }).join('\n'),
+      '}'
+    ].join('\n');
+
+    return header + '\n' + libComment + fnCodes + exports;
+  }
+
+  // ============================================================
+  // app.json — metadata
+  // ============================================================
+  function buildAppJson(appName, appTitle, fns, libs) {
+    return JSON.stringify({
+      name: appName,
+      title: appTitle,
+      version: '1.0.0',
+      generatedBy: 'Tool 07',
+      generatedAt: new Date().toISOString(),
+      entry: 'js/app.js',
+      functions: fns.map(function(fn) {
+        return {
+          id: fn.id,
+          name: fn.name,
+          category: fn.category,
+          subCategory: fn.subCategory,
+          shared: fn.folder,
+          dependencies: fn.dependencies
+        };
+      }),
+      libraries: Object.keys(libs).map(function(libName) {
+        var lib = libs[libName];
+        return {
+          name: libName,
+          url: lib.url || null,
+          shared: 'shared/libraries/' + libName + '/'
+        };
+      }),
+      structure: {
+        'index.html': 'HTML shell',
+        'js/app.js': 'Functions + exports',
+        'assets/style.css': 'Styles',
+        'app.json': 'Metadata',
+        'package.json': 'npm dependencies',
+        'README.md': 'Docs'
+      }
+    }, null, 2);
+  }
+
+  // ============================================================
+  // package.json — npm deps
+  // ============================================================
+  function buildPackageJson(appName, fns, libs) {
+    var npmMap = {
+      'pdf.js': 'pdfjs-dist',
+      'pdf-lib': 'pdf-lib',
+      'JSZip': 'jszip',
+      'ExcelJS': 'exceljs',
+      'SheetJS': 'xlsx',
+      'jsPDF': 'jspdf',
+      'FileSaver': 'file-saver',
+      'html2canvas': 'html2canvas',
+      'Mammoth': 'mammoth',
+      'Tesseract': 'tesseract.js'
+    };
+    var deps = {};
+    Object.keys(libs).forEach(function(libName) {
+      deps[npmMap[libName] || libName.toLowerCase()] = 'latest';
+    });
+    return JSON.stringify({
+      name: appName,
+      version: '1.0.0',
+      description: 'Generated by Tool 07',
+      main: 'js/app.js',
+      dependencies: deps,
+      generatedBy: 'Tool 07',
+      generatedAt: new Date().toISOString()
+    }, null, 2);
+  }
+
+  // ============================================================
+  // assets/style.css — base reset only
+  // ============================================================
+  function buildStyleCss() {
+    return [
+      '/* base reset */',
+      '* { box-sizing: border-box; }',
+      'body { margin: 0; font-family: system-ui, sans-serif; padding: 20px; }'
+    ].join('\n');
+  }
+
+  // ============================================================
+  // README.md
+  // ============================================================
+  function buildReadme(appName, appTitle, fns, libs) {
+    return [
+      '# ' + appTitle,
+      '',
+      'Generated by Tool 07.',
+      '',
+      '## Structure',
+      '',
+      '```',
+      'apps/' + appName + '/',
+      '├── index.html',
+      '├── js/',
+      '│   └── app.js',
+      '├── assets/',
+      '│   └── style.css',
+      '├── app.json',
+      '├── package.json',
+      '└── README.md',
+      '```',
+      '',
+      '## Functions (from shared)',
+      '',
+      fns.map(function(f) {
+        return '- `' + f.name + '` → `' + f.folder + '`';
+      }).join('\n'),
+      '',
+      '## Libraries',
+      '',
+      Object.keys(libs).length
+        ? Object.keys(libs).map(function(l) { return '- `' + l + '`'; }).join('\n')
+        : '(none)'
+    ].join('\n');
+  }
+
+  // ============================================================
+  // PREVIEW
+  // ============================================================
+  function renderPreview() {
+    if (!state.generated) return;
+    $('previewEmpty').style.display = 'none';
+    $('previewContainer').style.display = 'block';
+
+    var files = state.generated.files;
+    $('indexCode').textContent = files['index.html'];
+    $('appjsCode').textContent = files['js/app.js'];
+    $('jsonCode').textContent = files['app.json'];
+    $('pkgCode').textContent = files['package.json'];
+    $('treeView').innerHTML = buildTreeHtml(state.generated.appName, files);
+
+    switchTab('index');
+  }
+
+  function buildTreeHtml(appName, files) {
+    var lines = [];
+    lines.push('<span class="folder">apps/</span>');
+    lines.push('  <span class="folder">' + esc(appName) + '/</span>');
+    var order = ['index.html', 'js/app.js', 'assets/style.css', 'app.json', 'package.json', 'README.md'];
+    order.forEach(function(f) {
+      if (files[f]) lines.push('    <span class="file">' + esc(f) + '</span>');
+    });
+    return lines.join('\n');
+  }
+
+  function switchTab(tabName) {
+    document.querySelectorAll('.preview-tab').forEach(function(t) {
+      t.classList.toggle('active', t.getAttribute('data-view') === tabName);
+    });
+    var views = {
+      'index': 'viewIndex',
+      'appjs': 'viewAppjs',
+      'json': 'viewJson',
+      'pkg': 'viewPkg',
+      'tree': 'viewTree'
+    };
+    Object.keys(views).forEach(function(k) {
+      var el = $(views[k]);
+      if (k === tabName) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    });
+  }
+
+  // ============================================================
+  // ZIP DOWNLOAD
+  // ============================================================
+  async function downloadZip() {
+    if (!state.generated) return;
+    if (!window.JSZip) { toast('JSZip not loaded', true); return; }
+
+    var zip = new JSZip();
+    var appFolder = zip.folder('apps/' + state.generated.appName);
+
+    Object.keys(state.generated.files).forEach(function(path) {
+      appFolder.file(path, state.generated.files[path]);
+    });
+
+    var blob = await zip.generateAsync({ type: 'blob' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = state.generated.appName + '.zip';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function() { URL.revokeObjectURL(a.href); }, 3000);
+
+    toast('Downloaded: ' + state.generated.appName + '.zip');
+    console.log('[07] ZIP downloaded');
+  }
+
+  // ============================================================
+  // DEBUG
+  // ============================================================
+  function updateDebug() {
+    if (!state.generated) {
+      $('debugPre').textContent = 'Not generated yet';
+      return;
+    }
+    $('debugPre').textContent = JSON.stringify({
+      appName: state.generated.appName,
+      appTitle: state.generated.appTitle,
+      functionsCount: state.generated.functions.length,
+      librariesCount: Object.keys(state.generated.libraries).length,
+      files: Object.keys(state.generated.files),
+      totalSize: Object.keys(state.generated.files).reduce(function(sum, k) {
+        return sum + state.generated.files[k].length;
+      }, 0) + ' chars'
+    }, null, 2);
+  }
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  $('generateBtn').addEventListener('click', generateApp);
+  $('downloadZipBtn').addEventListener('click', downloadZip);
+
+  document.querySelectorAll('.preview-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      switchTab(this.getAttribute('data-view'));
+    });
+  });
+
+  window.addEventListener('load', function() {
+    console.log('[07] init');
+    updateStatus();
+    if (loadData()) {
+      console.log('[07] Loaded', state.functions.length, 'functions');
+      renderFnSelector();
+      onSelectionChange();
+    } else {
+      console.log('[07] No pipe_shared');
+    }
+  });
+
+})();
+</script>
+
+</body>
+</html>
