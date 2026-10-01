@@ -193,7 +193,7 @@
   'use strict';
 
   // ============================================================
-  // 🔗 PIPE HELPER — Global, safe, robust
+  // 🔗 PIPE HELPER (FIRST — before anything else)
   // ============================================================
   window.Pipe = {
     save: function(id, data) {
@@ -250,6 +250,8 @@
   // CATEGORIZATION
   // ============================================================
   function categorizeFunction(name, code) {
+    if (typeof name !== 'string') name = '';
+    if (typeof code !== 'string') code = '';
     var lower = (name + ' ' + code).toLowerCase();
 
     if (/pdf/i.test(lower)) return { cat: 'pdf', sub: guessSub(name, 'pdf') };
@@ -267,6 +269,7 @@
   }
 
   function guessSub(name, cat) {
+    if (typeof name !== 'string') name = '';
     var cleaned = name
       .replace(/([A-Z])/g, ' $1')
       .replace(/\s+/g, ' ')
@@ -274,6 +277,8 @@
       .trim()
       .split(' ')
       .filter(Boolean);
+
+    if (!cleaned.length) return 'default';
 
     var verbs = ['merge','split','open','close','generate','create','load','save',
                  'fetch','render','parse','convert','upload','download','show','hide',
@@ -291,9 +296,11 @@
   }
 
   // ============================================================
-  // EXTRACT CODE FROM SOURCE BY LINES
+  // EXTRACT CODE FROM SOURCE BY LINES (with guards)
   // ============================================================
   function extractCodeByLines(source, startLine, endLine) {
+    if (typeof source !== 'string') return '';
+    if (typeof startLine !== 'number') return '';
     var lines = source.split(/\r?\n/);
     if (startLine < 1 || startLine > lines.length) return '';
     var s = Math.max(0, startLine - 1);
@@ -302,9 +309,10 @@
   }
 
   // ============================================================
-  // DETECT DEPENDENCIES
+  // DETECT DEPENDENCIES (with guards)
   // ============================================================
   function detectDepsInCode(code) {
+    if (typeof code !== 'string') return [];
     var found = [];
     for (var i = 0; i < LIB_SIGNATURES.length; i++) {
       var lib = LIB_SIGNATURES[i];
@@ -319,9 +327,10 @@
   }
 
   // ============================================================
-  // DETECT HELPER CALLS
+  // DETECT HELPER CALLS (with guards)
   // ============================================================
   function detectHelpers(code) {
+    if (typeof code !== 'string') return [];
     var found = [];
     for (var p = 0; p < HELPER_PATTERNS.length; p++) {
       var re = HELPER_PATTERNS[p];
@@ -339,9 +348,10 @@
   }
 
   // ============================================================
-  // GUESS INPUT/OUTPUT
+  // GUESS INPUT/OUTPUT (with guards)
   // ============================================================
   function guessInputOutput(code) {
+    if (typeof code !== 'string') code = '';
     var input = 'unknown';
     var output = 'unknown';
 
@@ -350,7 +360,7 @@
     else if (/\btext\b|\bstr\b|\bcontent\b/i.test(code)) input = 'string';
     else if (/\bdata\b|\bpayload\b/i.test(code)) input = 'object';
     else if (/\belement\b|\bel\b|\bnode\b/i.test(code)) input = 'HTMLElement';
-    else if (/\(\s*\)/.test(code.split('{')[0] || '')) input = 'void';
+    else if (/\(\s*\)/.test((code.split('{')[0] || ''))) input = 'void';
 
     if (/return\s+.*\.save\s*\(/i.test(code)) output = 'Blob';
     else if (/new\s+Blob/i.test(code)) output = 'Blob';
@@ -415,9 +425,9 @@
     var pipe02 = window.Pipe.load('02');
     var pipe03 = window.Pipe.load('03');
 
-    console.log('[05] p01:', typeof pipe01, pipe01 ? pipe01.length + ' chars' : 'null');
-    console.log('[05] p02:', typeof pipe02, pipe02 && pipe02.functions ? pipe02.functions.length + ' funcs' : 'null');
-    console.log('[05] p03:', typeof pipe03, pipe03 && pipe03.dependencies ? pipe03.dependencies.length + ' deps' : 'null');
+    console.log('[05] p01:', typeof pipe01, pipe01 ? (typeof pipe01 === 'string' ? pipe01.length + ' chars' : 'loaded') : 'null');
+    console.log('[05] p02:', typeof pipe02, (pipe02 && pipe02.functions) ? pipe02.functions.length + ' funcs' : 'null');
+    console.log('[05] p03:', typeof pipe03, (pipe03 && pipe03.dependencies) ? pipe03.dependencies.length + ' deps' : 'null');
 
     if (!pipe01 || typeof pipe01 !== 'string') {
       toast('Tool 01 ka output nahi mila. Pehle Tool 01 chalao.', true);
@@ -435,56 +445,71 @@
     var detectedLibs = (pipe03 && pipe03.dependencies) ? pipe03.dependencies : [];
 
     var extracted = functions.map(function(fn) {
-      var code = extractCodeByLines(sourceHTML, fn.startLine, fn.endLine);
+      try {
+        var code = extractCodeByLines(sourceHTML, fn.startLine, fn.endLine);
 
-      if (!code || code.indexOf(fn.name) === -1) {
-        var re = new RegExp(
-          '(?:async\\s+)?function\\s+' + fn.name + '\\s*\\([^)]*\\)\\s*\\{[\\s\\S]*?\\n\\s*\\}',
-          'm'
-        );
-        var m = sourceHTML.match(re);
-        if (m) code = m[0];
-      }
-
-      if (!code) code = '// ⚠️ Code not found';
-
-      var deps = detectDepsInCode(code);
-      var helpers = detectHelpers(code);
-      var cat = categorizeFunction(fn.name, code);
-      var files = buildFiles(fn, deps, helpers, cat);
-
-      // Attach lib details
-      var depsWithDetails = deps.map(function(depName) {
-        var lib = null;
-        for (var i = 0; i < detectedLibs.length; i++) {
-          if (detectedLibs[i].libraryName &&
-              detectedLibs[i].libraryName.toLowerCase() === depName.toLowerCase()) {
-            lib = detectedLibs[i];
-            break;
-          }
+        if (!code || code.indexOf(fn.name) === -1) {
+          var re = new RegExp(
+            '(?:async\\s+)?function\\s+' + fn.name + '\\s*\\([^)]*\\)\\s*\\{[\\s\\S]*?\\n\\s*\\}',
+            'm'
+          );
+          var m = sourceHTML.match(re);
+          if (m) code = m[0];
         }
-        return {
-          name: depName,
-          url: lib ? lib.url : null,
-          available: !!lib
-        };
-      });
 
-      return {
-        name: fn.name,
-        code: code,
-        dependencies: depsWithDetails,
-        helpers: helpers,
-        category: cat.cat,
-        subCategory: cat.sub,
-        folder: 'shared/' + cat.cat + '/' + cat.sub + '/',
-        files: {
-          'index.js': files.indexJs,
-          'function.json': files.functionJson
-        },
-        sourceFile: fn.file,
-        sourceLines: [fn.startLine, fn.endLine]
-      };
+        if (!code) code = '// ⚠️ Code not found';
+
+        var deps = detectDepsInCode(code);
+        var helpers = detectHelpers(code);
+        var cat = categorizeFunction(fn.name, code);
+        var files = buildFiles(fn, deps, helpers, cat);
+
+        var depsWithDetails = deps.map(function(depName) {
+          var lib = null;
+          for (var i = 0; i < detectedLibs.length; i++) {
+            if (detectedLibs[i].libraryName &&
+                detectedLibs[i].libraryName.toLowerCase() === depName.toLowerCase()) {
+              lib = detectedLibs[i];
+              break;
+            }
+          }
+          return {
+            name: depName,
+            url: lib ? lib.url : null,
+            available: !!lib
+          };
+        });
+
+        return {
+          name: fn.name,
+          code: code,
+          dependencies: depsWithDetails,
+          helpers: helpers,
+          category: cat.cat,
+          subCategory: cat.sub,
+          folder: 'shared/' + cat.cat + '/' + cat.sub + '/',
+          files: {
+            'index.js': files.indexJs,
+            'function.json': files.functionJson
+          },
+          sourceFile: fn.file,
+          sourceLines: [fn.startLine, fn.endLine]
+        };
+      } catch (err) {
+        console.error('❌ [05] Failed to extract', fn.name, err);
+        return {
+          name: fn.name || 'unknown',
+          code: '// ⚠️ Extraction failed: ' + err.message,
+          dependencies: [],
+          helpers: [],
+          category: 'misc',
+          subCategory: 'error',
+          folder: 'shared/misc/error/',
+          files: { 'index.js': '// failed', 'function.json': '{}' },
+          sourceFile: fn.file || 'unknown',
+          sourceLines: [0, 0]
+        };
+      }
     });
 
     var shared = buildSharedLibrary(extracted);
@@ -722,9 +747,13 @@
   }
 
   // ============================================================
-  // INIT — wait for DOM + data
+  // INIT
   // ============================================================
+  var _initDone = false;
   function init() {
+    if (_initDone) return;
+    _initDone = true;
+
     console.log('🚀 [05] init called');
     updateStatus();
 
@@ -744,7 +773,7 @@
     }
   }
 
-  // Attach buttons
+  // Buttons
   document.getElementById('extractBtn').addEventListener('click', extractAll);
   document.getElementById('saveSharedBtn').addEventListener('click', saveToShared);
   document.getElementById('downloadZipBtn').addEventListener('click', downloadZip);
@@ -758,11 +787,11 @@
     toast('Cleared');
   });
 
-  // Fire init on load, but also immediately if DOM already ready
+  // Fire init ONCE — via whatever comes first
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
-    setTimeout(init, 100);
+    setTimeout(init, 50);
   }
   window.addEventListener('load', init);
 
