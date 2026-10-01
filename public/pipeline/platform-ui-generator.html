@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Platform UI Generator - Tool 08</title>
+<style>
+:root{--bg:#f2f4f6;--ink:#14202b;--mute:#5d6b78;--line:#d6dce2;--card:#fff;--acc:#0f766e;--acc2:#0b5a54}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1400px;margin:0 auto;padding:20px}
+h1{font-size:24px;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 16px}
+
+/* Status bar */
+.statusbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.stat{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px}
+.stat .dot{width:8px;height:8px;border-radius:50%;background:#94a3b8}
+.stat.ok .dot{background:#22c55e}
+.stat.bad .dot{background:#ef4444}
+.stat b{color:var(--mute);font-weight:600}
+
+/* Source bar */
+.srcbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.srcbar .lbl{font-weight:600;color:var(--mute);font-size:13px;margin-right:4px}
+
+.input{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+textarea#src{width:100%;height:200px;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:10px;font:13px/1.45 ui-monospace,Menlo,Consolas,monospace;color:var(--ink);background:#fafbfc}
+textarea#src:focus{outline:2px solid var(--acc);border-color:transparent}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+button,select,input[type=text]{font:inherit;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;cursor:pointer}
+button:hover{background:#eef1f4}
+button:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+button.primary:hover{background:var(--acc2)}
+button.success{background:#16a34a;border-color:#16a34a;color:#fff;font-weight:600}
+button.success:hover{background:#15803d}
+button:disabled{opacity:.45;cursor:not-allowed}
+.sp{flex:1}
+input[type=text]{cursor:text}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+@media(max-width:820px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.ph{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.ph strong{margin-right:auto}
+.ph button{padding:5px 10px;font-size:13px}
+iframe{width:100%;height:75vh;min-height:520px;border:0;background:#fff}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 16px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9999}
+.toast.on{opacity:1}
+.cfg-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.cfg-row label{font-size:13px;font-weight:600;color:var(--mute)}
+.cfg-row input[type=text]{padding:6px 10px;font-size:13px;width:180px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎨 Platform UI Generator</h1>
+  <p class="sub">Tool 07 ke app skeleton me naya UI generate karta hai — old design wapas nahi aayega</p>
+
+  <!-- STATUS -->
+  <div class="statusbar">
+    <div class="stat" id="stat01"><span class="dot"></span><b>Tool 01:</b><span id="stat01v">checking...</span></div>
+    <div class="stat" id="stat07"><span class="dot"></span><b>Tool 07:</b><span id="stat07v">checking...</span></div>
+    <div class="stat" id="statShared"><span class="dot"></span><b>pipe_shared:</b><span id="statSharedv">checking...</span></div>
+  </div>
+
+  <!-- SOURCE BAR -->
+  <div class="srcbar">
+    <span class="lbl">Load from:</span>
+    <button id="loadFrom07" title="Tool 07 ka generated app">📦 Tool 07</button>
+    <button id="loadFrom01" title="Tool 01 ka cleaned HTML">🧹 Tool 01 (recommended)</button>
+    <button id="loadSample">📋 Sample</button>
+    <button id="clear">🧹 Clear</button>
+  </div>
+
+  <!-- INPUT -->
+  <div class="input">
+    <textarea id="src" spellcheck="false" placeholder="Tool 07 se data load karo, ya HTML paste karo..."></textarea>
+    <div class="row">
+      <label for="appName" style="font-size:13px;font-weight:600;color:var(--mute)">App Name:</label>
+      <input type="text" id="appName" placeholder="pdf-merger" style="width:180px">
+      <label for="theme" style="font-size:13px;font-weight:600;color:var(--mute);margin-left:10px">Theme:</label>
+      <select id="theme">
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+        <option value="ocean">Ocean</option>
+        <option value="sunset">Sunset</option>
+      </select>
+      <span class="sp"></span>
+      <button class="primary" id="gen">🎨 Generate UI</button>
+      <button class="success" id="savePipe" disabled>💾 Save to pipe_08</button>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="grid">
+    <section class="panel">
+      <div class="ph"><strong>Without design</strong>
+        <button data-copy="plain">Copy code</button>
+        <button data-dl="plain">Download HTML</button></div>
+      <iframe id="fPlain" title="Plain preview" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads"></iframe>
+    </section>
+    <section class="panel">
+      <div class="ph"><strong>With generated UI</strong>
+        <button data-copy="styled">Copy code</button>
+        <button data-dl="styled">Download HTML</button></div>
+      <iframe id="fStyled" title="Designed preview" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads"></iframe>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ============================================================
+  // PIPE HELPER
+  // ============================================================
+  window.Pipe = {
+    save: function(id, data) {
+      try { localStorage.setItem('pipe_' + id, JSON.stringify(data)); }
+      catch(e) { console.error('Pipe.save:', e); }
+    },
+    load: function(id) {
+      var raw = localStorage.getItem('pipe_' + id);
+      if (raw === null) return null;
+      try { return JSON.parse(raw); } catch(e) { return raw; }
+    },
+    clear: function(id) { localStorage.removeItem('pipe_' + id); }
+  };
+
+  console.log('[08] Pipe helper ready');
+
+  var $ = function(id) { return document.getElementById(id); };
+  var out = { plain: "", styled: "" };
+  var currentAppName = "";
+
+  // ============================================================
+  // THEMES (same as before)
+  // ============================================================
+  var THEMES = {
+    light:  {bg:"#f3f5f7",card:"#ffffff",ink:"#14202b",mute:"#5d6b78",line:"#d6dce2",acc:"#0f766e",accInk:"#ffffff"},
+    dark:   {bg:"#10161c",card:"#18212a",ink:"#e8eef3",mute:"#93a3b2",line:"#2a3642",acc:"#4fd1b5",accInk:"#062b24"},
+    ocean:  {bg:"#eaf2fb",card:"#ffffff",ink:"#0d2742",mute:"#52708f",line:"#c5d6ea",acc:"#1f5fbf",accInk:"#ffffff"},
+    sunset: {bg:"#fbf1ec",card:"#fffaf7",ink:"#3a1f1a",mute:"#8a6258",line:"#ecd3c8",acc:"#c2410c",accInk:"#ffffff"}
+  };
+
+  // ============================================================
+  // DESIGN CSS (unchanged from original)
+  // ============================================================
+  function designCSS(t){
+    return `
+:root{--bg:${t.bg};--card:${t.card};--ink:${t.ink};--mute:${t.mute};--line:${t.line};--acc:${t.acc};--accInk:${t.accInk};
+--soft:color-mix(in srgb,var(--acc) 13%,transparent);--sh:0 1px 2px rgba(0,0,0,.06),0 10px 28px rgba(0,0,0,.08);--r:14px}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;padding:32px 20px 56px;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+:where([data-ui~=narrow]){max-width:960px;margin-inline:auto}
+:where([data-ui~=wrap]){max-width:1040px;margin:0 auto}
+:where(h1,h2,h3,h4,h5,h6){line-height:1.2;margin:1.3em 0 .5em;font-weight:700;letter-spacing:-.015em}
+:where(h1){font-size:2.1rem;margin-top:0}:where(h2){font-size:1.5rem}:where(h3){font-size:1.15rem}
+:where(p,ul,ol,dl,blockquote){margin:0 0 1em}
+:where(a){color:var(--acc);text-underline-offset:3px}
+:where(hr){border:0;border-top:1px solid var(--line);margin:1.6em 0}
+:where(img,video,svg){max-width:100%;height:auto}:where(img){border-radius:10px}
+:where(blockquote){padding:.6em 1em;border-left:4px solid var(--acc);background:var(--card);border-radius:0 8px 8px 0;color:var(--mute)}
+:where(code,kbd){font:.9em ui-monospace,Menlo,Consolas,monospace;background:var(--soft);padding:.1em .4em;border-radius:5px}
+:where(pre){background:var(--card);border:1px solid var(--line);padding:14px;border-radius:10px;overflow:auto}
+:where(form,fieldset,details,table){background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+:where(form,fieldset,details){padding:18px;margin:0 0 16px}
+:where(label){font-weight:600;font-size:.92rem}
+:where(form label,fieldset label){display:block;margin:12px 0 6px}
+:where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=button],[type=submit],[type=reset]),select,textarea){
+ width:100%;max-width:100%;padding:10px 12px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px}
+:where(textarea){min-height:110px;resize:vertical}
+:where(input,select,textarea):focus{outline:2px solid var(--acc);outline-offset:1px;border-color:transparent}
+:where(input[type=checkbox],input[type=radio],input[type=range],progress){accent-color:var(--acc)}
+:where(input[type=range]){width:100%}
+:where(table){width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;margin:0 0 16px}
+:where(th,td){padding:10px 14px;text-align:left;border-bottom:1px solid var(--line)}
+:where(th){font-size:.85rem;color:var(--mute);background:var(--bg)}
+:where(tr:last-child td){border-bottom:0}
+:where(summary){cursor:pointer;font-weight:600}
+[contenteditable]:empty::before{content:attr(data-placeholder);color:var(--mute);pointer-events:none}
+:where([data-ui~=stack]){margin:0 0 16px}
+:where([data-ui~=stack] h1,[data-ui~=stack] h2){margin-top:0}
+:where([data-ui~=hero]){text-align:center;margin:0 0 32px}
+:where([data-ui~=hero]) :where(h1){font-size:clamp(2rem,5vw,3rem);margin-bottom:.3em}
+:where([data-ui~=bar]){display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+[data-ui~=bar]>[data-ui~=name]{flex:1}
+:where([data-ui~=grid]){display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:0 0 16px}
+:where([data-ui~=card]){display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;background:var(--card);color:var(--ink);
+ font:inherit;border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--sh);transition:transform .15s,border-color .15s}
+button[data-ui~=card]{cursor:pointer}
+[data-ui~=card]:hover{border-color:var(--acc)}button[data-ui~=card]:hover{transform:translateY(-2px)}
+:where([data-ui~=panel]){background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin:0 0 16px}
+:where([data-ui~=list]){list-style:none;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:8px}
+:where([data-ui~=item]){display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px}
+:where([data-ui~=title]){font-weight:700;letter-spacing:-.01em}
+:where([data-ui~=muted]){color:var(--mute);font-size:.9rem}
+:where([data-ui~=name]){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:where([data-ui~=foot]){text-align:center;color:var(--mute);font-size:.85rem;margin-top:36px}
+:where([data-ui~=chip]){display:inline-block;padding:2px 10px;border-radius:999px;background:var(--soft);color:var(--acc);font-size:.75rem;font-weight:700}
+:where([data-ui~=icon]){display:inline-grid;place-items:center;width:42px;height:42px;border-radius:12px;background:var(--soft);font-size:1.3rem}
+:where([data-ui~=index]){display:inline-grid;place-items:center;min-width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--acc);font-size:.8rem;font-weight:700}
+:where([data-ui~=sep]){display:inline-block;width:1px;height:22px;background:var(--line)}
+:where([data-ui~=field]){display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:.92rem}
+:where([data-ui~=alert]){padding:12px 14px;border-radius:10px;background:rgba(220,38,38,.1);color:#b91c1c;border:1px solid rgba(220,38,38,.3)}
+:where([data-ui~=drop]){text-align:center;padding:36px 20px;border:2px dashed var(--line);border-radius:var(--r);background:var(--bg);cursor:pointer;transition:border-color .15s,background .15s}
+[data-ui~=drop]:hover,[data-ui~=drop].over,[data-ui~=drop].dragover{border-color:var(--acc);background:var(--soft)}
+:where([data-ui~=editor]){min-height:180px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin:10px 0}
+:where([data-ui~=stage]){padding:16px;background:var(--bg);border:1px solid var(--line);border-radius:10px;overflow:auto;text-align:center;margin:10px 0}
+:where([data-ui~=track]){height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:10px 0}
+:where([data-ui~=fill]){height:100%;background:var(--acc);border-radius:99px;transition:width .2s}
+:where([data-ui~=spin]){display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:-2px;border:2px solid var(--line);border-top-color:var(--acc);border-radius:50%;animation:ui-spin .8s linear infinite}
+@keyframes ui-spin{to{transform:rotate(360deg)}}
+[data-ui~=hit]{cursor:pointer;border-radius:3px}
+[data-ui~=hit]:hover{outline:1px solid var(--acc);background:var(--soft)}
+[data-ui~=hit].selected{outline:2px solid var(--acc);background:var(--soft)}
+[data-ui~=hit].edited{outline:2px solid #16a34a;background:rgba(22,163,74,.15)}
+:where([data-ui~=overlay]){position:fixed;top:0;right:0;bottom:0;left:0;display:grid;place-items:center;padding:16px;
+ background:rgba(8,12,16,.62);backdrop-filter:blur(3px);z-index:1000}
+:where([data-ui~=overlay]).hidden{display:none!important}
+:where([data-ui~=dialog]){background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.35);width:min(960px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+:where([data-ui~=dialog])>[data-ui~=bar]{padding:12px 16px;border-bottom:1px solid var(--line)}
+[data-ui~=toast]{position:fixed;left:50%;bottom:24px;z-index:9999;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(8px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:10px;box-shadow:var(--sh);font-weight:600;transition:opacity .2s,transform .2s}
+[data-ui~=toast].show{opacity:1!important;transform:translateX(-50%)}
+[data-ui~=toast].err{background:#b91c1c;color:#fff}
+:where([data-ui~=btn]){display:inline-flex;align-items:center;justify-content:center;gap:6px;font:inherit;font-weight:600;padding:9px 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;text-decoration:none;transition:filter .15s,background .15s,border-color .15s}
+[data-ui~=btn]:hover{border-color:var(--acc);background:var(--soft)}
+[data-ui~=btn][data-ui~=primary]{background:var(--acc);border-color:var(--acc);color:var(--accInk)}
+[data-ui~=btn][data-ui~=primary]:hover{filter:brightness(1.1);background:var(--acc)}
+[data-ui~=btn][data-ui~=small],[data-ui~=btn][data-ui~=sm]{padding:5px 11px;font-size:.85rem}
+[data-ui~=btn][data-ui~=iconbtn]{padding:4px 9px;min-width:32px;height:32px;font-size:.9rem}
+[data-ui~=btn].active{background:var(--soft);color:var(--acc);border-color:var(--acc)}
+[data-ui~=btn]:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+[data-ui~=btn]:disabled{opacity:.45;cursor:not-allowed;filter:none}
+@media(max-width:560px){body{padding:20px 14px 40px}}
+`;
+  }
+
+  // ============================================================
+  // AUTO UI (unchanged from original)
+  // ============================================================
+  function autoUI(){
+    var M={card:'card',tile:'card',btn:'btn',button:'btn',cta:'btn',back:'btn',modal:'overlay',overlay:'overlay',backdrop:'overlay',popup:'overlay',
+     dialog:'dialog',box:'dialog',sheet:'dialog',panel:'panel',widget:'panel',bottom:'panel',toast:'toast',snackbar:'toast',alert:'alert',error:'alert',
+     banner:'alert',dropzone:'drop',drop:'drop',dz:'drop',uploader:'drop',chip:'chip',badge:'chip',tag:'chip',pill:'chip',grid:'grid',toolbar:'bar',
+     actions:'bar',action:'bar',controls:'bar',topbar:'bar',row:'bar',group:'bar',tabs:'bar',nav:'bar',zoom:'bar',bar:'bar',head:'head',header:'head',
+     foot:'head',footer:'foot',list:'list',item:'item',entry:'item',title:'title',ttl:'title',heading:'title',desc:'muted',dsc:'muted',description:'muted',
+     tagline:'muted',sub:'muted',subtitle:'muted',hint:'muted',meta:'muted',note:'muted',caption:'muted',info:'muted',label:'muted',stat:'muted',
+     loading:'muted',empty:'muted',name:'name',fname:'name',filename:'name',ico:'icon',icon:'icon',idx:'index',num:'index',spin:'spin',spinner:'spin',
+     loader:'spin',fill:'fill',sep:'sep',divider:'sep',editor:'editor',field:'field',hit:'hit',viewer:'stage',stage:'stage'};
+    var MODS=['small','sm','ghost','secondary','danger'];
+    function toks(s){return s.replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).map(function(w){return w.replace(/\d+$/,'')});}
+    function classify(el){
+      if(el.nodeType!==1||el.namespaceURI!=='http://www.w3.org/1999/xhtml')return;
+      var tag=el.tagName.toLowerCase();
+      if(/^(script|style|link|meta|head|html|body|canvas|br)$/.test(tag))return;
+      var names=(el.getAttribute('class')||'').split(/\s+/).concat(el.id||'').filter(Boolean);
+      var R={},all={};
+      names.forEach(function(n){
+        var t=toks(n),found=null;
+        t.forEach(function(x){all[x]=1});
+        for(var i=t.length-1;i>=0&&!found;i--){
+          var w=t[i],r=M[w],pl=false;
+          if(!r&&/s$/.test(w)&&M[w.slice(0,-1)]){r=M[w.slice(0,-1)];pl=true;}
+          if(r){
+            if(pl){r=r==='card'?'grid':r==='item'?'list':r==='chip'?'bar':r;}
+            found=r;
+          }
+        }
+        if(found)R[found]=1;
+      });
+      var isBtn=tag==='button'||(tag==='input'&&/^(button|submit|reset)$/.test(el.type));
+      if(isBtn&&!R.card)R.btn=1;
+      if(R.card)delete R.btn;
+      if(R.btn){
+        var txt=el.textContent.trim();
+        if(isBtn&&(txt.length<=2||(el.children.length&&!txt)))R.iconbtn=1;
+        else if(all.primary||all.cta||el.type==='submit'||!el.getAttribute('class'))R.primary=1;
+        if(all.primary)R.primary=1;
+      }
+      if(R.head||(tag==='header'&&!Object.keys(R).length)){
+        delete R.head;
+        var kids=[].slice.call(el.children);
+        var h1=kids.some(function(c){return /^h1$/i.test(c.tagName)});
+        var txtk=kids.some(function(c){return /^(h[1-6]|p)$/i.test(c.tagName)});
+        R[h1?'hero':txtk?'stack':'bar']=1;
+      }
+      if(R.bar&&[].some.call(el.children,function(c){return /fill/i.test(c.id+' '+c.getAttribute('class'))})){delete R.bar;R.track=1;}
+      if(/^(ul|ol)$/.test(tag)&&el.firstElementChild&&el.firstElementChild.getAttribute('class'))R.list=1;
+      if(el.parentElement===document.body&&/^(div|main)$/.test(tag)&&!Object.keys(R).length)R.wrap=1;
+      MODS.forEach(function(m){if(all[m])R[m]=1});
+      var v=Object.keys(R).join(' ');
+      if(v)el.setAttribute('data-ui',v);else el.removeAttribute('data-ui');
+    }
+    function scan(n){if(n.nodeType!==1)return;classify(n);var a=n.querySelectorAll('*');for(var i=0;i<a.length;i++)classify(a[i]);}
+    function start(){
+      scan(document.body);
+      document.body.setAttribute('data-ui',document.querySelector('[data-ui~=wrap]')?'page':'page narrow');
+      new MutationObserver(function(ms){
+        ms.forEach(function(m){
+          if(m.type==='childList'){m.addedNodes.forEach(scan);}
+          else if(m.type==='attributes'){scan(m.target);}
+        });
+      }).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','id']});
+    }
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
+  function build(code, themeKey){
+    var css = '<style id="auto-ui">' + designCSS(THEMES[themeKey]) + '</style>';
+    var js = '<script id="auto-ui-js">(' + autoUI.toString() + ')()<\/script>';
+    var meta = '<meta name="viewport" content="width=device-width, initial-scale=1">';
+    var inject = css + js;
+    var hasHtml = /<html[\s>]/i.test(code);
+    var plain = hasHtml ? code : ['<!DOCTYPE html>','<html lang="en">','<head>','<meta charset="UTF-8">',meta,'<title>Preview</title>','</head>','<body>',code,'</body>','</html>'].join('\n');
+    var styled;
+    if (/<\/head>/i.test(plain)) styled = plain.replace(/<\/head>/i, function(){ return inject + '\n</head>'; });
+    else if (/<head[\s>]/i.test(plain)) styled = plain.replace(/<head[^>]*>/i, function(m){ return m + inject; });
+    else if (/<html[^>]*>/i.test(plain)) styled = plain.replace(/<html[^>]*>/i, function(m){ return m + '<head>' + meta + inject + '</head>'; });
+    else styled = inject + plain;
+    if (!/name=["']viewport["']/i.test(styled)) styled = styled.replace(/<head[^>]*>/i, function(m){ return m + meta; });
+    return { plain: plain, styled: styled };
+  }
+
+  // ============================================================
+  // GENERATE
+  // ============================================================
+  function generate(){
+    var code = $("src").value.trim();
+    if (!code){ toast("Pehle source load karo ya paste karo"); return; }
+    var r = build(code, $("theme").value);
+    out.plain = r.plain; out.styled = r.styled;
+    $("fPlain").srcdoc = r.plain;
+    $("fStyled").srcdoc = r.styled;
+    $("savePipe").disabled = false;
+    toast("UI generated ✅");
+    console.log("[08] UI generated | plain:", r.plain.length, "chars | styled:", r.styled.length, "chars");
+  }
+
+  // ============================================================
+  // LOAD SOURCES
+  // ============================================================
+  function loadFromTool07() {
+    var p07 = window.Pipe.load('07');
+    if (!p07 || !p07.files) {
+      toast("Tool 07 ka data nahi mila. Pehle Tool 07 chalao.", true);
+      return;
+    }
+
+    var html = p07.files['index.html'] || '';
+    if (!html.trim()) {
+      toast("Tool 07 ka HTML khaali hai", true);
+      return;
+    }
+
+    $('src').value = html;
+    $('appName').value = p07.appName || 'app';
+    currentAppName = p07.appName || 'app';
+    toast("Loaded from Tool 07: " + p07.appName);
+    console.log('[08] Loaded from pipe_07:', p07.appName, '|', html.length, 'chars');
+  }
+
+  function loadFromTool01() {
+    var p01 = window.Pipe.load('01');
+    if (!p01 || typeof p01 !== 'string') {
+      toast("Tool 01 ka data nahi mila. Pehle Tool 01 chalao.", true);
+      return;
+    }
+
+    $('src').value = p01;
+    if (!currentAppName) {
+      $('appName').value = 'my-app';
+      currentAppName = 'my-app';
+    }
+    toast("Loaded from Tool 01 (cleaned HTML)");
+    console.log('[08] Loaded from pipe_01:', p01.length, 'chars');
+  }
+
+  function loadSample() {
+    $('src').value = '<h1>Contact Us</h1>\n<p>Fill the form and we will get back to you.</p>\n<form onsubmit="event.preventDefault();document.getElementById(\'msg\').textContent=\'Thanks, \'+this.name.value+\'!\'">\n  <label>Name</label>\n  <input name="name" type="text" placeholder="Your name">\n  <label>Email</label>\n  <input type="email" placeholder="you@example.com">\n  <label>Topic</label>\n  <select><option>Support</option><option>Sales</option></select>\n  <label>Message</label>\n  <textarea></textarea>\n  <button type="submit">Send</button>\n</form>\n<p id="msg"></p>\n<h2>Plans</h2>\n<table>\n  <tr><th>Plan</th><th>Price</th></tr>\n  <tr><td>Basic</td><td>$5</td></tr>\n  <tr><td>Pro</td><td>$12</td></tr>\n</table>';
+    $('appName').value = 'sample-app';
+    currentAppName = 'sample-app';
+    toast("Sample loaded");
+  }
+
+  function clearAll() {
+    $('src').value = '';
+    $('appName').value = '';
+    currentAppName = '';
+    out.plain = out.styled = '';
+    $('fPlain').srcdoc = '';
+    $('fStyled').srcdoc = '';
+    $('savePipe').disabled = true;
+    toast("Cleared");
+  }
+
+  // ============================================================
+  // SAVE TO PIPE_08
+  // ============================================================
+  function savePipe() {
+    if (!out.styled) {
+      toast("Pehle Generate karo", true);
+      return;
+    }
+    if (!currentAppName) {
+      currentAppName = ($('appName').value || 'app').trim();
+    }
+
+    window.Pipe.save('08', {
+      appName: currentAppName,
+      appTitle: currentAppName,
+      theme: $('theme').value,
+      plainHtml: out.plain,
+      styledHtml: out.styled,
+      generatedAt: new Date().toISOString()
+    });
+
+    toast("Saved to pipe_08 ✅");
+    console.log('[08] Saved to pipe_08:', currentAppName, '| styled:', out.styled.length, 'chars');
+  }
+
+  // ============================================================
+  // STATUS
+  // ============================================================
+  function updateStatus() {
+    var p01 = window.Pipe.load('01');
+    var p07 = window.Pipe.load('07');
+    var shared = window.Pipe.load('shared');
+
+    var has01 = !!(p01 && typeof p01 === 'string');
+    var has07 = !!(p07 && p07.appName);
+    var hasShared = !!(shared && shared.functions);
+
+    setStat('stat01', 'stat01v', has01, has01 ? p01.length + ' chars' : 'missing');
+    setStat('stat07', 'stat07v', has07, has07 ? p07.appName : 'missing');
+    setStat('statShared', 'statSharedv', hasShared, hasShared ? Object.keys(shared.functions).length + ' funcs' : 'missing');
+  }
+
+  function setStat(elId, valId, ok, text) {
+    var el = $(elId);
+    el.className = 'stat ' + (ok ? 'ok' : 'bad');
+    $(valId).textContent = text;
+  }
+
+  // ============================================================
+  // TOAST
+  // ============================================================
+  function toast(msg, isErr) {
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("on");
+    if (isErr) t.style.background = '#b91c1c';
+    else t.style.background = '';
+    clearTimeout(toast.h);
+    toast.h = setTimeout(function(){ t.classList.remove("on"); }, 2000);
+  }
+
+  // ============================================================
+  // COPY / DOWNLOAD
+  // ============================================================
+  async function copyText(text){
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch(e){
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand("copy"); } catch(_){}
+      ta.remove(); return ok;
+    }
+  }
+
+  function download(name, text){
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], {type:"text/html"}));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  }
+
+  document.querySelectorAll("[data-copy]").forEach(function(b){ b.onclick = async function(){
+    var k = b.dataset.copy;
+    if (!out[k]){ toast("Pehle Generate karo"); return; }
+    toast(await copyText(out[k]) ? "Code copied" : "Copy failed");
+  };});
+
+  document.querySelectorAll("[data-dl]").forEach(function(b){ b.onclick = function(){
+    var k = b.dataset.dl;
+    if (!out[k]){ toast("Pehle Generate karo"); return; }
+    var name = (currentAppName || 'app') + (k === 'plain' ? '-plain.html' : '-ui.html');
+    download(name, out[k]);
+  };});
+
+  // ============================================================
+  // WIRING
+  // ============================================================
+  $("gen").onclick = generate;
+  $("theme").onchange = function(){ if ($("src").value.trim()) generate(); };
+  $("loadFrom07").onclick = loadFromTool07;
+  $("loadFrom01").onclick = loadFromTool01;
+  $("loadSample").onclick = loadSample;
+  $("clear").onclick = clearAll;
+  $("savePipe").onclick = savePipe;
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  window.addEventListener('load', function() {
+    console.log('[08] init called');
+    updateStatus();
+
+    // Auto-load from Tool 07 if available
+    var p07 = window.Pipe.load('07');
+    if (p07 && p07.files && p07.files['index.html']) {
+      console.log('[08] Auto-loading from Tool 07:', p07.appName);
+      loadFromTool07();
+      // Auto-generate after short delay
+      setTimeout(generate, 300);
+    } else {
+      // Fallback: try Tool 01
+      var p01 = window.Pipe.load('01');
+      if (p01 && typeof p01 === 'string') {
+        console.log('[08] Auto-loading from Tool 01');
+        loadFromTool01();
+        setTimeout(generate, 300);
+      } else {
+        console.log('[08] No source. Manual mode.');
+      }
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

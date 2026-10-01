@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Design Remover + Function Preserver v5</title>
+<title>Design Remover + Function Preserver v6</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -102,9 +102,7 @@
   .xss-banner.safe .title{color:#4ade80}
   .xss-banner .sub{font-size:12.5px; color:#c9a880; line-height:1.6}
   .xss-banner.safe .sub{color:#86c79a}
-  .xss-banner .patterns{
-    margin-top:10px; display:flex; flex-direction:column; gap:6px;
-  }
+  .xss-banner .patterns{margin-top:10px; display:flex; flex-direction:column; gap:6px}
   .xss-banner .pattern{
     display:flex; align-items:flex-start; gap:8px;
     padding:8px 11px; border-radius:8px;
@@ -142,8 +140,8 @@
 <body>
 
 <header>
-  <h1>🎨 Design Remover + Function Preserver <span style="color:#7c9aff">v5</span></h1>
-  <p>CSS ko <b>JS + HTML dependencies</b> ke saath analyze karta hai — state selectors bhi preserve hote hain</p>
+  <h1>🎨 Design Remover + Function Preserver <span style="color:#7c9aff">v6</span></h1>
+  <p>CSS ko <b>JS + HTML dependencies</b> ke saath analyze karta hai — <code>position:relative</code> bhi functional maana jata hai</p>
 </header>
 
 <main>
@@ -179,7 +177,6 @@
 
   <section id="output" class="hidden">
 
-    <!-- ═══ Split (Original | Cleaned) — ab sabse upar ═══ -->
     <div class="split">
       <div class="panel">
         <div class="panel-head">
@@ -205,7 +202,6 @@
       </div>
     </div>
 
-    <!-- ═══ NEW POSITION: Stats strip — report ke just upar ═══ -->
     <div class="stats-strip" id="statsStrip">
       <div class="stat removed">
         <span class="num" id="statRemovedRules">0</span>
@@ -234,7 +230,6 @@
       <span class="arrow" id="statSizeDelta" style="color:#4ade80;font-size:12.5px;font-weight:700">0%</span>
     </div>
 
-    <!-- ═══ NEW POSITION: XSS warning — report ke just upar ═══ -->
     <div class="xss-banner hidden" id="xssBanner">
       <div class="icon" id="xssIcon">⚠️</div>
       <div class="body">
@@ -507,7 +502,7 @@
     const structuralProps = [];
     const designProps = [];
     let hasHideProp = false;
-    let hasPositionFixed = false;
+    let hasPosition = false;
     let hasZIndex = false;
 
     for(let i = 0; i < style.length; i++){
@@ -521,7 +516,10 @@
       if(prop === 'display' && v === 'none') hasHideProp = true;
       if(prop === 'visibility' && v === 'hidden') hasHideProp = true;
       if(prop === 'pointer-events' && v === 'none') hasHideProp = true;
-      if(prop === 'position' && /fixed|absolute|sticky/.test(v)) hasPositionFixed = true;
+
+      // FIX: relative / fixed / absolute / sticky — sab functional (relative bhi positioned context banata hai)
+      if(prop === 'position' && /^(relative|fixed|absolute|sticky)$/.test(v)) hasPosition = true;
+
       if(prop === 'z-index') hasZIndex = true;
 
       if(STRUCTURAL_PROPS.has(prop)){
@@ -537,7 +535,7 @@
 
     const isFunctional =
       hasHideProp ||
-      hasPositionFixed ||
+      hasPosition ||
       (hasZIndex && structuralProps.some(p => p.startsWith('position'))) ||
       jsReferenced ||
       hasStatePseudo ||
@@ -1085,29 +1083,40 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Modal State Test</title>
+<title>Position + Modal State Test</title>
 <style>
   body { background:#111; color:#fff; font-family:Arial; padding:40px; text-align:center; }
   h1 { color:cyan; font-size:42px; }
   .modal { position: fixed; inset: 0; display: none; background: rgba(0,0,0,.85); z-index: 100; }
   .modal.active { display: flex; align-items: center; justify-content: center; }
   .modal-content { background: white; color: black; padding: 30px; border-radius: 12px; }
+  .wrap { position: relative; display: inline-block; padding: 20px; margin: 20px 0; }
+  .badge { position: absolute; top: 20px; left: 20px; background: yellow; color: black; padding: 4px 10px; border-radius: 6px; }
   .btn { background: red; color: white; padding: 12px 24px; border: 0; border-radius: 20px; cursor: pointer; }
   .title { font-size: 30px; color: gold; letter-spacing: 2px; }
 </style>
 </head>
 <body>
-  <h1 class="title">Modal Test</h1>
-  <p>Open button dabao — modal flex se dikhna chahiye.</p>
+  <h1 class="title">Position + Modal Test</h1>
+  <p>Yellow badge image ke corner pe + modal open ho to <code>relative</code> aur state selectors dono preserve hue.</p>
+
+  <div class="wrap">
+    <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='180'><rect width='300' height='180' fill='%23333'/><text x='150' y='95' text-anchor='middle' fill='%23888' font-size='20'>Image Area</text></svg>" alt="test" />
+    <div class="badge">Overlay</div>
+  </div>
+
+  <br>
   <button class="btn" onclick="openModal()">Open Modal</button>
   <button class="btn" onclick="closeModal()">Close Modal</button>
+
   <div id="modal" class="modal">
     <div class="modal-content">
       <h2>✅ Modal open!</h2>
-      <p>Agar tum ye dekh rahe ho, to state selector preserve hua.</p>
+      <p>State selector + position:relative dono kaam kar rahe hain.</p>
       <button onclick="closeModal()">Close</button>
     </div>
   </div>
+
   <script>
     function openModal(){ document.getElementById('modal').classList.add('active'); }
     function closeModal(){ document.getElementById('modal').classList.remove('active'); }
