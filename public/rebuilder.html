@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>App Rebuilder — All-in-One</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--fg:#14161a;--mut:#6b7280;--ac:#4f46e5;--bd:#e3e5ea;--ok:#15803d;--bad:#b91c1c;--warn:#b45309;--code:#f1f2f6}
+@media (prefers-color-scheme:dark){:root{--bg:#0e0f13;--card:#171920;--fg:#eceef2;--mut:#9aa0ac;--ac:#818cf8;--bd:#2a2d37;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24;--code:#0f1015}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:14px;max-width:960px;margin-inline:auto}
+h1{font-size:21px;margin:4px 0 2px}.sub{color:var(--mut);margin:0 0 12px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+textarea,input[type=text],input[type=password],select{width:100%;font:12px/1.4 ui-monospace,Menlo,monospace;background:var(--code);color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:9px}
+textarea{height:170px;resize:vertical}
+input[type=text],input[type=password],select{font:14px system-ui,sans-serif;margin:3px 0 8px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+button,label.btn{font:inherit;font-size:14px;padding:8px 13px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--fg);cursor:pointer}
+button.pri{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+button:disabled{opacity:.4;cursor:default}input[type=file]{display:none}
+.steps{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px;position:sticky;top:0;background:var(--bg);z-index:5;padding-top:4px}
+.steps button{white-space:nowrap;flex:0 0 auto}.steps button.on{border-color:var(--ac);color:var(--ac);font-weight:600}
+.pane{display:none}.pane.on{display:block}
+.head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.head h2{font-size:17px;margin:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;margin:8px 0}
+.stat{background:var(--code);border-radius:8px;padding:7px 10px}.stat b{display:block;font-size:19px}.stat span{color:var(--mut);font-size:11.5px}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}.mut{color:var(--mut)}
+h3{font-size:13px;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+pre{background:var(--code);border:1px solid var(--bd);border-radius:8px;padding:9px;overflow:auto;max-height:340px;font:11.5px/1.4 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-word;margin:6px 0}
+iframe.pv{width:100%;height:380px;border:1px solid var(--bd);border-radius:8px;background:#fff}
+details{background:var(--code);border-radius:8px;padding:6px 10px;margin:6px 0}summary{cursor:pointer;font-weight:600}
+.chip{display:inline-block;font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid var(--bd);margin:1px 2px 1px 0;color:var(--mut)}
+.chip.t-shared{color:var(--ok);border-color:var(--ok)}.chip.t-browser{color:var(--ac);border-color:var(--ac)}.chip.t-backend-call,.chip.t-mixed{color:var(--warn);border-color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:5px 6px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top;word-break:break-word}
+ul{margin:4px 0;padding-left:18px}li{margin:3px 0}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--bd);margin-right:5px}
+.dot.ok{background:var(--ok)}.dot.fail{background:var(--bad)}.dot.warn{background:var(--warn)}.dot.run{background:var(--ac)}
+svg text{font:11px system-ui,sans-serif;fill:var(--fg)}svg rect{fill:var(--code);stroke:var(--bd)}svg line{stroke:var(--mut);stroke-width:1}
+.flow{overflow-x:auto}
+</style>
+</head>
+<body>
+<h1>🏗️ App Rebuilder <span class="mut" style="font-size:13px">all-in-one</span></h1>
+<p class="sub">Original app → ① Clean → ② Understand → ③ Blueprint → ④ Rebuild → ⑤ Test → ⑥ Package. Sab kuch is ek file mein, browser ke andar.</p>
+
+<details class="card" id="ghCard"><summary>🔗 GitHub registry <span id="ghState" class="mut" style="font-weight:400"></span></summary>
+  <input type="password" id="ghTok" placeholder="Fine-grained token (rebuilder-data only, Contents: read/write)" autocomplete="off">
+  <input type="text" id="ghRepo" placeholder="owner/rebuilder-data">
+  <input type="text" id="ghBranch" placeholder="branch (main)">
+  <div class="row"><button class="pri" id="ghConnect">Connect &amp; pull</button><button id="ghForget">Token hatao</button></div>
+  <p class="mut" style="font-size:12.5px;margin:8px 0 0">Sirf token + repo naam is browser ke localStorage mein save hota hai. Registry, shared functions, libs aur apps sab repo mein rehte hain.</p>
+</details>
+
+<div class="card">
+  <textarea id="src" placeholder="Original app ka HTML yahan paste karo (CSS + JS inline)…"></textarea>
+  <div class="row">
+    <label class="btn">📂 HTML file<input type="file" id="file" accept=".html,.htm,text/html"></label>
+    <button id="demo">Demo load</button>
+    <button class="pri" id="runall">▶ Run all (1→6)</button>
+  </div>
+  <div id="allStatus" class="sub" style="margin:8px 0 0"></div>
+</div>
+
+<nav class="steps" id="steps"></nav>
+
+<div class="pane on" id="p1"></div><div class="pane" id="p2"></div><div class="pane" id="p3"></div>
+<div class="pane" id="p4"></div><div class="pane" id="p5"></div><div class="pane" id="p6"></div>
+
+<!-- ======================= ENGINE (pure logic, no DOM) ======================= -->
+<script id="engine">
+'use strict';
+const FUNCTIONAL=new Set(['display','visibility','pointer-events','overflow','overflow-x','overflow-y','position','z-index','content-visibility','resize','user-select','touch-action']);
+const KEYWORDS=new Set('if for while switch catch function return typeof new await async super import delete void in of do else try with'.split(' '));
+const BUILTIN=new Set('parseInt parseFloat Number String Boolean Array Object Math JSON Date RegExp Map Set WeakMap Promise Symbol Error isNaN isFinite encodeURIComponent decodeURIComponent encodeURI decodeURI setTimeout setInterval clearTimeout clearInterval requestAnimationFrame cancelAnimationFrame alert confirm prompt fetch eval structuredClone queueMicrotask atob btoa console require Intl BigInt Image Audio FileReader Blob URL FormData Event CustomEvent XMLHttpRequest WebSocket AbortController Uint8Array Float32Array Function'.split(' '));
+const LIBS=[
+ {name:'jQuery',src:/jquery/i,use:/(^|[^.\w$])(\$|jQuery)\s*\(|\$\.(ajax|get|post)\b/,globals:['$','jQuery']},
+ {name:'Lodash/Underscore',src:/lodash|underscore/i,use:/(^|[^.\w$])_\.[a-z]\w*\(/,globals:['_']},
+ {name:'Axios',src:/axios/i,use:/\baxios\b/,globals:['axios']},
+ {name:'Chart.js',src:/chart/i,use:/\bnew\s+Chart\s*\(/,globals:['Chart']},
+ {name:'D3',src:/d3/i,use:/\bd3\.\w/,globals:['d3']},
+ {name:'Moment.js',src:/moment/i,use:/\bmoment\s*\(/,globals:['moment']},
+ {name:'Day.js',src:/dayjs/i,use:/\bdayjs\s*\(/,globals:['dayjs']},
+ {name:'React',src:/react/i,use:/\bReact\.|\bReactDOM\./,globals:['React','ReactDOM']},
+ {name:'Vue',src:/vue/i,use:/\bnew\s+Vue\b|\bVue\.createApp/,globals:['Vue']},
+ {name:'Three.js',src:/three/i,use:/\bTHREE\./,globals:['THREE']},
+ {name:'GSAP',src:/gsap/i,use:/\bgsap\./,globals:['gsap']},
+ {name:'Marked',src:/marked/i,use:/\bmarked(\.parse)?\s*\(/,globals:['marked']},
+ {name:'PapaParse',src:/papaparse|papa/i,use:/\bPapa\.parse/,globals:['Papa']},
+ {name:'SheetJS',src:/xlsx/i,use:/\bXLSX\./,globals:['XLSX']},
+ {name:'SweetAlert2',src:/sweetalert/i,use:/\bSwal\.fire/,globals:['Swal']},
+ {name:'jsPDF',src:/jspdf/i,use:/\bjsPDF\b|\bjspdf\b/,globals:['jsPDF']},
+ {name:'Confetti',src:/confetti/i,use:/\bconfetti\s*\(/,globals:['confetti']}
+];
+const CAPS=[
+ ['network',/\bfetch\s*\(|XMLHttpRequest|\bWebSocket\b|\baxios\b|\$\.(ajax|get|post|getJSON)\b|sendBeacon|EventSource/],
+ ['storage',/localStorage|sessionStorage|indexedDB|document\.cookie|\bcaches\./],
+ ['dom',/\bdocument\b|\bgetElementById\b|\bquerySelector|\$\s*\(|\.innerHTML|\.textContent|\.classList|\.style\b/],
+ ['events',/addEventListener|\.on\s*\(/],
+ ['timers',/\b(setTimeout|setInterval|requestAnimationFrame|clearTimeout|clearInterval)\b/],
+ ['file',/FileReader|\.files\b|createObjectURL|\bBlob\b|showOpenFilePicker|\.download\s*=/],
+ ['clipboard',/navigator\.clipboard|execCommand/],
+ ['canvas',/getContext|\bcanvas\b/],
+ ['media',/getUserMedia|\bAudio\b|speechSynthesis|MediaRecorder/],
+ ['geolocation',/geolocation/],
+ ['navigation',/\blocation\s*\.|history\.(push|replace)State|window\.open|\.href\s*=/],
+ ['dialogs',/\b(alert|confirm|prompt)\s*\(/],
+ ['random',/Math\.random|\bcrypto\./],
+ ['time',/\bDate\b|performance\.now/],
+ ['dynamic-code',/\beval\s*\(|new\s+Function|document\.write/]
+];
+const ENV_CAPS=new Set(['dom','storage','navigation','dialogs','clipboard','file','canvas','media','geolocation','timers','events']);
+const CATALOGUE=[
+ {canon:'debounce',name:/debounce/i,body:/clearTimeout[\s\S]*setTimeout/},
+ {canon:'throttle',name:/throttle/i},
+ {canon:'clamp',name:/clamp/i,body:/Math\.min\([^)]*Math\.max|Math\.max\([^)]*Math\.min/},
+ {canon:'formatCurrency',name:/(format|to)?(money|currency|price)/i,body:/Intl\.NumberFormat|toLocaleString|toFixed\(2\)/},
+ {canon:'formatDate',name:/formatDate|dateFormat/i,body:/toLocaleDateString|getFullYear/},
+ {canon:'capitalize',name:/capitali[sz]e|titleCase/i,body:/toUpperCase[\s\S]*slice/},
+ {canon:'slugify',name:/slug/i},
+ {canon:'uuid',name:/uuid|guid|uniqueId/i,body:/Math\.random[\s\S]*toString\(16\)|crypto\.randomUUID/},
+ {canon:'deepClone',name:/deepClone|cloneDeep/i,body:/JSON\.parse\(\s*JSON\.stringify/},
+ {canon:'escapeHtml',name:/escape(Html|HTML)/,body:/&amp;/},
+ {canon:'sum',name:/^(sum|total)$/i,body:/reduce\(/},
+ {canon:'average',name:/average|mean|avg/i},
+ {canon:'randomInt',name:/randomInt|getRandom|rand(om)?Between/i,body:/Math\.floor\(\s*Math\.random/},
+ {canon:'shuffle',name:/shuffle/i},
+ {canon:'formatBytes',name:/formatBytes|fileSize|humanSize/i},
+ {canon:'copyToClipboard',name:/copy(To)?Clipboard|copyText/i,body:/clipboard/},
+ {canon:'downloadFile',name:/download(File)?$/i,body:/createObjectURL[\s\S]*download/},
+ {canon:'isEmail',name:/isEmail|validEmail|validateEmail/i},
+ {canon:'pad',name:/^pad(Zero|Start)?$/i,body:/padStart/}
+];
+const hash=str=>{let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (4294967296*(2097151&h2)+(h1>>>0)).toString(16);};
+const uniq=a=>[...new Set(a)];
+const slug=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'app';
+const humanize=s=>String(s).replace(/[_-]+/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/^\w/,c=>c.toUpperCase());
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+
+// Blank out comments / string contents / regex literals but keep positions (so brace matching is reliable).
+function maskCode(code){
+  const out=code.split(''),n=code.length;let i=0,bd=0;const tpl=[];
+  const blank=(a,b)=>{for(let k=a;k<b;k++)if(out[k]!=='\n')out[k]=' ';};
+  const readTpl=start=>{let j=start;while(j<n){const c=code[j];if(c==='\\'){blank(j,j+2);j+=2;continue;}if(c==='`')return{end:j+1,done:true};if(c==='$'&&code[j+1]==='{')return{end:j+2,done:false};blank(j,j+1);j++;}return{end:n,done:true};};
+  while(i<n){
+    const c=code[i],d=code[i+1];
+    if(c==='/'&&d==='/'){let j=code.indexOf('\n',i);if(j<0)j=n;blank(i,j);i=j;continue;}
+    if(c==='/'&&d==='*'){let j=code.indexOf('*/',i+2);j=j<0?n:j+2;blank(i,j);i=j;continue;}
+    if(c==='"'||c==="'"){let j=i+1;while(j<n&&code[j]!==c&&code[j]!=='\n'){if(code[j]==='\\')j++;j++;}blank(i+1,j);i=j+1;continue;}
+    if(c==='`'){const r=readTpl(i+1);if(!r.done){tpl.push(bd);bd++;}i=r.end;continue;}
+    if(c==='{'){bd++;i++;continue;}
+    if(c==='}'){bd--;if(tpl.length&&tpl[tpl.length-1]===bd){tpl.pop();const r=readTpl(i+1);if(!r.done){tpl.push(bd);bd++;}i=r.end;continue;}i++;continue;}
+    if(c==='/'){
+      let k=i-1;while(k>=0&&/\s/.test(code[k]))k--;
+      const prev=k>=0?code[k]:'';
+      if(prev===''||/[(,=:\[!&|?{};+\-*%<>~^]/.test(prev)||/\b(return|typeof)$/.test(code.slice(Math.max(0,k-6),k+1))){
+        let j=i+1,cls=false;while(j<n&&code[j]!=='\n'){if(code[j]==='\\'){j+=2;continue;}if(code[j]==='[')cls=true;else if(code[j]===']')cls=false;else if(code[j]==='/'&&!cls)break;j++;}
+        if(j<n&&code[j]==='/'){blank(i+1,j);i=j+1;continue;}
+      }
+    }
+    i++;
+  }
+  return out.join('');
+}
+function matchClose(m,open,oc,cc){let d=0;for(let i=open;i<m.length;i++){if(m[i]===oc)d++;else if(m[i]===cc){d--;if(d===0)return i;}}return -1;}
+function depthMap(m){const d=new Int16Array(m.length+1);let c=0;for(let i=0;i<m.length;i++){d[i]=c;if(m[i]==='{')c++;else if(m[i]==='}')c--;}return d;}
+function stmtEnd(m,from,stopAtClose){
+  let d=0;
+  for(let i=from;i<m.length;i++){
+    const c=m[i];
+    if('([{'.includes(c))d++;
+    else if(')]}'.includes(c)){if(d===0)return i;d--;}
+    else if(d===0&&c===';')return i+1;
+    else if(d===0&&stopAtClose&&c===',')return i;
+    else if(d===0&&c==='\n'){let j=i+1;while(j<m.length&&/\s/.test(m[j]))j++;const prev=m.slice(from,i).trimEnd().slice(-1);if(!/[,=(\[{+\-*\/&|?:.]/.test(prev)&&!/^[.?:+\-*\/&|]/.test(m[j]||''))return i;}
+  }
+  return m.length;
+}
+function backExpr(c,end){let i=end-1,d=0;for(;i>=0;i--){const ch=c[i];if(ch===')'||ch===']')d++;else if(ch==='('||ch==='['){if(d===0)break;d--;}else if(d===0&&!/[\w$.]/.test(ch))break;}return c.slice(i+1,end).trim();}
+
+function usageAfter(s){
+  if(/^\s*\.(textContent|innerText|innerHTML|outerHTML|value|checked|disabled|src|href|hidden|selectedIndex|className|title|placeholder|width|height)\s*[+\-*\/|&]?=(?![=>])/.test(s))return 'w';
+  if(/^\s*\.(classList\s*\.\s*(add|remove|toggle|replace)\b|style\s*\.\s*[\w$]+\s*[+\-*\/]?=(?!=)|style\s*\.\s*setProperty|appendChild|append\b|prepend\b|insertAdjacentHTML|insertAdjacentElement|setAttribute|removeAttribute|remove\b|replaceChildren|replaceWith|reset\b)/.test(s))return 'w';
+  if(/^\s*\.(val|text|html)\(\s*\)/.test(s))return 'r';
+  if(/^\s*\.(val|text|html|append|prepend|addClass|removeClass|toggleClass|show|hide|toggle|css|attr|prop|empty|remove|fadeIn|fadeOut|slideDown|slideUp)\(/.test(s))return 'w';
+  if(/^\s*\.(value|checked|textContent|innerText|innerHTML|files|selectedIndex|selectedOptions|options|dataset|getAttribute|classList\s*\.\s*contains|valueAsNumber|valueAsDate|children|length|checkValidity|getContext|getBoundingClientRect|offsetWidth|offsetHeight|clientWidth|clientHeight|href|src)/.test(s))return 'r';
+  return null;
+}
+const selKey=sel=>/^#[\w-]+$/.test(sel)?sel.slice(1):sel;
+const VAR_RE=/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:document\.getElementById\(\s*(['"])([^'"]+)\2\s*\)|(?:document\.)?querySelector(?:All)?\(\s*(['"])([^'"]+)\4\s*\)|\$\(\s*(['"])([^'"]+)\6\s*\))/g;
+function collectVars(code,m,into){VAR_RE.lastIndex=0;let x;while((x=VAR_RE.exec(code))){if(m[x.index]===' ')continue;into[x[1]]=x[3]?'#'+x[3]:(x[5]||x[7]);}return into;}
+
+function domRefs(body,bm,varMap){
+  const reads=new Set(),writes=new Set(),all=new Set(),dyn=[];
+  const scan=(re,kf)=>{let x;re.lastIndex=0;while((x=re.exec(body))){if(bm[x.index]===' ')continue;const k=kf(x);const end=x.index+x[0].length;const u=usageAfter(body.slice(end,end+90));all.add(k);if(u==='w')writes.add(k);else if(u==='r')reads.add(k);}};
+  scan(/getElementById\(\s*(['"])([^'"]+)\1\s*\)/g,x=>x[2]);
+  scan(/(?:querySelector|querySelectorAll|\$|jQuery)\(\s*(['"])([^'"]+)\1\s*\)/g,x=>selKey(x[2]));
+  const vm=collectVars(body,bm,Object.assign({},varMap));
+  for(const [v,sel] of Object.entries(vm)){
+    const k=selKey(sel),re=new RegExp('(?<![\\w$.])'+reEsc(v)+'(?![\\w$])(?=\\s*\\.)','g');let x;
+    while((x=re.exec(body))){if(bm[x.index]===' ')continue;const end=x.index+v.length;const u=usageAfter(body.slice(end,end+90));if(u){all.add(k);if(u==='w')writes.add(k);else reads.add(k);}}
+  }
+  const dre=/(?:getElementById|querySelector(?:All)?)\(\s*(?!['"\s)])/g;let x;while((x=dre.exec(bm)))dyn.push('dynamic element lookup');
+  return{reads,writes,all,dyn};
+}
+
+function findFunctions(p,varMap){
+  const {code,m,dep,si}=p,fns=[],seen=new Set();
+  const add=o=>{if(seen.has(o.start))return;seen.add(o.start);o.si=si;o.depth=dep[o.start];fns.push(o);};
+  const bodyAfter=from=>{let j=from;while(j<m.length&&/\s/.test(m[j]))j++;if(m[j]==='{'){const e=matchClose(m,j,'{','}');return e<0?null:{bs:j,be:e+1};}return null;};
+  let re=/\b(async\s+)?function\s*\*?\s*([A-Za-z_$][\w$]*)\s*\(/g,x;
+  while((x=re.exec(m))){const po=x.index+x[0].length-1,pc=matchClose(m,po,'(',')');if(pc<0)continue;const b=bodyAfter(pc+1);if(!b)continue;add({name:x[2],kind:'declaration',async:!!x[1],params:code.slice(po+1,pc).trim(),start:x.index,end:b.be,bs:b.bs});}
+  re=/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(async\s+)?(?:function\b[^(]*\(|\(([^()]*)\)\s*=>|([A-Za-z_$][\w$]*)\s*=>)/g;
+  while((x=re.exec(m))){
+    const isFn=x[0].endsWith('(');
+    if(isFn){const po=x.index+x[0].length-1,pc=matchClose(m,po,'(',')');if(pc<0)continue;const b=bodyAfter(pc+1);if(!b)continue;add({name:x[1],kind:'expression',async:!!x[2],params:code.slice(po+1,pc).trim(),start:x.index,end:b.be,bs:b.bs});}
+    else{const after=x.index+x[0].length;let j=after;while(j<m.length&&/\s/.test(m[j]))j++;const params=(x[3]??x[4]??'').trim();
+      if(m[j]==='{'){const e=matchClose(m,j,'{','}');if(e<0)continue;add({name:x[1],kind:'arrow',async:!!x[2],params,start:x.index,end:e+1,bs:j});}
+      else{const e=stmtEnd(m,j,false);add({name:x[1],kind:'arrow',async:!!x[2],params,start:x.index,end:e});}}
+  }
+  return fns;
+}
+function resolveTarget(e,vm){let k;
+  if((k=/getElementById\(\s*['"]([^'"]+)['"]\s*\)/.exec(e)))return '#'+k[1];
+  if((k=/(?:querySelector(?:All)?|\$|jQuery)\(\s*['"]([^'"]+)['"]\s*\)/.exec(e)))return k[1];
+  if(vm[e]!==undefined)return vm[e];
+  return e;}
+function findListeners(p,varMap){
+  const out=[],{code,m}=p;
+  const pats=[[/\.addEventListener\(\s*(['"])(\w+)\1\s*,\s*/g,2],[/\.on\(\s*(['"])(\w+)\1\s*,\s*/g,2],[/\.(click|change|input|submit|keyup|keydown|keypress|focus|blur)\(\s*(?=function\b|\(|[A-Za-z_$][\w$.]*\s*(?:=>|\)|,))/g,1]];
+  for(const [re,gi] of pats){let x;while((x=re.exec(code))){
+    if(m[x.index]!=='.')continue;
+    const ev=x[gi],target=resolveTarget(backExpr(code,x.index),varMap),st=x.index+x[0].length,rest=code.slice(st);let h=null,mm;
+    if((mm=/^(async\s+)?function\b[^(]*\(([^)]*)\)\s*\{/.exec(rest))){const bs=st+mm[0].length-1,be=matchClose(m,bs,'{','}');if(be>0)h={anon:true,params:mm[2],bs,start:st,end:be+1};}
+    else if((mm=/^(async\s+)?(?:\(([^()]*)\)|([A-Za-z_$][\w$]*))\s*=>\s*/.exec(rest))){const after=st+mm[0].length,params=(mm[2]??mm[3]??'');
+      if(m[after]==='{'){const be=matchClose(m,after,'{','}');if(be>0)h={anon:true,params,bs:after,start:st,end:be+1};}else h={anon:true,params,start:st,end:stmtEnd(m,after,true)};}
+    else if((mm=/^([A-Za-z_$][\w$.]*)\s*[,)]/.exec(rest)))h={named:mm[1]};
+    if(h)out.push(Object.assign({event:ev,target},h));
+  }}
+  return out;
+}
+function findApis(body,bm,fn){
+  const out=[];let x;
+  const mth=(s,d)=>{const q=/(?:method|type)\s*:\s*['"](\w+)['"]/i.exec(s);return q?q[1].toUpperCase():d;};
+  const re1=/\bfetch\(\s*(['"`])([^'"`]+)\1([\s\S]{0,200})/g;while((x=re1.exec(body))){if(bm[x.index]===' ')continue;out.push({url:x[2],method:mth(x[3],'GET'),fn,how:'fetch'});}
+  const re2=/\baxios\.(get|post|put|delete|patch)\(\s*(['"`])([^'"`]+)\2/g;while((x=re2.exec(body)))out.push({url:x[3],method:x[1].toUpperCase(),fn,how:'axios'});
+  const re3=/\$\.(?:ajax|get|post|getJSON)\(\s*(?:\{[^}]*?url\s*:\s*)?(['"`])([^'"`]+)\1/g;while((x=re3.exec(body)))out.push({url:x[2],method:'GET',fn,how:'jquery'});
+  const re4=/\.open\(\s*(['"])(\w+)\1\s*,\s*(['"`])([^'"`]+)\3/g;while((x=re4.exec(body)))out.push({url:x[4],method:x[2].toUpperCase(),fn,how:'xhr'});
+  const re5=/new\s+WebSocket\(\s*(['"`])([^'"`]+)\1/g;while((x=re5.exec(body)))out.push({url:x[2],method:'WS',fn,how:'websocket'});
+  if(/\bfetch\(\s*(?!['"`\s])/.test(bm))out.push({url:'(dynamic)',method:'?',fn,how:'fetch'});
+  return out;
+}
+
+// scripts: [{text}] classic inline scripts in order. registry: optional {functions:{hash:{...}}}
+function analyzeJs(scripts,registry){
+  const per=scripts.map((s,si)=>{const m=maskCode(s.text);return{code:s.text,m,dep:depthMap(m),si};});
+  const varMap={};per.forEach(p=>collectVars(p.code,p.m,varMap));
+  const fns=[],listeners=[];
+  per.forEach(p=>{
+    fns.push(...findFunctions(p,varMap));
+    for(const l of findListeners(p,varMap)){
+      if(l.anon){const nm='on_'+l.event+'_'+slug(l.target).replace(/-/g,'_');let name=nm,k=2;while(fns.some(f=>f.name===name)||listeners.some(q=>q.fnName===name))name=nm+'_'+(k++);
+        fns.push({name,kind:'listener',anon:true,params:l.params,start:l.start,end:l.end,bs:l.bs,si:p.si,depth:p.dep[l.start],listener:{event:l.event,target:l.target}});
+        listeners.push({event:l.event,target:l.target,fnName:name});}
+      else listeners.push({event:l.event,target:l.target,fnName:l.named});
+    }
+  });
+  fns.forEach((f,i)=>{f.id='f'+i;f.nested=f.depth>0;});
+  const names=new Set(fns.filter(f=>!f.anon).map(f=>f.name));
+  // top-level globals
+  const globals=[];
+  per.forEach(p=>{const re=/\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g;let x;while((x=re.exec(p.m))){if(p.dep[x.index]!==0)continue;if(names.has(x[1])&&fns.some(f=>f.name===x[1]&&f.start<=x.index&&f.end>x.index))continue;const e=stmtEnd(p.m,x.index,false);globals.push({name:x[1],decl:p.code.slice(x.index,e).trim(),si:p.si,isFn:names.has(x[1])});}});
+  const gl=globals.filter(g=>!g.isFn),gnames=gl.map(g=>g.name);
+  const apis=[];
+  for(const f of fns){
+    const p=per[f.si],from=f.bs??f.start,body=p.code.slice(from,f.end),bm=p.m.slice(from,f.end);
+    f.src=p.code.slice(f.start,f.end);f.hash=hash(f.src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,'').replace(/\s+/g,' ').trim());
+    const calls=new Set(),cre=/(^|[^.\w$])([A-Za-z_$][\w$]*)\s*\(/g;let x;while((x=cre.exec(bm))){if(!KEYWORDS.has(x[2]))calls.add(x[2]);}
+    f.calls={internal:[...calls].filter(c=>names.has(c)),external:[...calls].filter(c=>!names.has(c)&&!BUILTIN.has(c))};
+    const refs=domRefs(body,bm,varMap);
+    f.dom={reads:[...refs.reads],writes:[...refs.writes],all:[...refs.all]};f.dyn=refs.dyn;
+    f.caps=CAPS.filter(([,re])=>re.test(bm)).map(c=>c[0]);
+    if(refs.all.size&&!f.caps.includes('dom'))f.caps.push('dom');
+    f.globals={reads:[],writes:[]};
+    const params=f.params.split(',').map(s=>s.trim().replace(/=.*/,'').trim());
+    for(const g of gnames){if(params.includes(g))continue;const re=new RegExp('(?<![\\w$.])'+reEsc(g)+'(?![\\w$])');if(!re.test(bm))continue;
+      const wr=new RegExp('(?<![\\w$.])'+reEsc(g)+'\\s*([+\\-*/%]?=(?!=)|\\+\\+|--)|(?<![\\w$.])'+reEsc(g)+'\\s*\\.\\s*(push|pop|shift|unshift|splice|sort|reverse|set|add|delete|clear)\\(');
+      (wr.test(bm)?f.globals.writes:f.globals.reads).push(g);}
+    f.api=findApis(body,bm,f.name);apis.push(...f.api);
+  }
+  const byName={};fns.forEach(f=>{if(!f.anon)byName[f.name]=f;});
+  const closureOf=f=>{const seen=new Set(),order=[];(function go(x){if(seen.has(x.id))return;seen.add(x.id);for(const c of x.calls.internal){const y=byName[c];if(y)go(y);}order.push(x);})(f);return order;};
+  for(const f of fns){
+    const cl=closureOf(f);f.closure=cl.map(c=>c.name);
+    f.cCaps=uniq(cl.flatMap(c=>c.caps));f.cReads=uniq(cl.flatMap(c=>c.dom.reads));f.cWrites=uniq(cl.flatMap(c=>c.dom.writes));
+    f.cGlobals=uniq(cl.flatMap(c=>[...c.globals.reads,...c.globals.writes]));f.cGWrites=uniq(cl.flatMap(c=>c.globals.writes));
+    f.cApi=cl.flatMap(c=>c.api);
+    const net=f.cCaps.includes('network'),env=f.cCaps.some(c=>ENV_CAPS.has(c))||f.cGWrites.length>0;
+    f.tier=net&&env?'mixed':net?'backend-call':env?'browser':'shared';
+  }
+  // libraries
+  const allMasked=per.map(p=>p.m).join('\n');
+  const usedLibs=LIBS.filter(l=>l.use.test(allMasked)).map(l=>l.name);
+  const imports=[];per.forEach(p=>{let x;const re=/^\s*import\s[^;]*?from\s*(['"])([^'"]+)\1|\brequire\(\s*(['"])([^'"]+)\3\s*\)|\bimport\(\s*(['"])([^'"]+)\5\s*\)/gm;while((x=re.exec(p.code)))imports.push(x[2]||x[4]||x[6]);});
+  // class/selector references
+  const classRefs=new Set(),selRefs=new Set();
+  per.forEach(p=>{let x;const a=/(?:querySelector(?:All)?|\$|jQuery|closest|matches)\(\s*(['"])([^'"]+)\1/g;while((x=a.exec(p.code))){selRefs.add(x[2]);let c;const cr=/\.([A-Za-z_-][\w-]*)/g;while((c=cr.exec(x[2])))classRefs.add(c[1]);}
+    const b=/classList\.(?:add|remove|toggle|contains|replace)\(\s*(['"])([^'"]+)\1/g;while((x=b.exec(p.code)))x[2].split(/\s+/).forEach(c=>classRefs.add(c));
+    const d=/className\s*\+?=\s*(['"])([^'"]+)\1/g;while((x=d.exec(p.code)))x[2].split(/\s+/).forEach(c=>classRefs.add(c));});
+  // matcher
+  for(const f of fns){f.matches=[];
+    if(f.anon)continue;
+    for(const c of CATALOGUE){if(c.name.test(f.name))f.matches.push({canon:c.canon,via:'name'});else if(c.body&&c.body.test(f.src)&&f.cCaps.every(k=>!ENV_CAPS.has(k)))f.matches.push({canon:c.canon,via:'body'});}
+    const r=registry&&registry.functions&&registry.functions[f.hash];if(r)f.matches.push({canon:r.name,via:'registry',apps:r.usedBy});
+  }
+  return{functions:fns,byName,globals:gl,varMap,listeners,apis,usedLibs,imports:uniq(imports),classRefs,selRefs,
+    caps:uniq(fns.flatMap(f=>f.caps)),dyn:uniq(fns.flatMap(f=>f.dyn)),
+    minified:per.some(p=>p.code.length>800&&p.code.split('\n').length<4)};
+}
+// build runnable closure for a function: globals + helpers (deps first) + the function
+function buildClosureCode(fm,f){
+  const cl=f.closure.map(n=>fm.byName[n]||fm.functions.find(x=>x.name===n)).filter(Boolean);
+  const gl=fm.globals.filter(g=>cl.some(c=>c.globals.reads.includes(g.name)||c.globals.writes.includes(g.name)));
+  return[...gl.map(g=>g.decl),...cl.map(c=>c.src)].join('\n\n');
+}
+function trace(fm,f){return{name:f.name,calls:f.calls.internal,closure:f.closure,globals:f.cGlobals,libs:uniq(f.calls.external.filter(c=>LIBS.some(l=>l.globals.includes(c)))),reads:f.cReads,writes:f.cWrites,api:f.cApi.map(a=>a.method+' '+a.url)};}
+
+// ---------- ZIP (store, no compression) ----------
+const CRCT=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRCT[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0;}
+function zipParts(files){
+  const enc=new TextEncoder(),parts=[],central=[];let off=0;const d=new Date();
+  const dt=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xffff,dd=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xffff;
+  const names=Object.keys(files);
+  for(const name of names){
+    const nb=enc.encode(name),data=typeof files[name]==='string'?enc.encode(files[name]):files[name],crc=crc32(data);
+    const h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(10,dt,true);h.setUint16(12,dd,true);h.setUint32(14,crc,true);h.setUint32(18,data.length,true);h.setUint32(22,data.length,true);h.setUint16(26,nb.length,true);
+    parts.push(new Uint8Array(h.buffer),nb,data);
+    const c=new DataView(new ArrayBuffer(46));c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(12,dt,true);c.setUint16(14,dd,true);c.setUint32(16,crc,true);c.setUint32(20,data.length,true);c.setUint32(24,data.length,true);c.setUint16(28,nb.length,true);c.setUint32(42,off,true);
+    central.push(new Uint8Array(c.buffer),nb);off+=30+nb.length+data.length;
+  }
+  let cs=0;for(const p of central)cs+=p.length;
+  const e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,names.length,true);e.setUint16(10,names.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);
+  return[...parts,...central,new Uint8Array(e.buffer)];
+}
+</script>
+
+<!-- ======================= APP (UI + DOM-based modules) ======================= -->
+<script id="app">
+'use strict';
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const S={orig:'',cleaned:'',r1:null,fm:null,bp:null,app:null,ver:null,pkg:null,status:{},manual:{scripts:{},libs:{}}};
+const STEPS=['① Design','② Functions','③ Architecture','④ Build','⑤ Test','⑥ Ship'];
+const DEMO=`<!DOCTYPE html><html><head><title>Tip Calculator</title>
+<link rel="stylesheet" href="https://cdn.example.com/bootstrap.css">
+<style>body{background:#123;color:#fff;font-family:cursive}.hidden{display:none}.card{border-radius:12px;padding:20px;box-shadow:0 0 5px red}#result{font-size:30px;color:gold}@keyframes spin{from{opacity:0}}</style></head>
+<body bgcolor="#222"><center><h1>Tip Calculator</h1><p>Split the bill easily.</p>
+<label for="bill">Bill amount</label><input id="bill" type="number" placeholder="100" style="border:2px solid red">
+<label for="pct">Tip %</label><select id="pct"><option value="10">10%</option><option value="15">15%</option><option value="20">20%</option></select>
+<label><input type="checkbox" id="round"> Round up</label>
+<label for="people">People</label><input id="people" type="number" value="1" min="1">
+<button id="calc" onclick="calculate()" style="background:green;color:white">Calculate</button>
+<button id="clr" onclick="clearAll()">Clear</button>
+<div id="result" class="hidden"></div><ul id="history"></ul></center>
+<script>
+var history_=[];
+function formatMoney(n){return '$'+n.toFixed(2)}
+function computeTip(bill,pct,round,people){let tip=bill*pct/100;let total=bill+tip;if(round)total=Math.ceil(total);return {tip,total,each:total/people}}
+function calculate(){const bill=parseFloat(document.getElementById('bill').value)||0;const pct=+document.getElementById('pct').value;const round=document.getElementById('round').checked;const people=Math.max(1,parseInt(document.getElementById('people').value)||1);const r=computeTip(bill,pct,round,people);const out=document.getElementById('result');out.textContent='Total '+formatMoney(r.total)+' ('+formatMoney(r.each)+' each)';out.classList.remove('hidden');history_.push(r.total);renderHistory()}
+function renderHistory(){document.getElementById('history').innerHTML=history_.map(t=>'<li>'+formatMoney(t)+'</li>').join('')}
+function clearAll(){document.getElementById('bill').value='';document.getElementById('result').classList.add('hidden');history_=[];renderHistory()}
+<\/script></body></html>`;
+
+// ---------------- UI helpers ----------------
+const chip=(t,c='')=>`<span class="chip ${c}">${esc(t)}</span>`;
+const stat=(n,l,c='')=>`<div class="stat"><b class="${c}">${esc(n)}</b><span>${esc(l)}</span></div>`;
+const ulist=a=>a.length?`<ul>${a.map(x=>`<li>${x}</li>`).join('')}</ul>`:'<p class="mut">—</p>';
+function setStatus(n,st,msg){S.status[n]=st;const b=$('s'+n);if(b)b.querySelector('.dot').className='dot '+st;if(msg!==undefined&&$('st'+n))$('st'+n).innerHTML=msg;}
+function dl(name,data,type){const b=data instanceof Blob?data:new Blob([data],{type:type||'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},800);}
+function show(n){document.querySelectorAll('.steps button').forEach((b,i)=>b.classList.toggle('on',i+1===n));document.querySelectorAll('.pane').forEach((p,i)=>p.classList.toggle('on',i+1===n));}
+function pvFrame(html){return `<iframe class="pv" sandbox="allow-scripts allow-forms allow-modals" srcdoc="${esc(html)}"></iframe>`;}
+// ---------------- GitHub registry layer (data in private repo; only token+repo kept in localStorage) ----------------
+const GK='apprebuilder.gh.v1';
+let GH={};try{GH=JSON.parse(localStorage.getItem(GK))||{};}catch(e){}
+let REG={version:1,apps:{},functions:{}},LIBREG={version:1,libs:{}},SHA={reg:null,libs:null},CONNECTED=false;
+const loadReg=()=>REG;
+const b64=s=>btoa(unescape(encodeURIComponent(s)));
+const unb64=s=>decodeURIComponent(escape(atob(String(s).replace(/\n/g,''))));
+const encPath=p=>p.split('/').map(encodeURIComponent).join('/');
+async function gh(path,method,body){
+  if(!GH.token||!GH.repo)throw new Error('GitHub token/repo set nahi hai.');
+  const r=await fetch('https://api.github.com/repos/'+GH.repo+path,{method:method||'GET',headers:{Authorization:'Bearer '+GH.token,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  let j=null;try{j=await r.json();}catch(e){}return{ok:r.ok,status:r.status,json:j};}
+async function ghRead(p){const r=await gh('/contents/'+encPath(p)+'?ref='+encodeURIComponent(GH.branch||'main'));if(r.status===404)return null;if(!r.ok)throw new Error(p+': '+(r.json&&r.json.message||r.status));return{sha:r.json.sha,text:unb64(r.json.content)};}
+async function ghSha(p){const r=await gh('/contents/'+encPath(p)+'?ref='+encodeURIComponent(GH.branch||'main'));return r.ok&&r.json?r.json.sha:null;}
+async function ghWrite(p,text,msg,sha){const r=await gh('/contents/'+encPath(p),'PUT',{message:msg,content:b64(text),branch:GH.branch||'main',...(sha?{sha}:{})});
+  if(!r.ok){const e=new Error(p+': '+(r.json&&r.json.message||r.status));e.status=r.status;throw e;}return r.json.content.sha;}
+async function pullRemote(){
+  const [a,b]=await Promise.all([ghRead('registry.json'),ghRead('libs.json')]);
+  REG=a?JSON.parse(a.text):{version:1,apps:{},functions:{}};SHA.reg=a?a.sha:null;
+  LIBREG=b?JSON.parse(b.text):{version:1,libs:{}};SHA.libs=b?b.sha:null;
+  REG.apps=REG.apps||{};REG.functions=REG.functions||{};LIBREG.libs=LIBREG.libs||{};}
+const SECRET_RES=[[/ghp_[A-Za-z0-9]{30,}|github_pat_\w{20,}/,'GitHub token'],[/AKIA[0-9A-Z]{16}/,'AWS key'],[/AIza[0-9A-Za-z_-]{35}/,'Google API key'],[/\bsk-[A-Za-z0-9]{32,}/,'secret key (sk-…)'],[/-----BEGIN [A-Z ]*PRIVATE KEY-----/,'private key'],[/xox[baprs]-[A-Za-z0-9-]{10,}/,'Slack token'],[/(api[_-]?key|secret|passwd|password|token)\s*[:=]\s*['"][^'"\s]{8,}['"]/i,'hard-coded secret']];
+function scanSecrets(files){const out=[];for(const [p,c] of Object.entries(files)){if(typeof c!=='string')continue;for(const [re,w] of SECRET_RES)if(re.test(c))out.push(p+': '+w);}return out;}
+async function commitChanges(apply,files,log){
+  log=log||(()=>{});
+  for(let attempt=0;attempt<2;attempt++){
+    try{
+      await pullRemote();apply(REG,LIBREG);const now=new Date().toISOString();REG.updatedAt=now;LIBREG.updatedAt=now;
+      for(const [p,c] of Object.entries(files||{})){const sha=await ghSha(p);await ghWrite(p,c,'rebuilder: '+p,sha);log('✔ '+p);}
+      SHA.reg=await ghWrite('registry.json',JSON.stringify(REG,null,2),'rebuilder: registry',SHA.reg);log('✔ registry.json');
+      SHA.libs=await ghWrite('libs.json',JSON.stringify(LIBREG,null,2),'rebuilder: libs',SHA.libs);log('✔ libs.json');
+      updateGhState();return;
+    }catch(e){if(attempt===0&&(e.status===409||e.status===422)){log('conflict — dobara try…');continue;}throw e;}
+  }}
+async function commitOrMemory(apply,files,log){
+  if(CONNECTED)return commitChanges(apply,files,log);
+  apply(REG,LIBREG);(log||(()=>{}))('⚠ GitHub connected nahi — sirf is session (memory) mein save hua.');}
+function updateGhState(){const el=$('ghState');if(!el)return;
+  el.innerHTML=CONNECTED?`<span class="ok">● connected</span> · ${Object.keys(REG.apps).length} apps · ${Object.keys(REG.functions).length} functions · ${Object.keys(LIBREG.libs).length} libs`:'○ not connected';
+  if(S.pkg&&$('reglists'))renderLists();}
+async function connect(){
+  GH={token:$('ghTok').value.trim()||GH.token,repo:$('ghRepo').value.trim(),branch:$('ghBranch').value.trim()||'main'};
+  if(!GH.token||!/^[\w.-]+\/[\w.-]+$/.test(GH.repo))throw new Error('Token aur repo (owner/name) daalo.');
+  const r=await gh('');
+  if(r.status===401)throw new Error('Token galat ya expire hai.');
+  if(r.status===404)throw new Error('Repo nahi mila ya token ko is repo ka access nahi hai.');
+  if(!r.ok)throw new Error('GitHub error '+r.status);
+  try{localStorage.setItem(GK,JSON.stringify(GH));}catch(e){}
+  await pullRemote();CONNECTED=true;updateGhState();}
+
+// ============ MODULE 1: Design Remover ============
+function keepDecls(style,R){const kept=[];for(let i=0;i<style.length;i++){const p=style[i],v=style.getPropertyValue(p),imp=style.getPropertyPriority(p);
+  if(FUNCTIONAL.has(p)){kept.push(`${p}: ${v}${imp?' !'+imp:''}`);R.keptCss++;}else if(p.startsWith('--')){kept.push(`${p}: ${v}`);R.keptVars++;}else R.removedCss++;}return kept;}
+function cleanRules(rules,R){let out='';for(const r of rules){
+  if(r.type===1){const d=keepDecls(r.style,R);const nested=r.cssRules&&r.cssRules.length?cleanRules(r.cssRules,R):'';if(d.length||nested)out+=`${r.selectorText} { ${d.join('; ')}${d.length?';':''} ${nested} }\n`;}
+  else if(r.type===4){const i=cleanRules(r.cssRules,R);if(i.trim())out+=`@media ${r.media.mediaText} {\n${i}}\n`;}
+  else if(r.type===12){const i=cleanRules(r.cssRules,R);if(i.trim())out+=`@supports ${r.conditionText} {\n${i}}\n`;}
+  else R.removedAt++;}return out;}
+function cleanCss(text,R){const sh=new CSSStyleSheet();sh.replaceSync(text);return cleanRules(sh.cssRules,R);}
+function runModule1(html){
+  const R={removedCss:0,keptCss:0,keptVars:0,removedAt:0,links:[],inline:0,inlineKept:0,attrs:0,tags:0,scripts:0,css:'',warnings:[]};
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  doc.querySelectorAll('link[rel~="stylesheet"]').forEach(l=>{R.links.push(l.getAttribute('href')||'(no href)');l.remove();});
+  doc.querySelectorAll('style').forEach(s=>{try{const c=cleanCss(s.textContent,R);if(c.trim()){s.textContent=c;R.css+=c;}else s.remove();}catch(e){R.warnings.push('CSS parse fail: '+e.message);}});
+  doc.querySelectorAll('[style]').forEach(el=>{const before=el.style.length,kept=keepDecls(el.style,R);R.inline+=before-kept.length;R.inlineKept+=kept.length;kept.length?el.setAttribute('style',kept.join('; ')):el.removeAttribute('style');});
+  const legacy=['bgcolor','color','align','valign','border','cellpadding','cellspacing','face','background'];
+  doc.querySelectorAll('*').forEach(el=>legacy.forEach(a=>{if(el.hasAttribute(a)){el.removeAttribute(a);R.attrs++;}}));
+  doc.querySelectorAll('font,center,big,small,basefont').forEach(el=>{el.replaceWith(...el.childNodes);R.tags++;});
+  doc.querySelectorAll('link[rel~="icon"],meta[name="theme-color"]').forEach(e=>e.remove());
+  doc.querySelectorAll('script').forEach(s=>{R.scripts++;});
+  return{html:(doc.doctype?'<!DOCTYPE html>\n':'')+doc.documentElement.outerHTML,R};
+}
+function render1(){
+  const R=S.r1;
+  $('c1').innerHTML=`<div class="stats">${stat(R.keptCss+R.inlineKept,'functional CSS rakha','ok')}${stat(R.scripts,'scripts untouched','ok')}${stat(R.removedCss+R.inline,'design declarations hataye','warn')}${stat(R.links.length,'external CSS hataye','warn')}${stat(R.removedAt,'font/animation rules','warn')}${stat(R.attrs+R.tags,'legacy attrs/tags','warn')}</div>
+  ${R.links.length?`<h3>Hataye gaye external CSS</h3>${ulist(R.links.map(esc))}`:''}
+  ${R.warnings.length?`<h3>Warnings</h3>${ulist(R.warnings.map(esc))}`:''}
+  <p class="mut">Ye cleaned HTML final product nahi hai — ye ②–④ ke liye functional source hai.</p>
+  <details><summary>Cleaned HTML (functional source)</summary><pre>${esc(S.cleaned)}</pre></details>
+  <details><summary>Preview</summary>${pvFrame(S.cleaned)}</details>`;
+}
+async function step1(){setStatus(1,'run','Running…');S.orig=$('src').value;
+  if(!S.orig.trim())throw new Error('Pehle HTML paste/upload karo.');
+  const {html,R}=runModule1(S.orig);S.cleaned=html;S.r1=R;render1();setStatus(1,'ok','Done');}
+
+// ============ MODULE 2: Function & Dependency Engine ============
+function extractScripts(html){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  return[...doc.querySelectorAll('script')].map((s,i)=>{const type=(s.getAttribute('type')||'').toLowerCase();
+    const classic=!type||/^(text|application)\/(javascript|ecmascript)$/.test(type);
+    return{i,src:s.getAttribute('src'),type,text:s.textContent,classic,module:type==='module',attrs:[...s.attributes].filter(a=>/^(defer|async|crossorigin|integrity|nomodule)$/.test(a.name)).map(a=>a.name+(a.value?`="${a.value}"`:'')).join(' '),id:s.id||''};});
+}
+async function step2(){setStatus(2,'run','Running…');if(!S.cleaned)await step1();
+  const scripts=extractScripts(S.cleaned);
+  scripts.forEach(s=>{if(s.src&&S.manual.scripts[s.src]!=null){s.manualFile=s.src;s.text=S.manual.scripts[s.src];s.src=null;s.classic=true;s.type='';}});
+  const inline=scripts.filter(s=>!s.src&&s.classic&&s.text.trim());
+  const fm=analyzeJs(inline,loadReg());fm.scripts=scripts;
+  const loaded=[];scripts.filter(s=>s.src).forEach(s=>{const lib=LIBS.find(l=>l.src.test(s.src));loaded.push({name:lib?lib.name:s.src.split('/').pop().split('?')[0],url:s.src});});
+  fm.loaded=loaded;
+  const unresolved=fm.usedLibs.filter(n=>!loaded.some(l=>l.name===n));
+  for(const n of unresolved){if(S.manual.libs[n])continue;const e=LIBREG.libs[n];if(CONNECTED&&e&&e.file){try{const r=await ghRead(e.file);if(r)S.manual.libs[n]=r.text;}catch(x){}}}
+  fm.missingLibs=unresolved.filter(n=>!S.manual.libs[n]);fm.vendored=unresolved.filter(n=>!!S.manual.libs[n]);
+  fm.localScripts=scripts.filter(s=>s.src&&!/^(https?:)?\/\//.test(s.src)).map(s=>s.src);
+  S.fm=fm;render2();
+  const bad=fm.missingLibs.length||fm.localScripts.length;setStatus(2,bad?'warn':'ok',`${fm.functions.length} functions`);}
+function manualBoxHtml(){return`<h3>Manual add / paste (jo auto nahi mila)</h3><div class="card" style="background:var(--code)"><select id="m_type"><option value="lib">Library (CDN/URL ka code)</option><option value="script">Local script file (app ko chahiye)</option><option value="fn">Function(s) → registry</option></select><input type="text" id="m_name" placeholder="Name: jQuery / script.js (exact src) / helper name"><input type="text" id="m_url" placeholder="URL (optional — Fetch try karega)"><div class="row" style="margin-top:0"><button id="m_fetch">Fetch from URL</button></div><textarea id="m_code" placeholder="Code yahan paste karo…" style="height:120px"></textarea><div class="row"><button class="pri" id="m_save">Save &amp; re-run</button></div><p class="mut" style="font-size:12px" id="m_msg"></p></div>`;}
+function bindManual(){
+  const fm=S.fm;$('m_name').value=fm.missingLibs[0]||fm.localScripts[0]||'';$('m_type').value=(fm.localScripts.length&&!fm.missingLibs.length)?'script':'lib';
+  const msg=t=>{$('m_msg').textContent=t;};
+  $('m_fetch').onclick=async()=>{const u=$('m_url').value.trim();if(!u)return msg('URL daalo.');try{const r=await fetch(u);if(!r.ok)throw new Error(r.status);$('m_code').value=await r.text();msg('Fetch ho gaya — ab Save dabao.');}catch(e){msg('Auto-fetch fail ('+e.message+', shayad CORS). URL browser mein kholo, code copy karke yahan paste karo.');}};
+  $('m_save').onclick=async()=>{
+    const type=$('m_type').value,name=$('m_name').value.trim(),code=$('m_code').value;
+    if(!code.trim())return msg('Code/content paste karo.');
+    try{
+      if(type==='script'){if(!name)return msg('Exact src naam (jaise script.js) daalo.');S.manual.scripts[name]=code;}
+      else if(type==='lib'){if(!name)return msg('Library ka naam daalo (jaise jQuery).');S.manual.libs[name]=code;const file='libs/'+slug(name)+'.js',url=$('m_url').value.trim();
+        await commitOrMemory((reg,libs)=>{const o=libs.libs[name]||{};libs.libs[name]={url:url||o.url||'',file,manual:true,usedBy:o.usedBy||[],addedAt:o.addedAt||new Date().toISOString()};},{[file]:code},msg);}
+      else{const a=analyzeJs([{text:code}],null),fns=a.functions.filter(f=>!f.nested&&!f.anon);if(!fns.length)return msg('Is code mein koi function nahi mila.');
+        const files={};fns.forEach(f=>{files['functions/'+slug(f.name)+'-'+f.hash+'.js']=buildClosureCode(a,f);});
+        await commitOrMemory(reg=>{const now=new Date().toISOString();fns.forEach(f=>{if(!reg.functions[f.hash])reg.functions[f.hash]={name:f.name,file:'functions/'+slug(f.name)+'-'+f.hash+'.js',tier:f.tier,usedBy:[],manual:true,createdAt:now};});},files,msg);}
+      msg('Saved — pipeline dobara chal raha hai…');await runFrom(2);msg('Done.');
+    }catch(e){msg('Error: '+e.message);}
+  };}
+function render2(){
+  const fm=S.fm,fns=fm.functions,top=fns.filter(f=>!f.nested&&!f.anon),shared=fns.filter(f=>f.tier==='shared'&&!f.nested&&!f.anon);
+  let h=`<div class="stats">${stat(fns.length,'functions')}${stat(shared.length,'shared/pure','ok')}${stat(fm.globals.length,'global state vars')}${stat(fm.loaded.length,'script libs')}${stat(fm.caps.length,'capabilities')}${stat(fm.apis.length,'API calls')}</div>`;
+  h+=`<h3>Capabilities</h3><p>${fm.caps.map(c=>chip(c)).join('')||'<span class="mut">none</span>'}</p>`;
+  h+=`<h3>Dependencies</h3>`;
+  h+=ulist([...fm.loaded.map(l=>`<b>${esc(l.name)}</b> <span class="mut">${esc(l.url)}</span>`),...fm.imports.map(i=>`import: ${esc(i)}`),...fm.vendored.map(n=>`<span class="ok">Vendored:</span> <b>${esc(n)}</b> (manual/registry se)`),...fm.missingLibs.map(n=>`<span class="bad">Missing:</span> code uses <b>${esc(n)}</b> but script not loaded → neeche Manual add se paste karo`),...fm.localScripts.map(s=>`<span class="warn">Local script file:</span> ${esc(s)} (content paste nahi hua) → Manual add se paste karo`)]);
+  h+=`<h3>Function detector + matcher</h3>`;
+  h+=fns.map(f=>`<details><summary>${esc(f.name)}(${esc(f.params)}) ${chip(f.tier,'t-'+f.tier)}${f.nested?chip('nested'):''}${f.matches.map(m=>chip('≈ '+m.canon+' ('+m.via+')')).join('')}</summary>
+   <p>${f.caps.map(c=>chip(c)).join('')}</p>
+   <p class="mut">calls: ${esc(f.calls.internal.join(', ')||'—')}${f.calls.external.length?' · external: '+esc(f.calls.external.join(', ')):''}</p>
+   <p class="mut">reads: ${esc(f.dom.reads.join(', ')||'—')} · writes: ${esc(f.dom.writes.join(', ')||'—')}${f.globals.reads.concat(f.globals.writes).length?' · globals: '+esc(f.globals.reads.concat(f.globals.writes).join(', ')):''}</p>
+   <pre>${esc(f.src)}</pre></details>`).join('')||'<p class="mut">Koi function nahi mila.</p>';
+  h+=`<h3>Dependency trace (helpers + required deps)</h3>`;
+  h+=top.map(f=>{const t=trace(fm,f);return`<details><summary>${esc(f.name)}</summary><ul><li>Helpers: ${esc(t.closure.filter(n=>n!==f.name).join(', ')||'—')}</li><li>Global state: ${esc(t.globals.join(', ')||'—')}</li><li>Libraries: ${esc(t.libs.join(', ')||'—')}</li><li>DOM reads: ${esc(t.reads.join(', ')||'—')}</li><li>DOM writes: ${esc(t.writes.join(', ')||'—')}</li>${t.api.length?`<li>API: ${esc(t.api.join(', '))}</li>`:''}</ul></details>`;}).join('');
+  h+=`<h3>Extractor — shared functions bundle</h3><pre>${esc(sharedBundle()||'// koi shared (pure) function nahi mila')}</pre>`;
+  $('c2').innerHTML=h+manualBoxHtml();bindManual();
+}
+function sharedBundle(){const fm=S.fm;if(!fm)return'';const seen=new Set(),out=[];
+  for(const f of fm.functions.filter(f=>f.tier==='shared'&&!f.nested&&!f.anon)){const code=buildClosureCode(fm,f);if(!seen.has(f.hash)){seen.add(f.hash);out.push(`// ---- ${f.name} (hash ${f.hash}) ----\n${code}`);}}
+  return out.join('\n\n');}
+
+// ============ MODULE 3: Functional Architecture Analyzer ============
+function labelFor(doc,el){
+  let t='';
+  if(el.id){const l=doc.querySelector('label[for="'+CSS.escape(el.id)+'"]');if(l)t=l.textContent;}
+  if(!t){const l=el.closest('label');if(l)t=[...l.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join(' ');}
+  if(!t)t=el.getAttribute('aria-label')||'';
+  if(!t){let p=el.previousSibling;while(p&&!t){if(p.nodeType===3)t=p.textContent;else if(p.nodeType===1&&/^(SPAN|B|STRONG|LABEL|P|DIV|H\d)$/.test(p.tagName)&&!p.querySelector('input,select,textarea')&&p.textContent.trim().length<60)t=p.textContent;else break;p=p.previousSibling;}}
+  if(!t)t=el.getAttribute('placeholder')||'';
+  if(!t)t=humanize(el.name||el.id||el.type||'field');
+  return t.replace(/\s+/g,' ').trim().replace(/[:：]$/,'');
+}
+async function step3(){setStatus(3,'run','Running…');if(!S.fm)await step2();
+  const fm=S.fm,doc=new DOMParser().parseFromString(S.cleaned,'text/html'),byName=fm.byName;
+  const title=doc.title||(doc.querySelector('h1')||{}).textContent||'Untitled app';
+  const descEl=[...doc.querySelectorAll('p')].find(p=>!p.id&&!p.querySelector('input,select,textarea,button')&&p.textContent.trim().length>3);
+  // controls
+  const controls=[];const radioGroups={};
+  doc.querySelectorAll('input,select,textarea,button').forEach(el=>{
+    const tag=el.tagName.toLowerCase(),type=(el.getAttribute('type')||(tag==='button'?'button':tag==='select'?'select':tag==='textarea'?'textarea':'text')).toLowerCase();
+    if(type==='hidden')return;
+    const isBtn=tag==='button'||/^(button|submit|reset|image)$/.test(type);
+    const c={id:el.id||'',name:el.getAttribute('name')||'',tag,type,role:isBtn?'action':'input',label:isBtn?(el.textContent.trim()||el.value||humanize(el.id||'button')):labelFor(doc,el),
+      ph:el.getAttribute('placeholder')||'',min:el.getAttribute('min'),max:el.getAttribute('max'),step:el.getAttribute('step'),options:tag==='select'?[...el.options].map(o=>o.value):[],attrValue:el.getAttribute('value')};
+    c.sel=c.id?'#'+CSS.escape(c.id):c.name?`[name="${c.name}"]`:'';
+    if(type==='radio'){const g=c.name||'_';radioGroups[g]=(radioGroups[g]||0)+1;c.groupIdx=radioGroups[g]-1;c.group=g;}
+    controls.push(c);
+  });
+  controls.filter(c=>c.type==='radio').forEach(c=>c.groupSize=radioGroups[c.group]);
+  const ctlIds=new Set(controls.map(c=>c.id).filter(Boolean));
+  // events: inline attributes + listeners
+  const events=[],pseudo=[];
+  doc.querySelectorAll('*').forEach(el=>{[...el.attributes].filter(a=>/^on\w+$/.test(a.name)).forEach(a=>{
+    const code=a.value,ev=a.name.slice(2),bm=maskCode(code);const calls=[];let x;const cre=/(^|[^.\w$])([A-Za-z_$][\w$]*)\s*\(/g;while((x=cre.exec(bm)))if(!KEYWORDS.has(x[2]))calls.push(x[2]);
+    const refs=domRefs(code,bm,fm.varMap);const trig=el.id||el.tagName.toLowerCase();
+    const pname='inline:'+trig+':'+ev;pseudo.push({name:pname,reads:[...refs.reads],writes:[...refs.writes]});
+    events.push({trigger:el.id?'#'+el.id:trig,label:el.id?(controls.find(c=>c.id===el.id)||{}).label||el.id:(el.textContent||trig).trim().slice(0,24),event:ev,fns:[...calls.filter(c=>byName[c]),...(refs.all.size?[pname]:[])],via:'attr',code,unknown:calls.filter(c=>!byName[c]&&!BUILTIN.has(c)&&!LIBS.some(l=>l.globals.includes(c)))});});});
+  fm.listeners.forEach(l=>{events.push({trigger:l.target,label:(controls.find(c=>'#'+c.id===l.target)||{}).label||l.target,event:l.event,fns:[l.fnName],via:'listener'});});
+  // flows
+  const flows=events.map(e=>{const reads=new Set(),writes=new Set(),calls=[],apis=[],caps=new Set();
+    e.fns.forEach(n=>{const f=byName[n]||fm.functions.find(x=>x.name===n);if(f){f.cReads.forEach(r=>reads.add(r));f.cWrites.forEach(w=>writes.add(w));f.closure.forEach(c=>calls.push(c));apis.push(...f.cApi);f.cCaps.forEach(c=>caps.add(c));}else{const p=pseudo.find(q=>q.name===n);if(p){p.reads.forEach(r=>reads.add(r));p.writes.forEach(w=>writes.add(w));}}});
+    return{...e,reads:[...reads],writes:[...writes],calls:uniq(calls),apis,caps:[...caps]};});
+  const allIds=new Set([...doc.querySelectorAll('[id]')].map(e=>e.id));
+  const refIds=uniq(flows.flatMap(f=>[...f.reads,...f.writes]).concat(fm.functions.flatMap(f=>f.dom.all))).filter(k=>/^[\w-]+$/.test(k)&&!k.startsWith('.'));
+  const outputs=uniq(fm.functions.flatMap(f=>f.dom.writes).concat(flows.flatMap(f=>f.writes))).filter(k=>/^[\w-]+$/.test(k)&&!ctlIds.has(k));
+  const selKeys=uniq(fm.functions.flatMap(f=>f.dom.all).concat(flows.flatMap(f=>[...f.reads,...f.writes]))).filter(k=>!/^[\w-]+$/.test(k)&&k.length<60);
+  const watch=uniq([...ctlIds,...refIds.filter(k=>allIds.has(k)),...selKeys]);
+  // classification
+  const classification=fm.functions.filter(f=>!f.nested||f.anon).map(f=>({fn:f.name,tier:f.tier,why:f.tier==='shared'?'no browser/network dependency — portable (client or server)':f.tier==='browser'?'uses '+f.cCaps.filter(c=>ENV_CAPS.has(c)).join(', ')+(f.cGWrites.length?', mutates state: '+f.cGWrites.join(', '):''):f.tier==='backend-call'?'calls remote API':'DOM/browser + remote API mixed'}));
+  // flags
+  const flags=[];const F=(level,msg)=>flags.push({level,msg});
+  if(!fm.functions.length)F('warn','Koi JS function detect nahi hua — app declarative ho sakta hai ya script external hai.');
+  if(fm.caps.includes('dynamic-code'))F('warn','eval / new Function / document.write mila — static analysis incomplete ho sakta hai.');
+  if(fm.dyn.length)F('warn','Dynamic element lookups (string concatenation) mile — blueprint har element nahi pakad sakta.');
+  if(fm.scripts.some(s=>s.module))F('warn','ES module script mila — modules merge nahi hote, as-is rakhe jayenge.');
+  if(fm.imports.length)F('warn','import/require mila: '+fm.imports.join(', '));
+  if(fm.usedLibs.some(n=>/React|Vue/.test(n)))F('warn','Framework (React/Vue) mila — DOM-id based blueprint partial hoga.');
+  if(fm.minified)F('warn','Minified-jaisa code — function boundaries uncertain.');
+  fm.missingLibs.forEach(n=>F('warn','Library '+n+' use ho rahi hai par script tag nahi mila.'));
+  fm.localScripts.forEach(s=>F('warn','Local script "'+s+'" ka content nahi mila (ZIP nahi diya) — behaviour verify nahi hoga.'));
+  refIds.filter(k=>!allIds.has(k)).forEach(k=>F('info','JS id "'+k+'" reference karta hai par HTML mein nahi hai (dynamic ban sakta hai).'));
+  [...fm.selRefs].filter(s=>/[.\[\s>]/.test(s)&&!/^#/.test(s)).slice(0,6).forEach(s=>F('info','Selector-based reference "'+s+'" — multiple elements ho sakte hain.'));
+  flows.forEach(e=>(e.unknown||[]).forEach(n=>F('warn','Inline handler "'+n+'()" ki definition nahi mili.')));
+  fm.apis.filter(a=>a.url==='(dynamic)').forEach(()=>F('warn','Dynamic API URL — endpoint manual identify karna hoga.'));
+  if(fm.caps.includes('storage'))F('info','Browser storage use hota hai — state sessions ke beech persist hogi.');
+  if(fm.caps.includes('timers'))F('info','Timers mile — async behaviour test mein wait lagega.');
+  const mapping={client:classification.filter(c=>c.tier==='browser'||c.tier==='mixed').map(c=>c.fn),shared:classification.filter(c=>c.tier==='shared').map(c=>c.fn),callsBackend:classification.filter(c=>c.tier==='backend-call'||c.tier==='mixed').map(c=>c.fn),backend:uniq(fm.apis.map(a=>a.method+' '+a.url))};
+  const listenerTargets=new Set(fm.listeners.map(l=>l.target.replace(/^#/,'')));
+  S.bp={title:title.trim(),description:descEl?descEl.textContent.trim():'',controls,events,flows,outputs,watch,refIds,classification,flags,mapping,apis:fm.apis,listenerTargets,manual:flags.some(f=>f.level==='warn')};
+  render3();setStatus(3,S.bp.manual?'warn':'ok',S.bp.manual?'Manual review flags':'Done');}
+function flowSvg(flows){
+  const fl=flows.filter(f=>f.reads.length||f.writes.length);if(!fl.length)return'<p class="mut">Koi input→output data-flow detect nahi hua.</p>';
+  const ins=uniq(fl.flatMap(f=>f.reads)),fns=uniq(fl.flatMap(f=>f.fns)),outs=uniq(fl.flatMap(f=>f.writes));
+  const rows=Math.max(ins.length,fns.length,outs.length),H=rows*34+16,y=(i,n)=>8+i*34+(rows-n)*17,tr=s=>esc(s.length>15?s.slice(0,14)+'…':s);
+  let svg=`<svg viewBox="0 0 370 ${H}" width="100%" style="max-width:520px">`;
+  const pos={};ins.forEach((k,i)=>pos['i'+k]=y(i,ins.length));fns.forEach((k,i)=>pos['f'+k]=y(i,fns.length));outs.forEach((k,i)=>pos['o'+k]=y(i,outs.length));
+  fl.forEach(f=>f.fns.forEach(fn=>{f.reads.forEach(r=>svg+=`<line x1="110" y1="${pos['i'+r]+13}" x2="130" y2="${pos['f'+fn]+13}"/>`);f.writes.forEach(w=>svg+=`<line x1="240" y1="${pos['f'+fn]+13}" x2="260" y2="${pos['o'+w]+13}"/>`);}));
+  ins.forEach(k=>svg+=`<rect x="6" y="${pos['i'+k]}" width="104" height="26" rx="6"/><text x="12" y="${pos['i'+k]+17}">${tr(k)}</text>`);
+  fns.forEach(k=>svg+=`<rect x="130" y="${pos['f'+k]}" width="110" height="26" rx="6" style="stroke:var(--ac)"/><text x="136" y="${pos['f'+k]+17}">${tr(k.replace(/^on_/,''))}()</text>`);
+  outs.forEach(k=>svg+=`<rect x="260" y="${pos['o'+k]}" width="104" height="26" rx="6"/><text x="266" y="${pos['o'+k]+17}">${tr(k)}</text>`);
+  return`<div class="flow">${svg}</svg></div><p class="mut" style="font-size:12px">inputs (read) → functions → outputs (written)</p>`;
+}
+function specText(f){const t=f.event==='click'?'clicks':f.event;return`When user <b>${esc(t)}</b> “${esc(f.label)}” → <code>${esc(f.fns.map(n=>n.replace(/^inline:.*/,'inline code')+'()').join(', ')||'—')}</code>${f.reads.length?` reads <b>${esc(f.reads.join(', '))}</b>`:''}${f.writes.length?` → writes <b>${esc(f.writes.join(', '))}</b>`:''}${f.apis.length?` → API ${esc(f.apis.map(a=>a.method+' '+a.url).join(', '))}`:''}`;}
+function render3(){
+  const b=S.bp;let h=`<div class="stats">${stat(b.controls.filter(c=>c.role==='input').length,'inputs')}${stat(b.controls.filter(c=>c.role==='action').length,'actions')}${stat(b.outputs.length,'outputs')}${stat(b.events.length,'events')}${stat(b.flags.filter(f=>f.level==='warn').length,'review flags',b.manual?'warn':'ok')}</div>`;
+  h+=`<h3>Functional specification</h3>${ulist(b.flows.map(specText))}`;
+  h+=`<h3>Execution / data-flow graph</h3>${flowSvg(b.flows)}`;
+  h+=`<h3>Call graph</h3>${ulist(S.fm.functions.filter(f=>f.calls.internal.length).map(f=>`<code>${esc(f.name)}</code> → ${esc(f.calls.internal.join(', '))}`))}`;
+  h+=`<h3>Browser vs backend classification</h3><table><tr><th>Function</th><th>Tier</th><th>Why</th></tr>${b.classification.map(c=>`<tr><td>${esc(c.fn)}</td><td>${chip(c.tier,'t-'+c.tier)}</td><td class="mut">${esc(c.why)}</td></tr>`).join('')}</table>`;
+  h+=`<h3>Client / backend / shared mapping</h3><ul><li><b>Client:</b> ${esc(b.mapping.client.join(', ')||'—')}</li><li><b>Shared (portable):</b> ${esc(b.mapping.shared.join(', ')||'—')}</li><li><b>Calls backend:</b> ${esc(b.mapping.callsBackend.join(', ')||'—')}</li><li><b>Backend endpoints:</b> ${esc(b.mapping.backend.join(', ')||'none (fully client-side)')}</li></ul>`;
+  h+=`<h3>Uncertainty / manual review</h3>${b.flags.length?ulist(b.flags.map(f=>`<span class="${f.level==='warn'?'warn':'mut'}">${f.level==='warn'?'⚠':'ℹ'}</span> ${esc(f.msg)}`)):'<p class="ok">Kuch flag nahi hua ✅</p>'}`;
+  $('c3').innerHTML=h;
+}
+
+// ============ MODULE 4: App + UI + Manifest Generator ============
+const PLATFORM_CSS=`:root{--bg:#f6f7fb;--card:#fff;--fg:#14161a;--mut:#6b7280;--ac:#4f46e5;--bd:#e3e5ea;--r:14px}
+@media (prefers-color-scheme:dark){:root{--bg:#0e0f13;--card:#171920;--fg:#eceef2;--mut:#9aa0ac;--ac:#818cf8;--bd:#2a2d37}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.app-shell{max-width:720px;margin:0 auto;padding:20px 16px 48px}
+.app-head h1{font-size:26px;margin:8px 0 4px;letter-spacing:-.02em}.app-head p{color:var(--mut);margin:0 0 16px}
+.panel{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin:0 0 14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.panel>h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:0 0 12px}
+.field{display:block;margin:0 0 12px}.field-label{display:block;font-size:14px;font-weight:600;margin-bottom:4px}
+.field.check{display:flex;align-items:center;gap:10px}.field.check .field-label{margin:0;font-weight:500}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--fg);font:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--ac);outline-offset:1px}
+input[type=checkbox],input[type=radio]{width:auto}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+button,input[type=button],input[type=submit],input[type=reset]{padding:10px 18px;border:0;border-radius:10px;background:var(--ac);color:#fff;font:inherit;font-weight:600;cursor:pointer;width:auto}
+.actions>button:not(:first-child){background:transparent;color:var(--ac);box-shadow:inset 0 0 0 1px var(--bd)}
+button:active{transform:scale(.98)}
+.results-body>*{margin-top:8px}
+table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid var(--bd);text-align:left}
+canvas,img,video{max-width:100%}
+.preserved-body{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:16px}
+.preserved-body>*+*{margin-top:10px}
+`;
+function buildApp(mode){
+  const bp=S.bp,fm=S.fm,doc=new DOMParser().parseFromString(S.cleaned,'text/html');
+  doc.querySelectorAll('script').forEach(s=>s.remove());
+  const classUsed=el=>[...el.classList].some(c=>fm.classRefs.has(c));
+  const header=`<header class="app-head"><h1>${esc(bp.title)}</h1>${bp.description?`<p>${esc(bp.description)}</p>`:''}</header>`;
+  let body;
+  if(mode==='preserve'){body=`<main class="app-shell">${header}<div class="preserved-body">${doc.body.innerHTML}</div></main>`;}
+  else{
+    const inputs=[],actions=[],outputs=[],blocks=[],notes=[],hidden=[];
+    const isInput=el=>el.matches('input:not([type=button]):not([type=submit]):not([type=reset]):not([type=image]):not([type=hidden]),select,textarea');
+    const isBtn=el=>el.matches('button,input[type=button],input[type=submit],input[type=reset],input[type=image]');
+    const hasCtl=el=>!!el.querySelector('input,select,textarea,button');
+    const OUT=/^(CANVAS|TABLE|PRE|OUTPUT|SVG|IFRAME|IMG|VIDEO|AUDIO|UL|OL|PROGRESS|METER|A)$/;
+    const writeSet=new Set(bp.outputs);
+    const hasOn=el=>[...el.attributes].some(a=>/^on/.test(a.name));
+    const visit=el=>{
+      const tag=el.tagName;
+      if(tag==='LABEL'&&!el.querySelector('input,select,textarea'))return;
+      if(el.matches('input[type=hidden]')){hidden.push(el.outerHTML);return;}
+      if(isInput(el)){inputs.push(el);return;}
+      if(isBtn(el)){actions.push(el);return;}
+      if(['STYLE','LINK','META','TITLE','NOSCRIPT','TEMPLATE'].includes(tag)){if(tag==='TEMPLATE')outputs.push(el);return;}
+      if(hasCtl(el)){
+        if(tag==='FORM'||(el.id&&(writeSet.has(el.id)||bp.listenerTargets.has(el.id)))||classUsed(el)||hasOn(el))blocks.push(el);else[...el.children].forEach(visit);
+        return;}
+      if(el.id||classUsed(el)||OUT.test(tag)||(!el.children.length&&!el.textContent.trim()&&!/^(BR|HR)$/.test(tag))){outputs.push(el);return;}
+      if(hasOn(el)){actions.push(el);return;}
+      if(!el.children.length&&el.textContent.trim()){notes.push(el);return;}
+      if(!el.children.length)return;
+      [...el.children].forEach(visit);
+    };
+    [...doc.body.children].forEach(visit);
+    const fieldHtml=el=>{const lab=esc(labelFor(doc,el)),t=(el.getAttribute('type')||'').toLowerCase();
+      if(t==='checkbox'||t==='radio')return`<label class="field check">${el.outerHTML}<span class="field-label">${lab}</span></label>`;
+      return`<label class="field"><span class="field-label">${lab}</span>${el.outerHTML}</label>`;};
+    const firstH1=doc.querySelector('h1');
+    const noteHtml=notes.filter(n=>n!==firstH1&&n.textContent.trim()!==bp.description).map(n=>`<p>${esc(n.textContent.trim())}</p>`).join('');
+    body=`<main class="app-shell">${header}
+${hidden.length?`<div style="display:none">${hidden.join('')}</div>`:''}
+${inputs.length?`<section class="panel"><h2>Inputs</h2>${inputs.map(fieldHtml).join('\n')}</section>`:''}
+${blocks.length?`<section class="panel"><h2>Form</h2>${blocks.map(b=>b.outerHTML).join('\n')}</section>`:''}
+${actions.length?`<section class="panel"><h2>Actions</h2><div class="actions">${actions.map(a=>a.outerHTML).join('\n')}</div></section>`:''}
+${outputs.length?`<section class="panel"><h2>Results</h2><div class="results-body">${outputs.map(o=>o.outerHTML).join('\n')}</div></section>`:''}
+${noteHtml?`<section class="panel"><h2>Notes</h2>${noteHtml}</section>`:''}</main>`;
+  }
+  // scripts: data blocks -> libs -> app.js -> modules
+  const sc=fm.scripts,tag=(s,inner)=>`<script${s.type&&!s.classic&&!s.module?` type="${esc(s.type)}"`:''}${s.id?` id="${esc(s.id)}"`:''}${s.attrs?' '+s.attrs:''}>${inner}<\/script>`;
+  const data=sc.filter(s=>!s.src&&!s.classic&&!s.module).map(s=>tag(s,s.text.replace(/<\/script/gi,'<\\/script')));
+  const libs=sc.filter(s=>s.src&&!s.module).map(s=>`<script src="${esc(s.src)}"${s.attrs?' '+s.attrs:''}><\/script>`);
+  const mods=sc.filter(s=>s.module&&!s.src).map(s=>`<script type="module">${s.text.replace(/<\/script/gi,'<\\/script')}<\/script>`);
+  const vendorFiles={};(fm.vendored||[]).forEach(n=>{vendorFiles['vendor/'+slug(n)+'.js']=S.manual.libs[n];});
+  const vendTags=Object.keys(vendorFiles).map(p=>`<script src="${p}"><\/script>`);
+  const vendInline=Object.values(vendorFiles).map(c=>`<script>${c.replace(/<\/script/gi,'<\\/script')}<\/script>`);
+  const appJs=`/* app.js — original logic, preserved verbatim (${fm.functions.length} functions detected) */\n`+sc.filter(s=>!s.src&&s.classic&&s.text.trim()).map(s=>s.text.trim()).join('\n;\n')+'\n';
+  const css=S.r1.css||'/* no functional CSS */';
+  const head=`<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(bp.title)}</title>`;
+  const indexHtml=`<!DOCTYPE html>\n<html lang="en"><head>${head}<link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="functional.css"></head>\n<body>\n${body}\n${data.join('\n')}\n${vendTags.join('\n')}\n${libs.join('\n')}\n<script src="app.js"><\/script>\n${mods.join('\n')}\n</body></html>\n`;
+  const single=`<!DOCTYPE html>\n<html lang="en"><head>${head}<style>${PLATFORM_CSS}</style><style>${css}</style></head>\n<body>\n${body}\n${data.join('\n')}\n${vendInline.join('\n')}\n${libs.join('\n')}\n<script>${appJs.replace(/<\/script/gi,'<\\/script')}<\/script>\n${mods.join('\n')}\n</body></html>\n`;
+  const sharedFns=fm.functions.filter(f=>f.tier==='shared'&&!f.nested&&!f.anon);
+  const id=slug(bp.title);
+  const manifest={id,name:bp.title,version:'1.0.0',description:bp.description,entry:'index.html',platform:'app-rebuilder/1',generatedAt:new Date().toISOString(),uiMode:mode,
+    files:[],
+    ui:{inputs:bp.controls.filter(c=>c.role==='input').map(c=>({id:c.id,type:c.type,label:c.label})),actions:bp.controls.filter(c=>c.role==='action').map(c=>({id:c.id,label:c.label})),outputs:bp.outputs},
+    capabilities:fm.caps,permissions:fm.caps.filter(c=>['network','storage','clipboard','geolocation','media','file'].includes(c)),
+    dependencies:[...fm.loaded.map(l=>({name:l.name,url:l.url})),...(fm.vendored||[]).map(n=>({name:n,url:'vendor/'+slug(n)+'.js'}))],api:uniq(fm.apis.map(a=>a.method+' '+a.url)),
+    functions:{total:fm.functions.length,shared:sharedFns.map(f=>({name:f.name,hash:f.hash}))},verification:null};
+  const functionsJson=JSON.stringify(fm.functions.map(f=>({name:f.name,params:f.params,tier:f.tier,caps:f.cCaps,reads:f.cReads,writes:f.cWrites,calls:f.calls.internal,globals:f.cGlobals,hash:f.hash,matches:f.matches})),null,2);
+  const files={'index.html':indexHtml,'styles.css':PLATFORM_CSS,'functional.css':css,'app.js':appJs,'manifest.json':JSON.stringify(manifest,null,2),'functions.json':functionsJson,
+    'shared/functions.js':sharedBundle()||'// no shared functions\n','report.json':JSON.stringify({design:{...S.r1,css:undefined},blueprintFlags:bp.flags,mapping:bp.mapping},null,2),
+    'README.md':`# ${bp.title}\n\nGenerated by App Rebuilder (${mode} UI mode).\n\n- Open \`index.html\`.\n- \`app.js\` = original logic, preserved.\n- \`functional.css\` = behaviour-only CSS kept from the original.\n- \`styles.css\` = new platform design.\n- \`shared/functions.js\` = reusable pure functions (registered in the registry).\n`};
+  Object.assign(files,vendorFiles);manifest.files=Object.keys(files);files['manifest.json']=JSON.stringify(manifest,null,2);
+  return{files,single,manifest,mode};
+}
+async function step4(mode){setStatus(4,'run','Building…');if(!S.bp)await step3();
+  S.app=buildApp(mode||'spec');render4();setStatus(4,'ok',`UI mode: ${S.app.mode}`);}
+function render4(){const a=S.app;
+  $('c4').innerHTML=`<div class="stats">${stat(a.mode==='spec'?'Spec-driven':'Preserved','UI mode')}${stat(Object.keys(a.files).length,'files')}${stat(a.manifest.permissions.length,'permissions')}${stat(a.manifest.functions.shared.length,'shared functions')}</div>
+  <p class="mut">Purana design wapas nahi aaya: naya platform UI functional specification se bana. Original JS/IDs same hain.</p>
+  <div class="row"><button id="rbSpec">Rebuild: spec-driven UI</button><button id="rbPres">Rebuild: structure-preserving UI</button></div>
+  <h3>Live preview</h3>${pvFrame(a.single)}
+  <h3>Files</h3><select id="fsel">${Object.keys(a.files).map(f=>`<option>${esc(f)}</option>`).join('')}</select><pre id="fview"></pre>`;
+  const upd=()=>{$('fview').textContent=a.files[$('fsel').value];};$('fsel').onchange=upd;upd();
+  $('rbSpec').onclick=()=>step4('spec').catch(err);$('rbPres').onclick=()=>step4('preserve').catch(err);
+}
+
+// ============ MODULE 5: Verification Engine ============
+const STUB=`<script>(function(){var s=12345;Math.random=function(){s=(s*1664525+1013904223)%4294967296;return s/4294967296};Date.now=function(){return 1700000000000};window.__log=[];window.__err=[];window.alert=function(m){__log.push('alert:'+m)};window.confirm=function(m){__log.push('confirm:'+m);return true};window.prompt=function(m){__log.push('prompt:'+m);return 'test'};window.fetch=function(u){__log.push('fetch:'+u);return Promise.resolve({ok:true,status:200,json:function(){return Promise.resolve({})},text:function(){return Promise.resolve('')},blob:function(){return Promise.resolve(new Blob())}})};window.addEventListener('error',function(e){__err.push(String(e.message))});window.addEventListener('unhandledrejection',function(e){__err.push('rej:'+String(e.reason))});})()<\/script>`;
+function injectStub(html,extra){const st=STUB+(extra||'');const m=html.match(/<head[^>]*>/i);return m?html.replace(/<head[^>]*>/i,()=>m[0]+st):st+html;}
+function caseValue(c,k){
+  const t=c.type,A=k==='A',B=k==='B';
+  if(c.tag==='select')return c.options.length?c.options[A?Math.min(1,c.options.length-1):B?0:c.options.length-1]:'';
+  if(t==='checkbox')return!B;
+  if(t==='radio')return A?c.groupIdx===0:k==='C'?c.groupIdx===c.groupSize-1:false;
+  if(t==='number'||t==='range'){const mn=c.min!==null&&c.min!==''?+c.min:null,mx=c.max!==null&&c.max!==''?+c.max:null;let v=A?7:B?(mn!==null?mn:0):1234567;if(mn!==null&&v<mn)v=mn;if(mx!==null&&v>mx)v=mx;return String(v);}
+  if(t==='email')return A?'test@example.com':B?'':'long.address@sub.example.org';
+  if(t==='url')return A?'https://example.com':B?'':'https://example.org/a/b?c=1';
+  if(t==='tel')return A?'9876543210':B?'':'+91 99999 88888';
+  if(t==='date')return A?'2024-05-17':B?'':'2030-12-31';
+  if(t==='time')return A?'10:30':B?'':'23:59';
+  if(t==='color')return A?'#336699':'#ff0000';
+  if(t==='file')return null;
+  if(c.tag==='textarea')return A?'line one\nline two':B?'':'long text '.repeat(20);
+  return A?'Hello World 42':B?'':'x'.repeat(40)+'123';
+}
+function findCtl(doc,c){
+  if(c.sel){try{return doc.querySelector(c.sel);}catch(e){return null;}}
+  if(c.role==='action'){return[...doc.querySelectorAll('button,input[type=button],input[type=submit],input[type=reset]')].find(el=>((el.textContent||el.value||'').trim())===c.label)||null;}
+  if(c.ph){return doc.querySelector('[placeholder="'+c.ph.replace(/"/g,'\\"')+'"]');}
+  return null;}
+function setCtl(doc,win,c,val){if(val===null)return;const el=findCtl(doc,c);if(!el)return;
+  if(c.type==='checkbox'||c.type==='radio')el.checked=!!val;else el.value=val;
+  el.dispatchEvent(new win.Event('input',{bubbles:true}));el.dispatchEvent(new win.Event('change',{bubbles:true}));}
+function snapshot(doc,win,ids){const o={};for(const id of ids){let el=null;try{el=/^[\w-]+$/.test(id)?doc.getElementById(id):doc.querySelector(id);}catch(e){}if(!el){o[id]=null;continue;}
+  const cs=win.getComputedStyle(el),rec={visible:cs.display!=='none'&&cs.visibility!=='hidden'&&!el.hidden&&el.getClientRects().length>0};
+  if(/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)){rec.value=el.value;if(/checkbox|radio/.test(el.type))rec.checked=el.checked;}
+  else if(!el.querySelector('input,select,textarea,button,canvas'))rec.text=el.textContent.replace(/\s+/g,' ').trim().slice(0,400);
+  o[id]=rec;}return o;}
+const RUNNER=`(function(){var P=__PLAN__,K=__K__,ID=__ID__;function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+async function main(){await sleep(150);var steps=[];function snap(label){steps.push({label:label,snap:snapshot(document,window,P.watch),log:[].slice.call(window.__log||[]),err:[].slice.call(window.__err||[])});}
+snap('load');P.inputs.forEach(function(c){try{setCtl(document,window,c,caseValue(c,K));}catch(e){}});await sleep(80);snap('set inputs');
+for(var i=0;i<P.actions.length;i++){var a=P.actions[i];var el=findCtl(document,a);if(el){try{el.click();}catch(e){}}await sleep(220);snap('click “'+a.label+'”');}
+parent.postMessage({__rb:ID,steps:steps},'*');}
+if(document.readyState==='complete')main();else window.addEventListener('load',main);})();`;
+function driverScript(id,plan,k){const lib=[caseValue,findCtl,setCtl,snapshot].map(f=>f.toString()).join('\n');
+  return'<script>'+lib+'\n'+RUNNER.split('__ID__').join(JSON.stringify(id)).split('__K__').join(JSON.stringify(k)).split('__PLAN__').join(JSON.stringify(plan).replace(/</g,'\\u003c'))+'<\/script>';}
+// Frames are sandboxed WITHOUT allow-same-origin: tested app code can't touch this page's localStorage (token) or DOM.
+function runScenario(html,plan,k){return new Promise(res=>{
+  const id='rb'+Math.random().toString(36).slice(2),f=document.createElement('iframe');
+  f.setAttribute('sandbox','allow-scripts allow-modals allow-forms');f.style.cssText='position:fixed;left:-9999px;top:0;width:800px;height:700px;border:0';
+  const done=r=>{window.removeEventListener('message',h);clearTimeout(t);f.remove();res(r);};
+  const h=e=>{if(e.data&&e.data.__rb===id)done({steps:e.data.steps});};
+  window.addEventListener('message',h);const t=setTimeout(()=>done({steps:[],timeout:true}),12000);
+  f.srcdoc=injectStub(html,driverScript(id,plan,k));document.body.appendChild(f);});}
+function inlineManual(html){
+  const m=S.manual,fm=S.fm;const libs=(fm?fm.vendored:[]).map(n=>m.libs[n]);
+  if(!Object.keys(m.scripts).length&&!libs.length)return html;
+  const d=new DOMParser().parseFromString(html,'text/html');
+  d.querySelectorAll('script[src]').forEach(sc=>{const c=m.scripts[sc.getAttribute('src')];if(c!=null){sc.removeAttribute('src');sc.textContent=c;}});
+  libs.reverse().forEach(c=>{const sc=d.createElement('script');sc.textContent=c;d.head.insertBefore(sc,d.head.firstChild);});
+  return(d.doctype?'<!DOCTYPE html>\n':'')+d.documentElement.outerHTML;}
+function diffRuns(a,b,k){const out=[];
+  a.steps.forEach((sa,i)=>{const sb=b.steps[i];
+    for(const id of Object.keys(sa.snap)){const x=sa.snap[id],y=sb.snap[id];if(!x&&!y)continue;if(x&&!y){out.push({kind:'missing',k,step:sa.label,id});continue;}if(!x)continue;
+      for(const f of['visible','value','checked','text'])if(x[f]!==y[f])out.push({kind:f,k,step:sa.label,id,exp:x[f],got:y[f]});}
+    if(JSON.stringify(sa.log)!==JSON.stringify(sb.log))out.push({kind:'log',k,step:sa.label,exp:sa.log.join(' | '),got:sb.log.join(' | ')});
+    const ne=sb.err.filter(e=>!sa.err.includes(e));if(ne.length)out.push({kind:'error',k,step:sa.label,msg:ne[0]});});
+  return out;}
+const FIXES={timeout:'Test frame ne jawab nahi diya → script error check karo (⑤ ke upar errors) ya missing script/library paste karo.',missing:'Element generated app mein nahi mila → structure-preserving rebuild.',visible:'Functional CSS (display/visibility) lost ya override ho gayi → structure-preserving rebuild / functional.css check.',value:'Input/state value alag aaya → element ya event wiring tooti; preserving rebuild.',checked:'Checkbox/radio state alag → preserving rebuild.',text:'Output text alag → processing ya DOM wiring tooti; preserving rebuild.',log:'alert/fetch behaviour alag → script order/dependency check.',error:'Generated app mein naya runtime error → script order ya missing dependency.'};
+function staticChecks(app){
+  const out=[],fm=S.fm,bp=S.bp,gdoc=new DOMParser().parseFromString(app.files['index.html'],'text/html');
+  const ok=(name,pass,detail,fix)=>out.push({name,pass,detail,fix});
+  try{new Function(app.files['app.js']);ok('JS syntax (app.js)',true,'parse OK');}catch(e){ok('JS syntax (app.js)',false,e.message,'Script classic hona chahiye; modules alag rakhe jate hain.');}
+  const gids=new Set([...gdoc.querySelectorAll('[id]')].map(e=>e.id)),origIds=new Set([...new DOMParser().parseFromString(S.orig,'text/html').querySelectorAll('[id]')].map(e=>e.id));
+  const miss=bp.refIds.filter(k=>origIds.has(k)&&!gids.has(k));
+  ok('Element references (JS → DOM ids)',!miss.length,miss.length?'missing in generated: '+miss.join(', '):`${bp.refIds.length} ids resolved`,'preserving rebuild');
+  const dup=[...gdoc.querySelectorAll('[id]')].map(e=>e.id).filter((x,i,a)=>a.indexOf(x)!==i);
+  ok('Duplicate ids',!dup.length,dup.join(', ')||'none','remove duplicates');
+  const unknown=[];gdoc.querySelectorAll('*').forEach(el=>[...el.attributes].filter(a=>/^on\w+$/.test(a.name)).forEach(a=>{const bm=maskCode(a.value);let x;const re=/(^|[^.\w$])([A-Za-z_$][\w$]*)\s*\(/g;while((x=re.exec(bm)))if(!KEYWORDS.has(x[2])&&!fm.byName[x[2]]&&!BUILTIN.has(x[2])&&!LIBS.some(l=>l.globals.includes(x[2])))unknown.push(x[2]);}));
+  ok('Inline handler → function defined',!unknown.length,unknown.length?'undefined: '+uniq(unknown).join(', '):'all handlers resolve','include missing script/library');
+  const mlibs=fm.missingLibs;ok('Library dependencies',!mlibs.length&&!fm.localScripts.length,[...mlibs.map(n=>n+' not loaded'),...fm.localScripts.map(s=>s+' not provided')].join(', ')||'all present','provide script/library');
+  const leak=[];(app.files['functional.css'].match(/[\w-]+(?=\s*:)/g)||[]).forEach(p=>{if(!FUNCTIONAL.has(p)&&!p.startsWith('--')&&!/^(and|screen|min|max|prefers)/.test(p)&&!/width|height|color-scheme|orientation|hover|resolution/.test(p))leak.push(p);});
+  ok('Original design not leaked',!leak.length,leak.length?uniq(leak).join(', '):'functional.css behaviour-only','re-run module 1');
+  return out;}
+async function verifyApp(app){
+  const bp=S.bp,res={mode:app.mode,static:staticChecks(app),dynamic:[],failures:[],trace:[]};
+  const plan={watch:bp.watch,inputs:bp.controls.filter(c=>c.role==='input'&&(c.sel||c.ph)),actions:bp.controls.filter(c=>c.role==='action')};
+  const skipped=bp.controls.filter(c=>c.role==='input'&&!c.sel&&!c.ph).length,origHtml=inlineManual(S.orig);
+  for(const k of['A','B','C']){
+    const o=await runScenario(origHtml,plan,k),g=await runScenario(app.single,plan,k);let d;
+    if(!o.steps.length||!g.steps.length||o.steps.length!==g.steps.length)d=[{kind:'timeout',k,step:'run',msg:(!o.steps.length?'original':'generated')+' app ka test frame respond nahi kiya (script error ya timeout)'}];else d=diffRuns(o,g,k);
+    res.dynamic.push({k,steps:o.steps.length,diffs:d.length});res.failures.push(...d);
+    if(k==='A'&&o.steps.length&&g.steps.length){const ix=Math.min(2,o.steps.length-1),last=o.steps[ix],lg=g.steps[ix];
+      res.trace=Object.keys(last.snap).filter(id=>last.snap[id]).map(id=>({id,orig:last.snap[id],gen:lg.snap[id]}));res.inputs=plan.inputs.map(c=>({id:c.id||c.name||c.ph,val:caseValue(c,'A')}));}}
+  res.skipped=skipped;
+  res.passed=res.static.every(s=>s.pass)&&!res.failures.length;return res;}
+async function step5(){setStatus(5,'run','Testing…');if(!S.app)await step4('spec');
+  const attempts=[];let r=await verifyApp(S.app);attempts.push(r);
+  if(!r.passed&&S.app.mode==='spec'){S.app=buildApp('preserve');render4();r=await verifyApp(S.app);r.autoFixed=true;attempts.push(r);}
+  S.ver={passed:r.passed,attempts,final:r};S.app.manifest.verification={passed:r.passed,mode:S.app.mode,checkedAt:new Date().toISOString(),failures:r.failures.length};S.app.files['manifest.json']=JSON.stringify(S.app.manifest,null,2);
+  render5();setStatus(5,r.passed?'ok':'fail',r.passed?'PASS':'FAIL');}
+function diffText(f){const q=v=>v===undefined?'∅':JSON.stringify(v);return f.kind==='timeout'?f.msg:f.kind==='missing'?`${/^[\w-]+$/.test(f.id)?'#':''}${f.id} generated app mein nahi mila`:f.kind==='error'?`runtime error in generated: ${f.msg}`:f.kind==='log'?`dialogs/network alag: orig [${f.exp}] vs gen [${f.got}]`:`${/^[\w-]+$/.test(f.id)?'#':''}${f.id}.${f.kind}: original ${q(f.exp)} vs generated ${q(f.got)}`;}
+function render5(){
+  const v=S.ver,r=v.final;
+  let h=`<div class="stats">${stat(r.passed?'PASS':'FAIL','result',r.passed?'ok':'bad')}${stat(r.static.filter(s=>s.pass).length+'/'+r.static.length,'static checks')}${stat(r.failures.length,'functional diffs',r.failures.length?'bad':'ok')}${stat(r.mode,'UI mode')}</div>`;
+  if(v.attempts.length>1)h+=`<p class="warn">⚠ Pehle attempt (spec-driven UI) fail hua → auto-fix: structure-preserving mode mein rebuild + dobara test.</p>`;
+  h+=`<h3>Static checks</h3>${ulist(r.static.map(s=>`${s.pass?'<span class="ok">✔</span>':'<span class="bad">✘</span>'} <b>${esc(s.name)}</b> — <span class="mut">${esc(s.detail)}</span>`))}`;
+  h+=`<h3>Original vs generated (functional test)</h3>${ulist(r.dynamic.map(d=>`Case ${d.k} (${d.k==='A'?'typical':d.k==='B'?'edge/empty':'large'}): ${d.steps} steps — ${d.diffs?`<span class="bad">${d.diffs} diffs</span>`:'<span class="ok">identical</span>'}`))}`;
+  if(r.skipped)h+=`<p class="mut">${r.skipped} input(s) bina id/name/placeholder ke — drive nahi ho sake.</p>`;
+  if(r.failures.length){const first=r.failures.slice(0,10);h+=`<h3>Fail → exact reason → fix</h3>${ulist(first.map(f=>`<span class="bad">[case ${f.k}, ${esc(f.step)}]</span> ${esc(diffText(f))}<br><span class="mut">Fix: ${esc(FIXES[f.kind])}</span>`))}`;}
+  h+=`<h3>Input → processing → output (case A)</h3><p class="mut">Inputs: ${esc((r.inputs||[]).map(i=>i.id+'='+JSON.stringify(i.val)).join(', ')||'—')}</p><table><tr><th>Element</th><th>Original</th><th>Generated</th><th></th></tr>${(r.trace||[]).filter(t=>t.orig.text!==undefined||t.orig.visible===false||t.orig.value!==undefined).map(t=>{const a=JSON.stringify(t.orig),b=JSON.stringify(t.gen),same=a===b;return`<tr><td>${/^[\w-]+$/.test(t.id)?'#':''}${esc(t.id)}</td><td>${esc(t.orig.text!==undefined?t.orig.text+(t.orig.visible?'':' (hidden)'):t.orig.value!==undefined?'value='+t.orig.value:'hidden')}</td><td>${esc(t.gen?(t.gen.text!==undefined?t.gen.text+(t.gen.visible?'':' (hidden)'):t.gen.value!==undefined?'value='+t.gen.value:'hidden'):'missing')}</td><td>${same?'✅':'❌'}</td></tr>`;}).join('')}</table>`;
+  h+=`<h3>Live preview (generated)</h3>${pvFrame(S.app.single)}`;
+  $('c5').innerHTML=h;
+}
+
+// ============ MODULE 6: Package + Registry + Deploy ============
+function buildPackage(){const a=S.app;const files={...a.files};
+  const zip=new Blob(zipParts(files),{type:'application/zip'});S.pkg={zip,files,name:a.manifest.id};return S.pkg;}
+const showLog=m=>{const lg=$('syLog');if(!lg)return;lg.style.display='block';lg.textContent+=m+'\n';};
+async function pushApp(force){
+  const a=S.app,fm=S.fm,id=a.manifest.id,lg=$('syLog');if(lg){lg.style.display='block';lg.textContent='';}
+  const files={};for(const [pth,c] of Object.entries(a.files))files['apps/'+id+'/'+pth]=c;files['apps/'+id+'/index.single.html']=a.single;
+  const shared=fm.functions.filter(f=>f.tier==='shared'&&!f.nested&&!f.anon),fnFiles={};
+  shared.forEach(f=>{fnFiles['functions/'+slug(f.name)+'-'+f.hash+'.js']=buildClosureCode(fm,f);});
+  const sec=scanSecrets(Object.fromEntries(Object.entries(files).filter(([pth])=>!/vendor\/|index\.single/.test(pth))));
+  const fb=$('syForce');
+  if(sec.length&&!force){showLog('⛔ Push roka gaya — secret jaisa kuch mila:\n'+sec.join('\n')+'\nAgar ye safe hai to “Push anyway” dabao.');if(fb)fb.style.display='inline-block';return;}
+  if(fb)fb.style.display='none';
+  const verified=!!(S.ver&&S.ver.passed),now=new Date().toISOString();
+  const apply=(reg,libs)=>{const old=reg.apps[id]||{};
+    reg.apps[id]={name:a.manifest.name,version:a.manifest.version,verified,uiMode:a.mode,folder:'apps/'+id,liveUrl:old.liveUrl||'',registeredAt:old.registeredAt||now,updatedAt:now,functions:shared.map(f=>f.hash)};
+    shared.forEach(f=>{const e=reg.functions[f.hash];if(e){if(!e.usedBy.includes(id))e.usedBy.push(id);}else reg.functions[f.hash]={name:f.name,file:'functions/'+slug(f.name)+'-'+f.hash+'.js',tier:'shared',usedBy:[id],createdAt:now};});
+    fm.loaded.forEach(l=>{const e=libs.libs[l.name];if(e){e.usedBy=e.usedBy||[];if(!e.usedBy.includes(id))e.usedBy.push(id);}else libs.libs[l.name]={url:l.url,usedBy:[id],addedAt:now};});};
+  await commitOrMemory(apply,{...files,...fnFiles},showLog);
+  showLog('Done.');renderLists();}
+async function step6(){setStatus(6,'run','Packaging…');if(!S.app)await step4('spec');
+  buildPackage();render6();
+  const pass=S.ver&&S.ver.passed;
+  if(pass||!CONNECTED){try{await pushApp(false);}catch(e){showLog('ERROR: '+e.message);}}
+  else showLog('Verification fail hua — auto-push skip. Fix ke baad “Push to registry” dabao.');
+  setStatus(6,'ok',CONNECTED?'Packaged + synced':'Packaged');}
+function render6(){
+  const p=S.pkg,a=S.app;
+  $('c6').innerHTML=`<div class="stats">${stat(Object.keys(p.files).length,'files in ZIP')}${stat(Math.round(p.zip.size/1024)+' KB','ZIP size')}${stat(a.manifest.functions.shared.length,'shared functions (this app)')}</div>
+  ${S.ver&&!S.ver.passed?'<p class="warn">⚠ Verification fail hua tha — ship karne se pehle ⑤ ke failures dekho.</p>':''}
+  <h3>Registry sync</h3><p class="mut" style="font-size:13px">${CONNECTED?'Connected: <b>'+esc(GH.repo)+'</b> ('+esc(GH.branch||'main')+'). Verification pass hone par app folder + shared functions + libs auto-push hote hain.':'GitHub connected nahi hai — upar “GitHub registry” mein token + repo daalo. Tab tak registry sirf is session mein rahegi.'}</p>
+  <div class="row"><button class="pri" id="syPush">⬆ Push to registry</button><button id="syForce" style="display:none">Push anyway</button><button id="syPull">⟳ Pull again</button></div><pre id="syLog" style="display:none"></pre>
+  <h3>ZIP / Build</h3><div class="row"><button class="pri" id="dZip">⬇ ZIP download</button><button id="dSingle">⬇ Single HTML (build)</button><button id="dReg">⬇ Registry JSON</button></div>
+  <div id="reglists"></div>`;
+  $('dZip').onclick=()=>dl(p.name+'.zip',p.zip);$('dSingle').onclick=()=>dl(p.name+'.html',a.single,'text/html');$('dReg').onclick=()=>dl('registry.json',JSON.stringify({registry:REG,libs:LIBREG},null,2),'application/json');
+  $('syPush').onclick=()=>{if(S.ver&&!S.ver.passed&&!confirm('Verification fail hua tha. Phir bhi push karna hai?'))return;pushApp(false).catch(e=>showLog('ERROR: '+e.message));};
+  $('syForce').onclick=()=>pushApp(true).catch(e=>showLog('ERROR: '+e.message));
+  $('syPull').onclick=()=>{if(!CONNECTED)return showLog('Pehle connect karo.');pullRemote().then(()=>{updateGhState();renderLists();showLog('Pulled.');}).catch(e=>showLog('ERROR: '+e.message));};
+  renderLists();
+}
+function renderLists(){const el=$('reglists');if(!el)return;
+  const apps=Object.entries(REG.apps),fns=Object.entries(REG.functions),libs=Object.entries(LIBREG.libs);
+  const folder=x=>CONNECTED&&GH.repo?`<a href="https://github.com/${esc(GH.repo)}/tree/${esc(GH.branch||'main')}/${esc(x.folder)}" target="_blank" rel="noopener">📁 folder</a>`:'';
+  el.innerHTML=`<h3>Apps (${apps.length})</h3>${apps.map(([id,x])=>`<div class="card" style="background:var(--code);margin-bottom:8px"><b>${esc(x.name)}</b> v${esc(x.version)} ${x.verified?'<span class="ok">✔ verified</span>':'<span class="warn">unverified</span>'}<br>${folder(x)}${/^https?:\/\//.test(x.liveUrl||'')?` · <a href="${esc(x.liveUrl)}" target="_blank" rel="noopener">🔗 live</a>`:''}
+    <div class="row"><input type="text" data-live="${esc(id)}" value="${esc(x.liveUrl||'')}" placeholder="Live URL (jahan deploy kiya)" style="flex:1;margin:0"><button data-save="${esc(id)}">Save link</button></div></div>`).join('')||'<p class="mut">Abhi koi app nahi.</p>'}
+  <details><summary>Shared functions (${fns.length})</summary>${ulist(fns.map(([h,f])=>`<code>${esc(f.name)}</code>${f.manual?' <span class="mut">(manual)</span>':''} — used by ${esc((f.usedBy||[]).join(', ')||'—')}`))}</details>
+  <details><summary>Libraries / dependencies (${libs.length})</summary>${ulist(libs.map(([n,l])=>`<b>${esc(n)}</b> <span class="mut">${esc(l.url||l.file||'')}</span> — used by ${esc((l.usedBy||[]).join(', ')||'—')}`))}</details>`;
+  el.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{const id=b.dataset.save,v=el.querySelector('[data-live="'+id+'"]').value.trim();
+    try{await commitOrMemory(reg=>{if(reg.apps[id])reg.apps[id].liveUrl=v;},{},showLog);renderLists();}catch(e){showLog('ERROR: '+e.message);}});
+}
+
+// ============ Wiring ============
+const err=e=>{console.error(e);alert('Error: '+e.message);};
+const RUN=[step1,step2,step3,()=>step4('spec'),step5,step6];
+async function runFrom(n){for(let i=n-1;i<6;i++){setStatus(i+1,'run');await RUN[i]();}show(S.ver&&S.ver.passed?4:5);}
+function buildChrome(){
+  $('steps').innerHTML=STEPS.map((s,i)=>`<button id="s${i+1}"><span class="dot"></span>${s}</button>`).join('');
+  STEPS.forEach((s,i)=>{const n=i+1;$('s'+n).onclick=()=>show(n);
+    $('p'+n).innerHTML=`<div class="card"><div class="head"><h2>${s}</h2><div><span id="st${n}" class="mut" style="margin-right:8px"></span><button class="pri" id="r${n}">Run</button></div></div><div id="c${n}"><p class="mut">Abhi run nahi hua.</p></div></div>`;
+    $('r'+n).onclick=()=>RUN[i]().catch(e=>{setStatus(n,'fail',esc(e.message));err(e);});});
+  show(1);
+}
+$('demo').onclick=()=>{$('src').value=DEMO;};
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{$('src').value=rd.result;};rd.readAsText(f);};
+$('runall').onclick=async()=>{
+  S.orig=$('src').value;if(!S.orig.trim())return alert('Pehle HTML paste/upload karo (ya Demo load).');
+  $('runall').disabled=true;$('allStatus').textContent='Running…';await window.__conn;
+  S.cleaned=S.fm=S.bp=S.app=S.ver=S.pkg=null;
+  try{for(let i=0;i<6;i++){$('allStatus').textContent=`Module ${i+1}/6: ${STEPS[i]}…`;if(i===0)S.orig=$('src').value;await RUN[i]();}
+    const ok=S.ver&&S.ver.passed;$('allStatus').innerHTML=ok?'<span class="ok">✔ Pipeline complete — verification PASS.</span>':'<span class="bad">Pipeline complete, par verification FAIL — ⑤ dekho.</span>';show(ok?4:5);}
+  catch(e){$('allStatus').innerHTML='<span class="bad">Stopped: '+esc(e.message)+'</span>';}
+  $('runall').disabled=false;};
+$('ghTok').value=GH.token||'';$('ghRepo').value=GH.repo||'';$('ghBranch').value=GH.branch||'main';$('ghCard').open=!GH.token;
+const ghErr=e=>{$('ghState').innerHTML='<span class="bad">'+esc(e.message)+'</span>';};
+$('ghConnect').onclick=()=>{window.__conn=connect().catch(ghErr);};
+$('ghForget').onclick=()=>{try{localStorage.removeItem(GK);}catch(e){}GH={};CONNECTED=false;REG={version:1,apps:{},functions:{}};LIBREG={version:1,libs:{}};$('ghTok').value='';updateGhState();};
+window.__conn=GH.token&&GH.repo?connect().catch(ghErr):Promise.resolve();updateGhState();
+buildChrome();
+</script>
+</body>
+</html>
